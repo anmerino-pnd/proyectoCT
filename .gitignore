@@ -1,0 +1,12 @@
+.env
+
+.venv/
+archivos_clave/
+data_pipeline/
+datos/
+notebooks/
+src/proyectoct.egg-info/
+__pycache__/
+
+
+quarto/
