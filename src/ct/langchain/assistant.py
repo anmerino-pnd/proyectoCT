@@ -21,12 +21,9 @@ from langchain.chains import create_retrieval_chain, create_history_aware_retrie
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
 class LangchainAssistant(Assistant):
-    """
-    Langchain Assistant class that integrates with Langchain components."
-    """
     def __init__(self, retriever):
-        self.model = LLM().model
-        self.llm = LLM().llm
+        llm_instance = LLM()
+        self.llm, self.model = llm_instance.OpenAI()  # O .Ollama()
         self.retriever = retriever
 
         self.history_file = "./datos/history.json"
@@ -53,6 +50,17 @@ class LangchainAssistant(Assistant):
         except (FileNotFoundError, json.JSONDecodeError):
             print(f"Advertencia: No se pudo cargar el historial desde {self.history_file}. Iniciando con historial vacío.")
             return {}
+        
+    def get_session_history(self, session_id: str) -> BaseChatMessageHistory:
+        """Obtiene el historial de una sesión específica y lo convierte en BaseChatMessageHistory."""
+        if session_id not in self.histories:
+            self.histories[session_id] = []
+
+        messages = [
+            HumanMessage(content=m["content"]) if m["type"] == "human" else AIMessage(content=m["content"])
+            for m in self.histories[session_id]
+        ]
+        return ChatMessageHistory(messages=messages)
         
     def save_full_history(self):
         """Guarda el diccionario COMPLETO de historiales en el archivo JSON."""
@@ -82,20 +90,12 @@ class LangchainAssistant(Assistant):
 
         self.histories[session_id].append(message)
 
-        # *** Guardado inmediato (como lo tenías antes) ***
-        # Desventaja: Lento por I/O en cada mensaje.
-        # Ventaja: Simple, datos siempre actualizados en disco.
+
         self.save_full_history()
-        # Considera mover self.save_full_history() fuera si quieres optimizar I/O
-        # y llamarlo, por ejemplo, solo al final de la función answer()
     
     def get_windowed_memory_for_session(self, session_id: str) -> BaseChatMessageHistory:
         """Obtiene el backend de memoria windowed (limitada) para una sesión específica."""
         if session_id not in self.session_memory:
-            # Creamos la memoria windowed si no existe para esta sesión
-            print(f"Creando memoria windowed (k={self.memory_window_size}) para sesión: {session_id}")
-            # Cargamos los últimos 'k * 2' mensajes del historial COMPLETO si existen
-            # para inicializar la memoria windowed con algo de contexto.
             initial_messages = []
             if session_id in self.histories:
                 full_session_history = self.histories[session_id]
@@ -186,42 +186,48 @@ class LangchainAssistant(Assistant):
         sean proporcionadas por el flujo de la cadena Langchain.
         """
         system_template_string = """
-            Eres un asistente de ventas experto de CT. Tu objetivo es responder la consulta del usuario basándote EXCLUSIVAMENTE en los fragmentos de CONTEXTO proporcionados y la lista de precios asignada al usuario.
+            Eres un asistente de ventas. Tu objetivo es responder la consulta del usuario basándote EXCLUSIVAMENTE en los fragmentos de CONTEXTO proporcionados y la lista de precios asignada al usuario.
 
             **Información Clave:**
-            - El usuario pertenece a la lista de precios identificada como: **{listaPrecio}**. Debes usar únicamente los precios correspondientes a esta lista que encuentres en el CONTEXTO.
+            - El usuario pertenece a la lista de precios identificada como: **{listaPrecio}**. 
+            - Debes usar únicamente los precios correspondientes a esta lista que encuentres en el CONTEXTO.
             - Contexto recuperado con información de productos:
             --- CONTEXTO ---
             {context}
             --- FIN CONTEXTO ---
 
-            **Instrucciones Detalladas:**
+            Si hay productos en oferta, menciónalos primero. 
+            Si no hay promociones, ofrece los productos normales con su precio correcto.  
+            Si el usuario pregunta por un producto específico, verifica si está en promoción y notifícalo.  
 
-            1.  **Análisis de Producto y Precio (Basado en CONTEXTO y {listaPrecio}):**
-                * Identifica el/los producto(s) relevantes del CONTEXTO para la consulta del usuario.
-                * Para cada producto, busca su información de precio **correspondiente a la lista {listaPrecio}** y sus datos de promoción (`precio_oferta`, `descuento`, `EnCompraDE`, `Unidades`, `limitadoA`, `fecha_fin`) dentro del CONTEXTO.
-                * **Prioridad:** Ofrece primero los productos que estén en promoción.
+            Para que un producto se considere en promoción debe tener las variables de precio_oferta, descuento, EnCompraDE y Unidades.
+            Luego, estas deben cumplir las siguientes condiciones:
 
-            2.  **Cálculo de Precio y Promoción:**
-                * **Regla 1 (Precio Oferta):** Si el producto tiene `precio_oferta` > 0.0 en el CONTEXTO, ESE es el precio final. Menciónalo claramente.
-                * **Regla 2 (Descuento):** Si `precio_oferta` es 0.0 Y `descuento` > 0.0, calcula el precio final aplicando el `descuento` al precio normal de la lista `{listaPrecio}` encontrado en el CONTEXTO. Muestra el precio original tachado y el precio con descuento (ej: ~~$1,200.00~~ **$1,080.00 (10% dto.)**).
-                * **Regla 3 (Cantidad):** Si `precio_oferta` es 0.0 Y `descuento` es 0.0 Y `EnCompraDE` > 0 Y `Unidades` > 0, menciona la promoción por volumen de forma sutil (ej: "Promoción especial: En la compra de {{EnCompraDE}} unidades, recibe {{Unidades}} adicional(es) sin costo."). El precio a mostrar es el normal de la lista `{listaPrecio}`. 
-                * **Precio Normal:** Si ninguna regla de promoción aplica, muestra el precio normal correspondiente a la lista `{listaPrecio}` encontrado en el CONTEXTO.
+            1. Si el producto tiene un precio_oferta mayor a 0.0:  
+                - Usa este valor como el precio final y ofrécelo al usuario. 
 
-            3.  **Formato Obligatorio de Respuesta:**
-                * Para CADA producto mencionado:
-                    * Usa la `clave` del producto (del CONTEXTO) para generar un hipervínculo: `https://ctonline.mx/buscar/productos?b=[CLAVE]` (Reemplaza [CLAVE] con la clave real).
-                    * **Nombre del Producto (con enlace):** `[Nombre del Producto](https://ctonline.mx/buscar/productos?b=[CLAVE])`
-                    * **Precio Final:** (Calculado según reglas, formato $X,XXX.XX)
-                    # --- CORRECCIÓN AQUÍ TAMBIÉN (Ejemplo de Promo) ---
-                    * **Promoción (si aplica):** (ej: "Oferta especial!", "15% de descuento", "Promo Compra {{EnCompraDE}} Lleva {{Unidades}}", etc.) 
-                    * **Detalles Adicionales (si aplica y están en CONTEXTO):** Menciona si la disponibilidad es `limitadoA` y la `fecha_fin` de la promoción.
-                * Presenta la información de manera clara, estructurada (usa viñetas o párrafos separados por producto).
-                * Sé conciso, evita explicaciones innecesarias. NO menciones explícitamente el nombre "{listaPrecio}" en la respuesta al usuario, solo úsala internamente para tus cálculos basados en el CONTEXTO.
+            2. Si el precio_oferta es 0, pero el descuento es mayor a 0.0%:  
+                - Aplica el descuento al precio que se encuentra en lista_precios y toma el precio correspondiente a la listaPrecio {listaPrecio}.  
+                - Muestra ese precio tachado y el nuevo precio con el descuento aplicado.  
 
-            4.  **Notas Finales:**
-                * Si el CONTEXTO no contiene información suficiente sobre un producto o su precio para la lista `{listaPrecio}`, indica que no puedes proporcionar esos detalles específicos. NO inventes información.
-                * Siempre finaliza tu respuesta con la frase: "Recuerda que la disponibilidad y los precios pueden cambiar sin previo aviso."
+            3. Si el precio_oferta y el descuento son 0.0, pero la variable EnCompraDE es mayor a 0 y Unidades es mayor a 0:  
+                - Menciona que hay una promoción especial al comprar cierta cantidad.  
+                - Usa un tono sutil, por ejemplo: "En compra de 'X' productos, recibirás 'Y' unidades gratis."  
+
+            Revisa también:  
+                - La variable limitadoA para indicar si la disponibilidad es limitada.  
+                - La variable fecha_fin para aclarar la vigencia de la promoción.  
+
+            Formato de respuesta, SIEMPRE:  
+            - Para cada producto que ofrezcas:
+                * Toma la 'clave' del producto
+                * Resalta el nombre poniendo su hipervinculo https://ctonline.mx/buscar/productos?b=clave
+            - Presenta la información de manera clara
+            - Los detalles y precios puntualizados y estructurados 
+            - Espacios entre productos.         
+            - Evita explicaciones largas o innecesarias.  
+
+            Siempre aclara al final que la disponibilidad y los precios pueden cambiar.  
 
             **Respuesta del Asistente:**
             """      
@@ -276,8 +282,6 @@ class LangchainAssistant(Assistant):
                 )
             else:
                  print(f"Advertencia: No se generó respuesta para sesión {session_id}, pregunta: {question}")
-                 # Podrías guardar un mensaje indicando que no hubo respuesta si lo deseas
-                 # self.add_message_to_full_history(session_id, "system", "[No Answer Generated]", metadata)
 
 
         except Exception as e:
@@ -286,7 +290,6 @@ class LangchainAssistant(Assistant):
             traceback.print_exc()
             # Guarda el error en el historial completo si quieres
             error_message = f"Error al procesar respuesta: {str(e)}"
-            self.add_message_to_full_history(session_id, "system", f"ERROR: {error_message}\n{traceback.format_exc()}", {})
             yield error_message # Envía error al usuario
 
     def make_metadata(self, token_cost_process: TokenCostProcess, duration: float = None) -> dict:

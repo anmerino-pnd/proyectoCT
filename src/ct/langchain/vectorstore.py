@@ -21,7 +21,7 @@ class LangchainVectorStore(VectorStore):
             allow_dangerous_deserialization=True
         )
         safe_kwargs = {
-            "k": 5,  
+            "k": 8,  
             "score_threshold": 0.8  
         }
         self.retriever = self.vectorstore.as_retriever(search_kwargs=safe_kwargs)
@@ -35,7 +35,7 @@ class LangchainVectorStore(VectorStore):
         if self.index_path:
             self.vectorstore.save_local(self.index_path)
         safe_kwargs = {
-            "k": 5,  
+            "k": 8,  
             "score_threshold": 0.8  
         }
         self.retriever = self.vectorstore.as_retriever(search_kwargs=safe_kwargs)
