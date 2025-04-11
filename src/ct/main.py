@@ -15,7 +15,7 @@ app.add_middleware(
 @app.get("/history/{user_id}")
 def handle_history(user_id: str):
     # Normalizar el user_id
-    user_id = user_id.lower()  # o user_id.upper()
+    user_id = user_id.lower() 
     return get_chat_history(user_id)
 
 
