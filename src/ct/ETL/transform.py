@@ -65,7 +65,7 @@ class Transform:
         products["detalles_precio"] = products["detalles_precio"].apply(json.loads)
         
         columns = ['idProductos', 'nombre', 'clave', 'categoria', 'marca', 'tipo',
-       'modelo', 'detalles', 'detalles_precio']
+       'modelo', 'detalles', 'detalles_precio', 'moneda']
         return products[columns]
     
     def clean_products(self) -> dict:
@@ -94,7 +94,7 @@ class Transform:
         
         columns = ['idProducto', 'nombre', 'producto', 'categoria', 'marca', 'tipo', 
                    'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
-                   'Unidades', 'limitadoA', 'fecha_inicio', 'fecha_fin', 'lista_precios']
+                   'Unidades', 'limitadoA', 'fecha_inicio', 'fecha_fin', 'lista_precios', 'moneda']
         data_sales = sales[columns].copy()
         for col in data_sales.columns:
             if col != 'idProducto':  

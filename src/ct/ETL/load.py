@@ -47,18 +47,27 @@ class Load:
         vector_store = FAISS.from_documents(docs, self.embeddings)
         return vector_store
     
-    def load(self):
-        # Load products and sales data into the vector store
-        product_docs = self.load_products()
-        sales_docs = self.load_sales()
-        
-        # Combine 
-        all_docs = product_docs + sales_docs
-
+    def products_vs(self):
+        # Load products 
+        products = self.load_products()
         # Create the vector store
-        vector_store = self.vector_store(all_docs)
+        vector_store = self.vector_store(products)
         # Save the vector store to disk
-        vector_store.save_local("faiss_vector_store")
+        vector_store.save_local("products_vector_store")
         return print("Vector store created and saved to disk.")
+    
+    def sales_products_vs(self):
+        # Load sales 
+        sales = self.load_sales()
+        # Create the vector store
+        vector_store = self.vector_store(sales)
+        # Read productos vector store
+        vector_store2 = FAISS.load_local("products_vector_store", self.embeddings, allow_dangerous_deserialization=True)
+        # Merge the two vector stores
+        vector_store.merge_from(vector_store2)
+        # Save the merged vector store to disk
+        vector_store.save_local("sales_products_vector_store")
+        return print("Merged vector store created and saved to disk.")
+        
     
     

@@ -72,7 +72,8 @@ class Extraction():
                     'listaPrecio', pre.listaPrecio,
                     'precio', pre.precio
                 )
-            ) AS detalles_precio
+            ) AS detalles_precio,
+            pre.idMoneda AS moneda
         FROM productos pro
         LEFT JOIN precio pre 
           ON pro.idProductos = pre.idProducto 
@@ -143,18 +144,19 @@ class Extraction():
             pros.fecha_inicio,
             pros.fecha_fin,
             JSON_UNQUOTE(
-                JSON_ARRAYAGG(
-                    DISTINCT JSON_OBJECT(
-                        'listaPrecio', pre.listaPrecio,
-                        'precio', pre.precio
-                    )
+            JSON_ARRAYAGG(
+                DISTINCT JSON_OBJECT(
+              'listaPrecio', pre.listaPrecio,
+              'precio', pre.precio
                 )
-            ) AS lista_precios  
+            )
+              ) AS lista_precios,
+            pre.idMoneda AS moneda
         FROM promociones pros
         INNER JOIN productos pro  
           ON pro.idProductos = pros.idProducto
         LEFT JOIN (
-            SELECT DISTINCT idProducto, listaPrecio, precio
+            SELECT DISTINCT idProducto, listaPrecio, precio, idMoneda
             FROM precio
         ) pre 
           ON pros.idProducto = pre.idProducto 
@@ -163,9 +165,10 @@ class Extraction():
         LEFT JOIN marcas m 
           ON pro.idMarca = m.idMarca
         WHERE pros.fecha_fin >= CURRENT_DATE
+        AND pro.descripcion_corta_icecat != ''
         GROUP BY pros.idProducto
         ORDER BY pros.importe ASC
-        limit 3
+        LIMIT 3
         ;"""
       return query 
 
@@ -208,7 +211,7 @@ class Extraction():
       'Token-api': tokenapi,
       'Token-ct': tokenct,
       'Cookie': cookie,
-      'Content-type': 'multipart/form-data; boundary={}'.format(boundary)
+      'Content-type': r'multipart/form-data; boundary={}'.format(boundary)
     }
     specs = {}
     try:
