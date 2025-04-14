@@ -1,6 +1,5 @@
 import os
 from langchain_community.vectorstores import FAISS
-from langchain_community.vectorstores import FAISS
 from ct.tools.vectorstore import VectorStore
 from ct.langchain.embedder import LangchainEmbedder
 

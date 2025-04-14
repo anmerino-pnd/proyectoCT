@@ -4,6 +4,7 @@ import time
 from typing import AsyncGenerator, Dict
 from datetime import datetime, timezone
 
+from ct.config import HISTORY_FILE
 from ct.openai.llm import LLM
 from ct.types import LLMAPIResponseError
 from ct.tools.assistant import Assistant
@@ -26,7 +27,7 @@ class LangchainAssistant(Assistant):
         self.llm, self.model = llm_instance.OpenAI()  # O .Ollama()
         self.retriever = retriever
 
-        self.history_file = "./datos/history.json"
+        self.history_file = HISTORY_FILE
         self._ensure_history_file()
         self.histories: Dict[str, list] = self.load_history()
 

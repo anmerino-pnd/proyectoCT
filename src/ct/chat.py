@@ -1,3 +1,4 @@
+from pathlib import Path
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from ct.openai.assistant import OpenAIAssistant
@@ -6,9 +7,11 @@ from langchain.schema import HumanMessage
 from typing import AsyncGenerator
 from ct.clients import Clients
 from pydantic import BaseModel
+from ct.config import DATA_DIR
 
 #assistant = OpenAIAssistant()
-rag = LangchainRAG(r"C:\Users\angel.merino\Documents\proyectoCT\datos\productos_promociones_CT")
+
+rag = LangchainRAG(DATA_DIR)
 assistant = rag.assistant
 clients = Clients()
 

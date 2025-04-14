@@ -1,7 +1,9 @@
 import os
 import json
+from pathlib import Path
 import openai as openai_api
 from dotenv import load_dotenv
+from ct.config import CLIENTES_FILE
 
 load_dotenv()
 
@@ -26,7 +28,6 @@ boundary: str = os.getenv('boundary')
 openai_api_key: str = os.getenv("OPENAI_API_KEY")
 openai = openai_api.OpenAI(api_key=openai_api_key)
 
-CLIENTES_FILE = r"C:\Users\angel.merino\Documents\proyectoCT\archivos_clave\lista_clientes.json"
 class Clients:
     @staticmethod
     def load_clients():
