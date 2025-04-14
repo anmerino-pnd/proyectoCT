@@ -239,6 +239,7 @@ class LangchainAssistant(Assistant):
 
         El usuario pertenece a la listaPrecio {listaPrecio}, así que usa exclusivamente los precios de esta lista. 
         No menciones la lista de precios en la respuesta, solo proporciona el precio final en formato de precio (por ejemplo, $1,000.00).  
+        Para el valor de la moneda, si moneda es 1, usa "MXN", si es 0, usa "USD".
 
         Si hay productos en oferta, menciónalos primero. 
         Si no hay promociones, ofrece los productos normales con su precio correcto.  
