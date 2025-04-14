@@ -34,18 +34,6 @@ def get_chat_history(user_id: str):
     return [{"role": "user" if isinstance(msg, HumanMessage) else "bot", "content": msg.content} for msg in history.messages]
 
 
-#async def async_chat_generator(request: QueryRequest) -> AsyncGenerator[str, None]:
-#    try:
-#        listaPrecio = clients.get_lista_precio(request.cliente_clave)
-#        if not listaPrecio:
-#            raise HTTPException(status_code=400, detail="Clave no válida. Verifique e intente de nuevo.")
-#        
-#        async for chunk in assistant.async_offer(request.user_query, request.user_id, listaPrecio):
-#            yield chunk  # Envía cada chunk al frontend de inmediato
-#            
-#    except Exception as e:
-#        yield f"Error: {str(e)}"
-
 async def async_chat_generator(request: QueryRequest) -> AsyncGenerator[str, None]:
     try:
         listaPrecio = clients.get_lista_precio(request.cliente_clave)
