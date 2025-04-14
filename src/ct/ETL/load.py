@@ -3,6 +3,7 @@ from ct.ETL.transform import Transform
 from langchain_openai import OpenAIEmbeddings
 from ct.clients import openai_api_key as api_key
 from langchain_community.vectorstores import FAISS
+from ct.config import PRODUCTS_VECTOR_PATH, SALES_PRODUCTS_VECTOR_PATH
 
 class Load:
     def __init__(self):
@@ -53,21 +54,21 @@ class Load:
         # Create the vector store
         vector_store = self.vector_store(products)
         # Save the vector store to disk
-        vector_store.save_local("products_vector_store")
-        return print("Vector store created and saved to disk.")
-    
+        vector_store.save_local(str(PRODUCTS_VECTOR_PATH))
+        print("Vector store created and saved to disk.")
+
     def sales_products_vs(self):
         # Load sales 
         sales = self.load_sales()
         # Create the vector store
         vector_store = self.vector_store(sales)
         # Read productos vector store
-        vector_store2 = FAISS.load_local("products_vector_store", self.embeddings, allow_dangerous_deserialization=True)
+        vector_store2 = FAISS.load_local(str(PRODUCTS_VECTOR_PATH), self.embeddings, allow_dangerous_deserialization=True)
         # Merge the two vector stores
         vector_store.merge_from(vector_store2)
         # Save the merged vector store to disk
-        vector_store.save_local("sales_products_vector_store")
-        return print("Merged vector store created and saved to disk.")
+        vector_store.save_local(str(SALES_PRODUCTS_VECTOR_PATH))
+        print("Merged vector store created and saved to disk.")
         
     
     

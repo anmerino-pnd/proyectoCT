@@ -258,6 +258,20 @@ wheels = [
 ]
 
 [[package]]
+name = "cloudscraper"
+version = "1.2.71"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pyparsing" },
+    { name = "requests" },
+    { name = "requests-toolbelt" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ac/25/6d0481860583f44953bd791de0b7c4f6d7ead7223f8a17e776247b34a5b4/cloudscraper-1.2.71.tar.gz", hash = "sha256:429c6e8aa6916d5bad5c8a5eac50f3ea53c9ac22616f6cb21b18dcc71517d0d3", size = 93261 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/81/97/fc88803a451029688dffd7eb446dc1b529657577aec13aceff1cc9628c5d/cloudscraper-1.2.71-py2.py3-none-any.whl", hash = "sha256:76f50ca529ed2279e220837befdec892626f9511708e200d48d5bb76ded679b0", size = 99652 },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1879,6 +1893,7 @@ name = "proyectoct"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "cloudscraper" },
     { name = "dotenv" },
     { name = "faiss-cpu" },
     { name = "fastapi", extra = ["standard"] },
@@ -1906,6 +1921,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cloudscraper", specifier = ">=1.2.71" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "faiss-cpu", specifier = ">=1.10.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.11" },

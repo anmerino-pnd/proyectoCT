@@ -5,6 +5,33 @@ import mysql.connector
 from mysql.connector import errorcode
 from ct.clients import ip, port, user, pwd, database, url, tokenapi, tokenct, cookie, dominio, boundary
 
+import cloudscraper # ¡Importa cloudscraper!
+import json
+import time
+import requests # Necesario para capturar excepciones específicas si cloudscraper las delega
+
+# --- Crea una instancia de cloudscraper ---
+# Nota: No usamos 'with' aquí de la misma forma que con requests.Session
+# Creamos una instancia que reutilizaremos.
+scraper = cloudscraper.create_scraper(
+    browser={ # Simula un navegador de forma más convincente
+        'browser': 'chrome',
+        'platform': 'windows',
+        'mobile': False
+    }
+    # Puedes añadir delay si cloudflare se queja de velocidad: delay=10
+)
+
+# --- Actualiza los headers del scraper ---
+# cloudscraper maneja su propio User-Agent, pero TÚ debes añadir tus tokens/cookies
+scraper.headers.update({
+    'Token-api': tokenapi,
+    'Token-ct': tokenct,
+    'Cookie': cookie
+    # 'User-Agent' será manejado por cloudscraper
+})
+
+
 class Extraction():
   def __init__(self):
     self.ip = ip
@@ -203,45 +230,52 @@ class Extraction():
       cursor.close()
       cnx.close()
   
+  def get_specifications_cloudscraper(self, claves: list) -> dict:
+      specs = {}
+      for clave in claves:
+          try:
+              payload = {'claveProducto': clave}
 
+              # --- Usa el scraper para hacer la solicitud POST ---
+              response = scraper.post(url, data=payload, timeout=45) # Aumentamos un poco el timeout por si el desafío tarda
 
+              
+              # --- Procesa la respuesta ---
+              # cloudscraper debería haber manejado el desafío y devolver 200 si tuvo éxito
+              if response.status_code == 200:
+                  try:
+                      json_response = response.json()
+                      specs[clave] = json_response
+                  except json.JSONDecodeError: # Puede ser json.JSONDecodeError o requests.exceptions.JSONDecodeError
+                      print(f"Advertencia: Respuesta 200 para {clave} no es JSON válido: {response.text[:200]}...")
+                      specs[clave] = {'error': 'Respuesta no JSON', 'status': 200, 'content': response.text}
+              # Si AÚN ASÍ da 403, cloudscraper no pudo resolver el desafío
+              elif response.status_code == 403:
+                  print(f"Error 403 (Forbidden) persistente para {clave} AÚN con cloudscraper.")
+                  print(f"Respuesta (inicio): {response.text[:500]}...")
+                  specs[clave] = {'error': 'Bloqueo Cloudflare (cloudscraper falló)', 'status': 403}
+              else:
+                  print(f"Error {response.status_code} para el producto {clave}: {response.text[:200]}...")
+                  specs[clave] = {'error': f'HTTP Error {response.status_code}', 'status': response.status_code}
+
+              time.sleep(1) # Damos un respiro un poco mayor entre llamadas
+
+          # cloudscraper puede lanzar excepciones de requests o propias
+          except requests.exceptions.Timeout:
+              print(f"Timeout error para el producto {clave} con cloudscraper")
+              specs[clave] = {'error': 'Timeout (cloudscraper)', 'status': None}
+          except requests.exceptions.RequestException as e:
+              print(f"Error de red/conexión para el producto {clave} con cloudscraper: {e}")
+              specs[clave] = {'error': f'RequestException (cloudscraper): {e}', 'status': None}
+          # Capturar excepciones específicas de cloudscraper si es necesario
+          except cloudscraper.exceptions.CloudflareException as e:
+              print(f"Error específico de Cloudflare no resuelto para {clave}: {e}")
+              specs[clave] = {'error': f'CloudflareException: {e}', 'status': None}
+          except Exception as e:
+              print(f"Ocurrió un error inesperado procesando {clave} con cloudscraper: {e}")
+              specs[clave] = {'error': f'Error inesperado (cloudscraper): {e}', 'status': None}
+
+      return specs
+  
   def get_specifications(self, claves: list) -> dict:
-    conn = http.client.HTTPSConnection(dominio)
-    headers = {
-      'Token-api': tokenapi,
-      'Token-ct': tokenct,
-      'Cookie': cookie,
-      'Content-type': r'multipart/form-data; boundary={}'.format(boundary)
-    }
-    specs = {}
-    try:
-        for clave in claves:
-            # Crear el cuerpo de la solicitud de una sola vez con un formato más limpio
-            body = (
-                f'--{boundary}\r\n'
-                f'Content-Disposition: form-data; name="claveProducto"\r\n'
-                f'Content-Type: text/plain\r\n'
-                f'\r\n'
-                f'{clave}\r\n'
-                f'--{boundary}--\r\n'
-            ).encode('utf-8')  # Convertir todo a bytes de una vez
-            
-            conn.request("POST", "/producto/obtenerFichaTecnicaXml", body, headers)
-            res = conn.getresponse()
-            if res.status == 200:
-                response_data = res.read()  # Leer los datos de la respuesta
-                json_response = json.loads(response_data.decode('utf-8'))
-                specs[clave] = json_response                
-            else:
-                print(f"Error {res.status} para el producto {clave}: {res.read().decode('utf-8')}")
-        return specs
-    except http.client.HTTPException as e:
-        print(f"Error en la conexión HTTP para el producto {clave}: {e}")
-    except ConnectionError as e:
-        print(f"Error de conexión para el producto {clave}: {e}")
-    except TimeoutError as e:
-        print(f"La solicitud superó el tiempo límite para el producto {clave}: {e}")
-    except Exception as e:
-        print(f"Ocurrió un error inesperado para el producto {clave}: {e}")
-    finally:
-        conn.close()
+    return self.get_specifications_cloudscraper(claves) 
