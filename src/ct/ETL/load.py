@@ -15,15 +15,13 @@ class Load:
  
     def load_products(self):
         products = self.clean_data.clean_products()  # Ahora sabemos que es una lista
-        excluded_columns = ['idProductos']
         
         product = products[0]  # Tomamos el primer elemento directamente
-        product_features = [column for column in product.keys() if column not in excluded_columns]
+        product_features = [column for column in product.keys()]
 
         docs = [
             Document(
-                page_content=self.build_content(product, product_features),
-                metadata={'idProductos': product['idProductos']}
+                page_content=self.build_content(product, product_features)
             )
             for product in products  # Iteramos sobre la lista directamente
         ]
@@ -37,8 +35,7 @@ class Load:
         sales_features = [column for column in sale.keys()]
         docs = [
             Document(
-                page_content=self.build_content(sale, sales_features),
-                metadata={"Producto": sale["producto"]}
+                page_content=self.build_content(sale, sales_features)
             )
             for sale in sales
         ]

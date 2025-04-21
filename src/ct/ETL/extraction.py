@@ -84,7 +84,6 @@ class Extraction():
   def product_query(self, id):
      query = f"""
         SELECT 
-            pro.idProductos, 
             pro.descripcion_corta_icecat AS nombre,  
             clave,  
             cat.nombre AS categoria,
@@ -151,10 +150,9 @@ class Extraction():
 
   def current_sales_query(self) -> str:
       query = f"""
-        SELECT 
-            pros.idProducto,
+        SELECT
             pro.descripcion_corta_icecat AS nombre,  
-            pros.producto,  
+            pros.producto as clave,  
             cat.nombre AS categoria,
             m.nombre  AS marca,
             pro.tipo, 

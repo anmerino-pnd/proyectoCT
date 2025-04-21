@@ -4,9 +4,8 @@ import time
 from typing import AsyncGenerator, Dict
 from datetime import datetime, timezone
 
+from ct.llm import LLM
 from ct.config import HISTORY_FILE
-from ct.openai.llm import LLM
-from ct.types import LLMAPIResponseError
 from ct.tools.assistant import Assistant
 from ct.tokens import TokenCostProcess, CostCalcAsyncHandler
 
@@ -186,52 +185,6 @@ class LangchainAssistant(Assistant):
         Este template espera que las variables {listaPrecio}, {context}, y {input}
         sean proporcionadas por el flujo de la cadena Langchain.
         """
-        system_template_string = """
-            Eres un asistente de ventas. Tu objetivo es responder la consulta del usuario basándote EXCLUSIVAMENTE en los fragmentos de CONTEXTO proporcionados y la lista de precios asignada al usuario.
-
-            **Información Clave:**
-            - El usuario pertenece a la lista de precios identificada como: **{listaPrecio}**. 
-            - Debes usar únicamente los precios correspondientes a esta lista que encuentres en el CONTEXTO.
-            - Contexto recuperado con información de productos:
-            --- CONTEXTO ---
-            {context}
-            --- FIN CONTEXTO ---
-
-            Si hay productos en oferta, menciónalos primero. 
-            Si no hay promociones, ofrece los productos normales con su precio correcto.  
-            Si el usuario pregunta por un producto específico, verifica si está en promoción y notifícalo.  
-
-            Para que un producto se considere en promoción debe tener las variables de precio_oferta, descuento, EnCompraDE y Unidades.
-            Luego, estas deben cumplir las siguientes condiciones:
-
-            1. Si el producto tiene un precio_oferta mayor a 0.0:  
-                - Usa este valor como el precio final y ofrécelo al usuario. 
-
-            2. Si el precio_oferta es 0, pero el descuento es mayor a 0.0%:  
-                - Aplica el descuento al precio que se encuentra en lista_precios y toma el precio correspondiente a la listaPrecio {listaPrecio}.  
-                - Muestra ese precio tachado y el nuevo precio con el descuento aplicado.  
-
-            3. Si el precio_oferta y el descuento son 0.0, pero la variable EnCompraDE es mayor a 0 y Unidades es mayor a 0:  
-                - Menciona que hay una promoción especial al comprar cierta cantidad.  
-                - Usa un tono sutil, por ejemplo: "En compra de 'X' productos, recibirás 'Y' unidades gratis."  
-
-            Revisa también:  
-                - La variable limitadoA para indicar si la disponibilidad es limitada.  
-                - La variable fecha_fin para aclarar la vigencia de la promoción.  
-
-            Formato de respuesta, SIEMPRE:  
-            - Para cada producto que ofrezcas:
-                * Toma la 'clave' del producto
-                * Resalta el nombre poniendo su hipervinculo https://ctonline.mx/buscar/productos?b=clave
-            - Presenta la información de manera clara
-            - Los detalles y precios puntualizados y estructurados 
-            - Espacios entre productos.         
-            - Evita explicaciones largas o innecesarias.  
-
-            Siempre aclara al final que la disponibilidad y los precios pueden cambiar.  
-
-            **Respuesta del Asistente:**
-            """      
         
         tpl = (
         """
@@ -265,7 +218,7 @@ class LangchainAssistant(Assistant):
 
         Formato de respuesta, SIEMPRE:  
         - Para cada producto que ofrezcas:
-            * Toma la 'clave' del producto
+            * Toma el valor de la variable 'clave' 
             * Resalta el nombre poniendo su hipervinculo https://ctonline.mx/buscar/productos?b=clave
         - Presenta la información de manera clara
         - Los detalles y precios puntualizados y estructurados 
