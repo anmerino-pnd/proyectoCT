@@ -64,7 +64,7 @@ class Transform:
         products['detalles'] = products['detalles'].str.strip()
         products["detalles_precio"] = products["detalles_precio"].apply(json.loads)
         
-        columns = ['idProductos', 'nombre', 'clave', 'categoria', 'marca', 'tipo',
+        columns = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
        'modelo', 'detalles', 'detalles_precio', 'moneda']
         return products[columns]
     
@@ -92,26 +92,25 @@ class Transform:
         sales['detalles'] = sales['descripcion'] + ' ' + sales['descripcion_corta'] + ' ' + sales['palabrasClave']
         sales['detalles'] = sales['detalles'].str.strip()
         
-        columns = ['idProducto', 'nombre', 'producto', 'categoria', 'marca', 'tipo', 
+        columns = ['nombre', 'clave', 'categoria', 'marca', 'tipo', 
                    'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
                    'Unidades', 'limitadoA', 'fecha_inicio', 'fecha_fin', 'lista_precios', 'moneda']
         data_sales = sales[columns].copy()
         for col in data_sales.columns:
-            if col != 'idProducto':  
-                data_sales[col] = data_sales[col].astype(str)
+            data_sales[col] = data_sales[col].astype(str)
         data_sales['descuento'] = data_sales['descuento'].apply(lambda x: f"{x}%" if x.replace('.', '', 1).isdigit() else x)
         return data_sales
         
     def clean_sales(self) -> dict:
         sales = self.transform_sales()
-        claves = sales['producto'].unique().tolist()
+        claves = sales['clave'].unique().tolist()
         specs = self.data.get_specifications(claves)
         fichas_tecnicas = self.transform_specifications(specs)
         claves_fichas = fichas_tecnicas.keys()
         sales_dict : dict = sales.to_dict(orient='records')
         for sale in sales_dict:
-            if sale['producto'] in claves_fichas:
-                ficha = fichas_tecnicas[sale['producto']]
+            if sale['clave'] in claves_fichas:
+                ficha = fichas_tecnicas[sale['clave']]
                 sale['fichaTecnica'] = ficha['fichaTecnica']
                 sale['resumen'] = ficha['resumen']
         pprint.pprint(sales_dict[0].keys(), indent=4)
