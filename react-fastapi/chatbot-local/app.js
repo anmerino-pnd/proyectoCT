@@ -1,7 +1,7 @@
 // app.js
 
 // Configura la URL base de tu API backend - Ahora se espera que venga de la configuración
-let API_BASE = "http://10.10.251.160:8000"; // Valor por defecto (puede ser sobreescrito por config)
+let API_BASE = "https://10.10.251.160:8000"; // Valor por defecto (puede ser sobreescrito por config)
 
 let userId = null;
 let userKey = null;

@@ -9,7 +9,7 @@ class CTAIWidget {
         // 1. Validar configuración ANTES de hacer nada más
         const settings = {
             // Usa el apiBase de la config si existe, si no, usa el por defecto
-            apiBase: config.apiBase || "http://10.10.251.160:8000",
+            apiBase: config.apiBase || "https://10.10.251.160:8000",
             userId: config.userId,
             userKey: config.userKey,
             containerId: config.containerId || "ctai-widget-root",
