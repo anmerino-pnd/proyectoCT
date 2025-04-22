@@ -1,7 +1,7 @@
 // app.js
 
 // Configura la URL base de tu API backend - Ahora se espera que venga de la configuración
-let API_BASE = "http://REDACTED_HOST:8000"; // Valor por defecto (puede ser sobreescrito por config)
+let API_BASE = "https://REDACTED_HOST:8000"; // Valor por defecto (puede ser sobreescrito por config)
 
 let userId = null;
 let userKey = null;
