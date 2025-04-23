@@ -219,7 +219,7 @@ class LangchainAssistant(Assistant):
         Formato de respuesta, SIEMPRE:  
         - Para cada producto que ofrezcas:
             * Toma el valor de la variable 'clave' 
-            * Resalta el nombre poniendo su hipervinculo https://ctonline.mx/buscar/productos?b=clave
+            * Resalta el nombre poniendo su hipervinculo https://ctdev.ctonline.mx/buscar/productos?b=clave
         - Presenta la información de manera clara
         - Los detalles y precios puntualizados y estructurados 
         - Espacios entre productos.         
