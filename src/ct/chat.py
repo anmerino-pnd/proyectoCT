@@ -18,7 +18,7 @@ clients = Clients()
 class QueryRequest(BaseModel):
     user_query: str
     user_id: str
-    cliente_clave: str 
+    listaPrecio: str 
 
 
 # En chat.py
@@ -35,16 +35,8 @@ def get_chat_history(user_id: str):
 
 
 async def async_chat_generator(request: QueryRequest) -> AsyncGenerator[str, None]:
-    try:
-        listaPrecio = clients.get_lista_precio(request.cliente_clave)
-        if not listaPrecio:
-            raise HTTPException(status_code=400, detail="Clave no válida. Verifique e intente de nuevo.")
-        
-        async for chunk in rag.run(request.user_query, request.user_id, listaPrecio):
+        async for chunk in rag.run(request.user_query, request.user_id, request.listaPrecio):
             yield chunk  # Envía cada chunk al frontend de inmediato
-            
-    except Exception as e:
-        yield f"Error: {str(e)}"
 
 
 async def async_chat_endpoint(request: QueryRequest):

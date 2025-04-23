@@ -1,13 +1,9 @@
-// app.js
-
 // Configura la URL base de tu API backend - Ahora se espera que venga de la configuración
 let API_BASE = "https://10.10.251.160:8000"; // Valor por defecto (puede ser sobreescrito por config)
 
 let userId = null;
 let userKey = null;
 
-// NOTA: La comprobación inicial de marked no es estrictamente necesaria aquí
-// ya que sdk.js lo carga y appendMessage comprueba antes de usar.
 
 // Configurar el textarea que crece automáticamente
 function setupAutoResizeTextarea() {
@@ -25,10 +21,6 @@ function setupAutoResizeTextarea() {
      console.log("CTAI App: Auto-resize setup done.");
 }
 
-// Función para alternar la visibilidad del chat (Expuesta globalmente por SDK)
-// No necesitamos definirla aquí si el SDK ya la maneja en el global CTAIChat
-// Pero si quisieras llamarla desde app.js, debería estar aquí.
-// En este setup, el SDK manejará el toggle.
 
 // Función para añadir un mensaje al chat
 function appendMessage(sender, message) {
@@ -210,7 +202,7 @@ async function sendMessage() {
             body: JSON.stringify({
                 user_query: message,
                 user_id: userId,
-                cliente_clave: userKey
+                listaPrecio: userKey
             })
         });
 
