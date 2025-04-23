@@ -18,7 +18,7 @@ clients = Clients()
 class QueryRequest(BaseModel):
     user_query: str
     user_id: str
-    listaPrecio: str 
+    cliente_clave: str 
 
 
 # En chat.py
@@ -35,7 +35,7 @@ def get_chat_history(user_id: str):
 
 
 async def async_chat_generator(request: QueryRequest) -> AsyncGenerator[str, None]:
-        async for chunk in rag.run(request.user_query, request.user_id, request.listaPrecio):
+        async for chunk in rag.run(request.user_query, request.user_id, request.cliente_clave):
             yield chunk  # Envía cada chunk al frontend de inmediato
 
 

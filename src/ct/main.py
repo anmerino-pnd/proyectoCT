@@ -6,7 +6,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://ctdev.ctonline.mx"],  
+    allow_origins=["https://ctdev.ctonline.mx/"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -21,7 +21,7 @@ def handle_history(user_id: str):
 
 @app.post("/chat")
 async def handle_chat(request: QueryRequest):
-    print(f"Recibido: user_query={request.user_query}, user_id={request.user_id}, listaPrecio={request.listaPrecio}")
+    print(f"Recibido: user_query={request.user_query}, user_id={request.user_id}, listaPrecio={request.cliente_clave}")
     return await async_chat_endpoint(request)
 
 if __name__ == "__main__":
