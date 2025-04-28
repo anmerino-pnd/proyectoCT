@@ -48,8 +48,16 @@ class Load:
     def products_vs(self):
         # Load products 
         products = self.load_products()
+        
+        # --- Batch size ---
+        batch_size = 1000
         # Create the vector store
-        vector_store = self.vector_store(products)
+        total_docs = len(products)
+        
+        vector_store = self.vector_store(products[0])
+        for i in range(1, total_docs, batch_size):
+            batch = products[i:i + batch_size]
+            vector_store.add_documents(batch)
         # Save the vector store to disk
         vector_store.save_local(str(PRODUCTS_VECTOR_PATH))
         print("Vector store created and saved to disk.")
