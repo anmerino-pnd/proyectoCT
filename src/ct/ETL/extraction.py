@@ -235,7 +235,7 @@ class Extraction():
               payload = {'claveProducto': clave}
 
               # --- Usa el scraper para hacer la solicitud POST ---
-              response = scraper.post(url, data=payload, timeout=45) # Aumentamos un poco el timeout por si el desafío tarda
+              response = scraper.post(url, data=payload) # Aumentamos un poco el timeout por si el desafío tarda
 
               
               # --- Procesa la respuesta ---
@@ -256,7 +256,6 @@ class Extraction():
                   print(f"Error {response.status_code} para el producto {clave}: {response.text[:200]}...")
                   specs[clave] = {'error': f'HTTP Error {response.status_code}', 'status': response.status_code}
 
-              time.sleep(0.1) # Damos un respiro un poco mayor entre llamadas
 
           # cloudscraper puede lanzar excepciones de requests o propias
           except requests.exceptions.Timeout:

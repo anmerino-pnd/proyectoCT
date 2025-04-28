@@ -1,15 +1,10 @@
-let API_BASE = "http://10.10.251.160:8000"; 
-
+let API_BASE = "http://10.10.251.160:8000";
 let userId = null;
 let userKey = null;
 
-
 function setupAutoResizeTextarea() {
     const textarea = document.getElementById('ctai-user-input');
-    if (!textarea) {
-         console.warn("CTAI App: Textarea #ctai-user-input no encontrado para auto-resize.");
-        return; 
-    }
+    if (!textarea) return;
     textarea.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = (this.scrollHeight) + 'px';
@@ -19,252 +14,300 @@ function setupAutoResizeTextarea() {
 
 function appendMessage(sender, message) {
     const chatMessages = document.getElementById("ctai-chat-messages");
-    if (!chatMessages) {
-        console.error("CTAI App: Contenedor de mensajes #ctai-chat-messages no encontrado.");
-        return;
-    }
+    if (!chatMessages) return;
     const msgDiv = document.createElement("div");
     msgDiv.classList.add(sender === "user" ? "user-message" : "bot-message");
-    msgDiv.textContent = message; 
-
+    msgDiv.textContent = message;
     if (sender === "bot") {
         requestAnimationFrame(() => {
-            if (typeof marked !== "undefined") {
-                try {
-                    msgDiv.innerHTML = marked.parse(message);
-                } catch (e) {
-                    console.error("CTAI App: Error al parsear Markdown:", e);
-                    msgDiv.textContent = message; // Fallback a texto plano
-                }
-            } else {
-                 console.warn("CTAI App: marked library not available for bot message rendering.");
-            }
+             if (typeof marked !== "undefined") {
+                 try {
+                     if (msgDiv.parentNode) {
+                         msgDiv.innerHTML = marked.parse(message);
+                     } else {}
+                 } catch (e) {
+                     msgDiv.textContent = message;
+                 }
+             } else {}
         });
     }
-
     chatMessages.appendChild(msgDiv);
-
     requestAnimationFrame(() => {
         const container = document.getElementById("ctai-messages-container");
         if(container) container.scrollTop = container.scrollHeight;
-        else console.warn("CTAI App: Contenedor de scroll #ctai-messages-container no encontrado.");
+        else {}
     });
 }
 
 function initializeChatbotData() {
     if (!window.CTAI_CONFIG) {
-      console.error("CTAI App: Configuración (window.CTAI_CONFIG) no encontrada.");
+      const chatMessages = document.getElementById("ctai-chat-messages");
+       if (chatMessages) {
+           chatMessages.innerHTML = "<div class='bot-message'>Error crítico: Configuración faltante.</div>";
+       }
       return false;
     }
-
     userId = window.CTAI_CONFIG.userId;
     userKey = window.CTAI_CONFIG.userKey;
-    
     API_BASE = window.CTAI_CONFIG.apiBase || API_BASE;
-
     if (!userId || !userKey) {
-        console.error("CTAI App: Configuración incompleta. Faltan userId o userKey.");
+        const chatMessages = document.getElementById("ctai-chat-messages");
+        if (chatMessages) {
+            chatMessages.innerHTML = "<div class='bot-message'>Error crítico: userId o userKey faltantes en la configuración.</div>";
+        }
         return false;
     }
     return true;
 }
 
-
 async function loadHistory() {
-    if (!userId) {
-        console.warn("CTAI App: Intento de cargar historial sin userId.");
+    if (!userId || !API_BASE) {
+        appendMessage("bot", "Error: No se pudo cargar la configuración para obtener el historial.");
         return;
     }
+    const chatMessages = document.getElementById("ctai-chat-messages");
+    if (chatMessages) {
+        chatMessages.innerHTML = "";
+        appendMessage("bot", "Cargando historial...");
+    } else {}
     try {
         const response = await fetch(`${API_BASE}/history/${userId}`);
-
+        if (chatMessages) chatMessages.innerHTML = "";
         if (!response.ok) {
-             const errorText = await response.text();
-             console.error("CTAI App: Error en la respuesta del historial:", response.status, errorText);
-             let errorMessage = errorText;
-             try {
-                 const errorJson = JSON.parse(errorText);
-                 if (errorJson.detail) errorMessage = errorJson.detail; 
-             } catch (e) {
-                 
-             }
+            const errorText = await response.text();
+            let errorMessage = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                if (errorJson.detail) errorMessage = errorJson.detail;
+            } catch (e) {}
+            appendMessage("bot", `Error al cargar historial: ${errorMessage || 'Error desconocido'}`);
             throw new Error(`HTTP error! status: ${response.status}. ${errorMessage}`);
         }
-
         const history = await response.json();
-
-        const chatMessages = document.getElementById("ctai-chat-messages");
-        if (!chatMessages) return;
-        chatMessages.innerHTML = ""; 
-
         if (!Array.isArray(history) || history.length === 0) {
-            appendMessage("bot", "¡Hola! ¿En qué puedo ayudarte hoy?"); 
+            appendMessage("bot", "¡Hola! ¿En qué puedo ayudarte hoy?");
             return;
         }
-
         history.forEach(msg => {
             if (msg && msg.role && msg.content) {
                 appendMessage(msg.role === "user" ? "user" : "bot", msg.content);
-            } else {
-                 console.warn("CTAI App: Mensaje de historial con formato inesperado:", msg);
-            }
+            } else {}
         });
     } catch (error) {
-        console.error("CTAI App: Error cargando el historial:", error);
-        appendMessage("bot", "No se pudo cargar el historial de mensajes.");
+        const chatMessages = document.getElementById("ctai-chat-messages");
+         if (chatMessages && chatMessages.innerHTML === "") {
+             appendMessage("bot", "No se pudo cargar el historial de mensajes.");
+         } else if (chatMessages && chatMessages.innerHTML.includes("Cargando historial")) {
+             chatMessages.innerHTML = "";
+              appendMessage("bot", "No se pudo cargar el historial de mensajes.");
+         } else {}
     }
 }
 
 function showSpinner() {
     const chatMessages = document.getElementById('ctai-chat-messages');
     if (!chatMessages) return;
-    const existingSpinner = document.getElementById('typing-spinner');
-    if (existingSpinner) return; 
-
+    const existingSpinner = chatMessages.querySelector('.typing-indicator');
+    if (existingSpinner) return;
     const spinner = document.createElement('div');
-    spinner.id = 'typing-spinner';
-    spinner.className = 'typing-spinner'; 
-    spinner.style.transform = 'translateZ(0)'; 
+    spinner.className = 'typing-indicator';
+    spinner.innerHTML = '<span></span><span></span><span></span>';
     chatMessages.appendChild(spinner);
+     requestAnimationFrame(() => {
+         const container = document.getElementById("ctai-messages-container");
+         if(container) container.scrollTop = container.scrollHeight;
+     });
 }
 
 function hideSpinner() {
-    const spinner = document.getElementById('typing-spinner');
+    const chatMessages = document.getElementById('ctai-chat-messages');
+    if (!chatMessages) return;
+    const spinner = chatMessages.querySelector('.typing-indicator');
     if (spinner) {
-        spinner.style.opacity = '0'; 
-        requestAnimationFrame(() => {
-             setTimeout(() => spinner.remove(), 300); 
-        });
+        spinner.remove();
     }
 }
 
 async function sendMessage() {
     const userInput = document.getElementById('ctai-user-input');
-    if (!userInput) {
-        console.error("CTAI App: Input de usuario #ctai-user-input no encontrado.");
-        return;
-    }
+    if (!userInput) return;
     const message = userInput.value.trim();
-
-    if (!message || !userId || !userKey) {
-        console.warn("CTAI App: Intento de enviar mensaje sin datos completos:", { message, userId, userKey });
+    if (!message || !userId || !userKey || !API_BASE) {
+        appendMessage("bot", "Error: Faltan datos de usuario o configuración de API para enviar el mensaje.");
         return;
     }
-
     appendMessage('user', message);
-    userInput.value = ''; 
-    userInput.style.height = 'auto'; 
-
+    userInput.value = '';
+    userInput.style.height = 'auto';
     showSpinner();
     let spinnerVisible = true;
-
     try {
         const response = await fetch(`${API_BASE}/chat`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 user_query: message,
                 user_id: userId,
-                listaPrecio: userKey
+                cliente_clave: userKey
             })
         });
-
         if (!response.ok) {
-             const errorText = await response.text();
-             console.error("CTAI App: Error en respuesta del chat:", response.status, errorText);
-              let errorMessage = errorText;
-              try {
-                  const errorJson = JSON.parse(errorText);
-                  if (errorJson.detail) errorMessage = errorJson.detail;
-              } catch (e) {} // Ignorar error de parseo
-             throw new Error(errorMessage || `HTTP error ${response.status}`);
+            const errorText = await response.text();
+            let errorMessage = errorText;
+            try {
+                const errorJson = JSON.parse(errorText);
+                if (errorJson.detail) errorMessage = errorJson.detail;
+            } catch (e) {}
+            if (spinnerVisible) hideSpinner();
+            spinnerVisible = false;
+            appendMessage('bot', `Error al enviar mensaje: ${errorMessage || 'Error desconocido'}`);
+            throw new Error(errorMessage || `HTTP error ${response.status}`);
         }
-
         const chatMessages = document.getElementById('ctai-chat-messages');
         const msgDiv = document.createElement('div');
         msgDiv.classList.add('bot-message');
-        chatMessages.appendChild(msgDiv);
-
+        if (chatMessages) {
+             chatMessages.appendChild(msgDiv);
+        } else {
+             if (spinnerVisible) hideSpinner();
+             return;
+        }
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let botResponse = '';
-        let firstChunkReceived = false;
-
         while (true) {
             const { done, value } = await reader.read();
-
-            if (done) {
-                break;
-            }
-
+            if (done) break;
             const chunk = decoder.decode(value, { stream: true });
-
-            if (!firstChunkReceived && chunk.trim().length > 0) {
+            if (spinnerVisible && chunk.trim().length > 0) {
                 hideSpinner();
                 spinnerVisible = false;
-                firstChunkReceived = true;
             }
-
             botResponse += chunk;
-
             if (typeof marked !== 'undefined') {
-                msgDiv.innerHTML = marked.parse(botResponse);
+                 if (msgDiv.parentNode) {
+                      msgDiv.innerHTML = marked.parse(botResponse);
+                 } else {
+                      msgDiv.textContent = botResponse;
+                 }
             } else {
                 msgDiv.textContent = botResponse;
             }
-
             requestAnimationFrame(() => {
                 const container = document.getElementById("ctai-messages-container");
-                if(container) container.scrollTop = container.scrollHeight;
+                 if(container) container.scrollTop = container.scrollHeight;
             });
         }
-
-        if (spinnerVisible) { // Ocultar si no hubo chunks
-            hideSpinner();
-        }
-
+        if (spinnerVisible) hideSpinner();
     } catch (error) {
-        console.error('CTAI App: Error en sendMessage:', error);
         if (spinnerVisible) hideSpinner();
         appendMessage('bot', `Error al obtener respuesta: ${error.message || 'Error desconocido'}`);
+    }
+}
+
+async function deleteConversation() {
+    if (!userId || !API_BASE) {
+        appendMessage("bot", "Error: No se pudo eliminar la conversación debido a configuración faltante.");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/history/${userId}`, { method: 'DELETE' });
+        if (response.status === 204 || response.status === 200) {
+            const chatMessages = document.getElementById("ctai-chat-messages");
+            if (chatMessages) {
+                chatMessages.innerHTML = "";
+                appendMessage("bot", "¡Hola! ¿En qué puedo ayudarte hoy?");
+            } else {}
+        } else if (response.status >= 400) {
+             const errorDetail = await response.text();
+             appendMessage("bot", `Error al intentar eliminar la conversación: ${errorDetail || 'Error desconocido'}`);
+        } else {
+             appendMessage("bot", "La solicitud de eliminación tuvo un resultado inesperado.");
+        }
+    } catch (error) {
+        appendMessage("bot", `Error de conexión al intentar eliminar la conversación: ${error.message}`);
+    }
+}
+
+// --- Funciones para el Modal de Confirmación ---
+function showConfirmModal(message, onConfirm, onCancel) {
+    if (document.querySelector('.modal-overlay')) return;
+    const overlay = document.createElement('div');
+    overlay.classList.add('modal-overlay');
+    const modalBox = document.createElement('div');
+    modalBox.classList.add('modal-box');
+    const messagePara = document.createElement('p');
+    messagePara.textContent = message;
+    const buttonsDiv = document.createElement('div');
+    buttonsDiv.classList.add('modal-buttons');
+    const confirmButton = document.createElement('button');
+    confirmButton.classList.add('confirm-button');
+    confirmButton.textContent = 'Sí, Eliminar';
+    const cancelButton = document.createElement('button');
+    cancelButton.classList.add('cancel-button');
+    cancelButton.textContent = 'Cancelar';
+    buttonsDiv.appendChild(confirmButton);
+    buttonsDiv.appendChild(cancelButton);
+    modalBox.appendChild(messagePara);
+    modalBox.appendChild(buttonsDiv);
+    overlay.appendChild(modalBox);
+    document.body.appendChild(overlay);
+    overlay.offsetHeight; // Trigger reflow
+    overlay.classList.add('visible');
+    confirmButton.addEventListener('click', () => {
+        onConfirm();
+        hideConfirmModal();
+    });
+    cancelButton.addEventListener('click', () => {
+        if(onCancel) onCancel();
+        hideConfirmModal();
+    });
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+            if(onCancel) onCancel();
+            hideConfirmModal();
+        }
+    });
+}
+
+function hideConfirmModal() {
+    const overlay = document.querySelector('.modal-overlay');
+    if (overlay) {
+        overlay.classList.remove('visible');
+        overlay.addEventListener('transitionend', () => {
+            overlay.remove();
+        }, { once: true });
     }
 }
 
 
 window.initCTAIChatApp = function() {
     if (!initializeChatbotData()) {
-        console.error("CTAI App: Falló la inicialización de datos. La aplicación no puede continuar.");
-         appendMessage("bot", "Error crítico: Faltan datos de configuración (userId o userKey).");
         return;
     }
-
-   
     setupAutoResizeTextarea();
-
-
     const userInput = document.getElementById('ctai-user-input');
     const sendButton = document.getElementById("ctai-send-button");
-
+    const deleteButton = document.getElementById("ctai-delete-history-button");
     if (userInput && sendButton) {
         userInput.addEventListener("keydown", function(event) {
             if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault(); 
-                 sendMessage();
+                event.preventDefault();
+                sendMessage();
             }
         });
-
-
         sendButton.addEventListener("click", function() {
             sendMessage();
         });
-
-    } else {
-         console.error("CTAI App: Input de usuario o botón de enviar no encontrados al intentar configurar listeners.");
-    }
-
+    } else {}
+    if (deleteButton) {
+        deleteButton.addEventListener("click", function() {
+            showConfirmModal(
+                "¿Estás seguro de que quieres eliminar todo el historial de conversación? Esta acción no se puede deshacer.",
+                deleteConversation 
+            );
+        });
+    } else {}
     loadHistory();
-
 };
-

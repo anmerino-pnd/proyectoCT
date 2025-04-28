@@ -1,3 +1,4 @@
+/* styles.css */
 
 /* Burbuja del chat */
 .chat-bubble {
@@ -13,23 +14,19 @@
     justify-content: center;
     cursor: pointer;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-    overflow: hidden; /* Importante para la imagen */
-    padding: 0; /* Elimina padding interno si existe */
+    overflow: hidden;
+    padding: 0;
     z-index: 1000;
 }
-
 .chat-icon {
-    width: 35px; /* Ajusta según necesites */
+    width: 35px;
     height: 35px;
-    object-fit: contain; /* Mantiene proporciones de la imagen */
-    transition: transform 0.2s ease; /* Opcional: efecto hover */
+    object-fit: contain;
+    transition: transform 0.2s ease;
 }
-
-/* Efecto hover opcional */
 .chat-bubble:hover .chat-icon {
     transform: scale(1.1);
 }
-
 /* Contenedor del chat */
 .chat-container {
     position: fixed;
@@ -45,7 +42,6 @@
     flex-direction: column;
     z-index: 1000;
 }
-
 /* Encabezado del chat */
 .chat-header {
     padding: 10px;
@@ -57,15 +53,18 @@
     justify-content: space-between;
     align-items: center;
 }
-
+.chat-header .buttons-container {
+    display: flex;
+    align-items: center;
+}
 .close-button {
     background: none;
     border: none;
     color: white;
     font-size: 20px;
     cursor: pointer;
+    margin-left: 10px;
 }
-
 /* Caja de mensajes */
 .chat-box {
     display: flex;
@@ -74,28 +73,24 @@
     padding: 0;
     overflow: hidden;
 }
-
 .messages-container {
     flex: 1;
     overflow-y: auto;
     padding: 10px;
     display: flex;
     flex-direction: column;
-    scroll-behavior: smooth; /* Scroll suave por defecto */
-    overflow-anchor: none; /* Mejor control del auto-scroll */
+    scroll-behavior: smooth;
+    overflow-anchor: none;
 }
-
 .login-box {
     padding: 10px;
     text-align: center;
 }
-
 .chat-messages {
     flex: 1;
     min-height: min-content;
     padding-bottom: 10px;
 }
-
 /* Caja de entrada de mensaje */
 .chat-input {
     position: sticky;
@@ -107,8 +102,6 @@
     align-items: center;
     z-index: 10;
 }
-
-/* Textarea que crece automáticamente */
 .message-input {
     flex: 1;
     padding: 12px 50px 12px 15px;
@@ -123,15 +116,13 @@
     outline: none;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     transition: all 0.3s ease;
-    font-family: 'Segoe UI', sans-serif; /* Fuente moderna */
-    font-size: 15px; /* Tamaño ligeramente mayor que el placeholder */
-    color: #333; /* Color oscuro para buen contraste */
-    font-weight: 400; /* Grosor normal */
-    letter-spacing: 0.2px; /* Espaciado sutil */
-    line-height: 1.5; /* Interlineado */
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 15px;
+    color: #333;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+    line-height: 1.5;
 }
-
-/* Placeholder */
 .message-input::placeholder {
     font-family: 'Segoe UI', sans-serif;
     font-size: 14px;
@@ -139,17 +130,12 @@
     font-weight: 300;
     transition: opacity 0.2s ease;
 }
-
-/* Efecto al enfocar */
 .message-input:focus::placeholder {
     opacity: 0.5;
 }
-
 .message-input:focus {
     border-color: rgb(28, 42, 235);
 }
-
-/* Botón de envío circular con flecha arriba */
 .send-button {
     position: absolute;
     right: 25px;
@@ -166,45 +152,37 @@
     align-items: center;
     transition: all 0.2s ease;
 }
-
 .send-button:hover {
     background: rgb(35, 44, 172);
     transform: scale(1.05);
 }
-
 .send-button:active {
     transform: scale(0.95);
 }
-
-/* Flecha estilizada */
 .send-button::after {
     content: "↑";
     font-size: 16px;
     font-weight: bold;
 }
-
 /* Estilos para los mensajes */
-/* Mensajes del USUARIO (derecha) */
 .user-message {
     background: #2f3e89;
     color: white;
     padding: 8px 12px;
-    border-radius: 18px 18px 4px 18px; /* Bordes más agudos en la izquierda */
+    border-radius: 18px 18px 4px 18px;
     margin-bottom: 10px;
     max-width: 70%;
     width: fit-content;
     word-break: break-word;
-    margin-left: auto; /* Key change */
+    margin-left: auto;
     margin-right: 0;
     align-self: flex-end;
 }
-
-/* Mensajes del BOT (izquierda, transparente) */
 .bot-message {
     background: transparent !important;
     color: black;
     padding: 8px 12px;
-    border-radius: 18px 18px 18px 4px; /* Bordes más agudos en la derecha */
+    border-radius: 18px 18px 18px 4px;
     margin-bottom: 10px;
     max-width: 85%;
     width: fit-content;
@@ -214,60 +192,176 @@
     align-self: flex-start;
     will-change: contents;
 }
-
 /* Estilos para Markdown */
-.bot-message strong {
-    font-weight: bold;
-}
-
-.bot-message em {
-    font-style: italic;
-}
-
+.bot-message strong { font-weight: bold; }
+.bot-message em { font-style: italic; }
 .bot-message code {
     background: #f4f4f4;
     padding: 2px 4px;
     border-radius: 3px;
     font-family: monospace;
 }
+/* Spinner de carga de 3 puntos */
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    margin: 8px 0 8px 12px;
+    align-self: flex-start;
+    height: 18px;
+}
+.typing-indicator span {
+    width: 6px;
+    height: 6px;
+    margin: 0 2px;
+    background-color: #2f3e89;
+    border-radius: 50%;
+    opacity: 0;
+    animation: loading-dots 1.2s infinite ease-in-out;
+}
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0s; }
+@keyframes loading-dots {
+    0%, 80%, 100% { opacity: 0; }
+    40% { opacity: 1; }
+}
 
-.login-box {
-    position: absolute;
+.deleteButton {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background-color: transparent; /* Este es el fondo del botón base */
+  border: none;
+  border-radius: 8px; /* Nota: El estilo original tenía 50%, este tiene 8px */
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  margin-left: 10px;
+  flex-shrink: 0;
+}
+.deleteButton svg {
+  width: 44%;
+  display: block;
+}
+.deleteButton:hover {
+  background-color: rgb(237, 56, 56);
+  overflow: visible;
+}
+.bin path {
+  transition: all 0.2s;
+  /* Añadido: Color del icono por defecto (ej: el color negro que ves) */
+  fill: black; /* O el gris oscuro que uses para el fondo inicial si quieres que el icono coincida */
+}
+.deleteButton:hover .bin path {
+  fill: #fff;
+}
+.deleteButton:active {
+  transform: scale(0.98);
+}
+/* Tooltip para el botón de eliminar */
+.deleteButton .tooltip {
+  --tooltip-color: rgb(39, 39, 39);
+  position: absolute;
+  top: -40px;
+  background-color: var(--tooltip-color);
+  color: white;
+  border-radius: 5px;
+  font-size: 12px;
+  padding: 8px 12px;
+  font-weight: 600;
+  box-shadow: 0px 10px 10px #2f3e89;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.5s;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.deleteButton .tooltip::before {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  content: "";
+  background-color: var(--tooltip-color);
+  bottom: -5px;
+  left: 50%;
+  margin-left: -5px;
+}
+.deleteButton:hover .tooltip {
+  opacity: 1;
+}
+
+/* --- Custom Confirmation Modal --- */
+.modal-overlay {
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: white;
-    z-index: 20;
+    background-color: rgba(0, 0, 0, 0.6);
     display: flex;
-    flex-direction: column;
     justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    visibility: hidden;
+}
+.modal-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+.modal-box {
+    background-color: white;
     padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    max-width: 300px;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+.modal-overlay.visible .modal-box {
+    transform: scale(1);
 }
 
-.login-box input, .login-box button {
-    margin: 5px 0;
-    padding: 10px;
-    border: 1px solid #ccc;
+.modal-box p {
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #333;
+}
+.modal-buttons {
+    display: flex;
+    justify-content: space-around;
+    gap: 10px;
+}
+.modal-buttons button {
+    padding: 8px 15px;
+    border: none;
     border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background-color 0.2s ease;
 }
-
-/* Spinner de carga - Versión con un solo punto */
-/* Spinner que gira siempre */
-.typing-spinner {
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(28, 42, 235, 0.2);
-    border-top-color: #2f3e89;
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-    margin: 8px 0 8px 12px;
-    align-self: flex-start;
-    will-change: transform; /* Optimización para animaciones */
-    backface-visibility: hidden; /* Mejora el rendimiento */
+.modal-buttons .confirm-button {
+    background-color: #2f3e89;
+    color: white;
 }
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+.modal-buttons .confirm-button:hover {
+    background-color: rgb(35, 44, 172);
+}
+.modal-buttons .cancel-button {
+    background-color: #ccc;
+    color: #333;
+}
+.modal-buttons .cancel-button:hover {
+    background-color: #bbb;
 }
