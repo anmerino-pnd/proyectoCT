@@ -40,3 +40,7 @@ class Clients:
     def get_lista_precio(cliente_clave):
         clientes = Clients.load_clients()
         return clientes.get(cliente_clave)
+    
+# IP de la API 
+
+API_INTERNA_URL : str = os.getenv('API_INTERNA_URL')

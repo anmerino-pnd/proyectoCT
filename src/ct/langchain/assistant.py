@@ -93,6 +93,25 @@ class LangchainAssistant(Assistant):
 
         self.save_full_history()
     
+    def clear_session_history(self, session_id: str) -> bool:
+        """
+        Elimina el historial de una sesión específica tanto de la memoria
+        en ejecución como del archivo JSON.
+
+        Retorna True si la sesión existía y fue eliminada, False si no existía.
+        """
+
+        history_existed = session_id in self.histories
+
+        if history_existed:
+            self.histories[session_id] = []  
+               
+            # Guarda el historial modificado (sin la sesión eliminada) en el archivo
+            self.save_full_history()
+            return True
+        else:
+            return False 
+    
     def get_windowed_memory_for_session(self, session_id: str) -> BaseChatMessageHistory:
         """Obtiene el backend de memoria windowed (limitada) para una sesión específica."""
         if session_id not in self.session_memory:
