@@ -17,7 +17,8 @@ scraper = cloudscraper.create_scraper(
     browser={ # Simula un navegador de forma más convincente
         'browser': 'chrome',
         'platform': 'windows',
-        'mobile': False
+        'mobile': False,
+        'delay': 5
     }
     # Puedes añadir delay si cloudflare se queja de velocidad: delay=10
 )
@@ -192,6 +193,7 @@ class Extraction():
         AND pro.descripcion_corta_icecat != ''
         GROUP BY pros.idProducto
         ORDER BY pros.importe ASC
+        LIMIT 1
         ;"""
       return query 
 
@@ -254,7 +256,7 @@ class Extraction():
                   print(f"Error {response.status_code} para el producto {clave}: {response.text[:200]}...")
                   specs[clave] = {'error': f'HTTP Error {response.status_code}', 'status': response.status_code}
 
-              time.sleep(1) # Damos un respiro un poco mayor entre llamadas
+              time.sleep(0.1) # Damos un respiro un poco mayor entre llamadas
 
           # cloudscraper puede lanzar excepciones de requests o propias
           except requests.exceptions.Timeout:

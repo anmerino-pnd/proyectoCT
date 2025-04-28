@@ -1,7 +1,6 @@
 from ct.langchain.vectorstore import LangchainVectorStore
 from ct.langchain.embedder import LangchainEmbedder
 from ct.langchain.assistant import LangchainAssistant
-from ct.langgraph.assistant import LangGraphAssistant
 from typing import Tuple, AsyncGenerator
 
 class LangchainRAG:
