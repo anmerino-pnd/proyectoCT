@@ -273,7 +273,7 @@
   font-size: 12px;
   padding: 8px 12px;
   font-weight: 600;
-  box-shadow: 0px 10px 10px #2f3e89;
+  box-shadow: 0px 10px 10px #3c4b96;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -355,12 +355,12 @@
     color: white;
 }
 .modal-buttons .confirm-button:hover {
-    background-color: rgb(35, 44, 172);
+    background-color: rgb(46, 58, 218);
 }
 .modal-buttons .cancel-button {
-    background-color: #ccc;
-    color: #333;
+    background-color: #cfcfcfda;
+    color: #000000;
 }
 .modal-buttons .cancel-button:hover {
-    background-color: #bbb;
+    background-color: #969696;
 }
