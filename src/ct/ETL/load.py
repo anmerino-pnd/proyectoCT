@@ -1,3 +1,4 @@
+import time
 from langchain.schema import Document
 from ct.ETL.transform import Transform  
 from langchain_openai import OpenAIEmbeddings
@@ -25,7 +26,6 @@ class Load:
             )
             for product in products  # Iteramos sobre la lista directamente
         ]
-
         return docs
 
     def load_sales(self):
@@ -54,24 +54,31 @@ class Load:
         # Create the vector store
         total_docs = len(products)
         
-        vector_store = self.vector_store(products[0])
+        vector_store = self.vector_store(products[:batch_size])  # Initialize with the first batch
         for i in range(1, total_docs, batch_size):
             batch = products[i:i + batch_size]
             vector_store.add_documents(batch)
-        # Save the vector store to disk
+            time.sleep(15)  # Optional: sleep to avoid hitting API limits
+            print(f"Processed {i + batch_size} of {total_docs} documents.")
+    
         vector_store.save_local(str(PRODUCTS_VECTOR_PATH))
         print("Vector store created and saved to disk.")
 
     def sales_products_vs(self):
-        # Load sales 
         sales = self.load_sales()
+
+        # --- Batch size ---
+        batch_size = 1000
         # Create the vector store
-        vector_store = self.vector_store(sales)
-        # Read productos vector store
-        vector_store2 = FAISS.load_local(str(PRODUCTS_VECTOR_PATH), self.embeddings, allow_dangerous_deserialization=True)
-        # Merge the two vector stores
-        vector_store.merge_from(vector_store2)
-        # Save the merged vector store to disk
+        total_docs = len(sales)
+        vector_store = self.vector_store(sales[0])
+
+        for i in range(1, total_docs, batch_size):
+            batch = sales[i:i + batch_size]
+            vector_store.add_documents(batch)
+            time.sleep(15)
+            print(f"Processed {i + batch_size} of {total_docs} documents.")
+
         vector_store.save_local(str(SALES_PRODUCTS_VECTOR_PATH))
         print("Merged vector store created and saved to disk.")
         
