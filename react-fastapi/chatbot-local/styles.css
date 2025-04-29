@@ -234,7 +234,7 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  background-color: transparent; /* Este es el fondo del botón base */
+   background-color: transparent; /* Este es el fondo del botón base */
   border: none;
   border-radius: 8px; /* Nota: El estilo original tenía 50%, este tiene 8px */
   cursor: pointer;
@@ -247,6 +247,7 @@
 .deleteButton svg {
   width: 44%;
   display: block;
+  fill: white;
 }
 .deleteButton:hover {
   background-color: rgb(237, 56, 56);
@@ -254,9 +255,7 @@
 }
 .bin path {
   transition: all 0.2s;
-  /* Añadido: Color del icono por defecto (ej: el color negro que ves) */
-  fill: black; /* O el gris oscuro que uses para el fondo inicial si quieres que el icono coincida */
-}
+  }
 .deleteButton:hover .bin path {
   fill: #fff;
 }

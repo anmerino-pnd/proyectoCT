@@ -148,7 +148,7 @@ async function sendMessage() {
             body: JSON.stringify({
                 user_query: message,
                 user_id: userId,
-                cliente_clave: userKey
+                listaPrecio: userKey
             })
         });
         if (!response.ok) {
