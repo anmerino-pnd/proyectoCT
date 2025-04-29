@@ -70,9 +70,13 @@ class Transform:
     
     def clean_products(self) -> dict:
         products = self.transform_products()
+        print("Productos transformados obtenidos.")
         claves = products['clave'].unique().tolist()
+        print(f"Cantidad de claves únicas: {len(claves)}")
         specs = self.data.get_specifications(claves)
+        print("Especificaciones obtenidas.")
         fichas_tecnicas = self.transform_specifications(specs)
+        print("Transformación de especificaciones completada.")
         claves_fichas = fichas_tecnicas.keys()
         products_dict : dict = products.to_dict(orient='records')
         for producto in products_dict:
