@@ -1,0 +1,144 @@
+---
+title: "Comprensión del negocio"
+format: 
+    html:
+         page-layout: article
+toc-title: "Tabla de Contenidos"
+toc: true
+toc-depth: 3
+---
+
+    
+::: {style="text-align: justify"}
+CT Internacional es una empresa mexicana encargada en distribuir soluciones de Tecnologías de la Información ([TI](#terminologia)), preferida para hacer negocios de los distribuidores e integradores del mundo de la tecnología. Fundada en 1992 en la ciudad de Hermosillo, esta empresa surgió como una respuesta a la oportunidad de llevar soluciones de TI, principalmente en el noroeste del país ([Saúl Rojo](https://ctonline.mx/static2/img/about/historia.png)). La cual poco a poco se fue expandiendo hasta lograr el alcance que tiene hoy en día, convirtiéndose en una empresa mayorista de alto impacto en el canal de distribución. Actualmente es una de las [mejores empresas mexicanas](https://bieninformado.mx/ct-internacional-recibe-el-reconocimiento-como-una-de-las-mejores-empresas-mexicanas-2024/) y tiene presencia con 52 sucursales en todos los estados del país. Además cuenta con un canal de distribución integrado por más de 31 mil clientes y aliados de negocio a quiénes proporciona un extenso catálogo de productos y servicios de más de 202 marcas agrupadas en 12 unidades de negocio.
+
+Teniendo **más de 25 años en el mercado**, el **crecimiento constante del negocio** y del mundo de la tecnología, además de la **gran cantidad de productos** que ofrecen para su distribución; la empresa tiene la oportunidad de aprovechar los avances tecnológicos que se han ido generado hoy en día a su favor. Esto con la intención de ofrecer un mejor servicio a sus clientes y darles un mejor acercamiento de sus productos para que sean capaces de ver un catálogo especial o personalizado en sus necesidades específicas.
+
+**Objetivo del proyecto:**
+
+Optimizar el proceso de recomendación de productos dentro de la empresa mediante el uso de [inteligencia artificial](#terminologia), mejorando la precisión y eficiencia en la búsqueda de opciones alineadas con las necesidades de los clientes.
+
+**Impacto:**
+
+La empresa se estaría adaptando a la nueva era tecnológica, consolidando su liderazgo en el mercado al ofrecer productos que antes podían pasar desapercibidos para el cliente. Con este sistema, los consumidores pueden tomar decisiones ajustadas a sus necesidades, generando valor tanto para ellos como para la empresa.
+:::
+
+::: {style="text-align: justify"}
+## 0.1 Objetivos de la línea de investigación
+
+Esta línea de investigación se enfoca en aprovechar la información disponible sobre los productos de la empresa, incluyendo características técnicas, precios y disponibilidad, con el objetivo de optimizar su accesibilidad y uso en procesos comerciales.
+
+El primer paso es extraer, analizar y evaluar la calidad de los datos almacenados en la base de datos de la empresa para determinar si son suficientes para el desarrollo del sistema o si es necesario complementarlos con información adicional.
+
+Una vez validada la información, se procederá a su transformación mediante [modelos de embeddings](#terminologia), convirtiéndola en [representaciones vectoriales](#terminologia) para su almacenamiento en una [base de datos vectorial](#terminologia).
+
+El objetivo final es desarrollar un sistema que permita a los usuarios consultar productos con base en especificaciones detalladas mediante un [chatbot](#terminologia), el cual recuperará información relevante desde la base de datos vectorial, mejorando la precisión y relevancia de las recomendaciones.
+
+**Actualmente:**
+
+Los productos se ofrecen a través de la plataforma, donde los clientes pueden realizar búsquedas según sus necesidades. Sin embargo, el sistema de búsqueda presenta limitaciones: si los clientes no utilizan ciertas palabras clave que están relacionadas al producto, encontrar lo que buscan puede volverse complicado. Además, la empresa cuenta con un sistema de asistencia por llamada o correo, donde un operador ayuda a los clientes a resolver dudas o encontrar productos específicos. 
+
+**Objetivo principal:**
+
+Desarrollar un chatbot de recomendación de productos basado en un sistema de generación de recuperación aumentada ([RAG](#terminologia)) conectada a una base de datos vectorial para ofrecer respuestas precisas y relevantes a los usuarios, optimizando el proceso de búsqueda de productos que la empresa ofrece.
+
+**Objetivos específicos:**
+
+* **Analizar y organizar la información disponible** sobre un conjunto de los productos para evaluar su calidad y definir los atributos clave que se utilizarán en el sistema de recomendación. Además, identificar si es necesario crear nuevas características o ajustar las existentes para mejorar la precisión de las recomendaciones.
+* **Desarrollar un modelo de representación vectorial** que convierta la información de los productos en representaciones vectoriales para su almacenamiento y recuperación eficiente.
+* **Implementar un sistema RAG** que integre un modelo de lenguaje grande ([LLM](#terminologia)) con la base de datos vectorial para generar recomendaciones de productos precisas y relevantes.
+* **Validar el desempeño del sistema** mediante pruebas de precisión, relevancia de las recomendaciones y eficiencia en la recuperación de información.
+
+**Criterios de éxito:**
+
+
+1. **Precisión en la recomendación de productos:** 
+    * Al menos el 90% de las 100 recomendaciones evaluadas deben coincidir con las necesidades descritas por el usuario, dando una respuesta directa, precisa y concisa en la información que proporcionada. La calidad de estas recomendaciones será validada por expertos con conocimiento en los productos.
+
+2. **Reproducibilidad y consistencia:**
+
+    * Consultas similares deben producir respuestas coherentes en al menos el 90% de los 100 casos, evitando variaciones innecesaria, además de sugerencia de productos no disponibles o fuera de stock, ni productos que no existan. Este criterio también será evaluado por los mismos expertos quiénes determinarán la calidad de la respuesta.
+
+3. **Escalabilidad:** 
+    * La estructura del sistema mantiene su rendimiento al aumentar la cantidad de productos de la base de datos.
+
+:::
+
+::: {style="text-align: justify"}
+## 0.2 Evaluación de la situación actual
+
+Los recursos que se tienen actualmente para este proyecto son:
+
+* **Datos:** Registro de todos los productos de la empresa disponibles para distribución. La información incluye nombre, marca, tipo, modelo, descripción, palabras clave, stock disponible, ficha técnica con especificaciones, características principales, fecha del registro y precio. Toda esta información se tiene en una [base de datos SQL](#terminologia), la cual se actualiza periódicamente.
+* **Herramientas:** [Python](#terminologia), servicios de OpenAI y bases de datos SQL.
+* **Equipo humano:** Especialistas en el sistema de distribución de la empresa, expertos en la estructura y manejo de la base de datos para facilitar la extracción de datos, y científicos de datos encargados del desarrollo y evaluación del sistema junto con los especialistas.
+
+### 0.2.1 Requisitos, supuestos y restricciones
+
+**Requisitos:**
+
+* Acceso a los registros de los productos de la empresa y equipo de compúto con características específicas para el desarrollo del proyecto.
+* Comunicación constante con los expertos de la empresa para constante evaluación y retroalimentación.
+* Credenciales para el uso y acceso de herramientas de la empresa.
+
+**Supuestos:**
+
+* Los permisos y el acceso a la base de datos se matendrá a la disposición del equipo siempre que se necesite sin problemas.
+* [API KEY](#terminologia) con créditos suficientes disponibles, para evitar problemas con las llamadas de los modelos de OpenAI.
+
+**Restricciones:**
+
+* Limitaciones en el uso del enlace de la conexión de la base de datos ya que se puede saturar.
+
+::: 
+
+::: {style="text-align: justify"}
+## 0.3 Terminología {#terminologia}
+
+Algunas de las terminologías clave para este proyecto son:
+
+
+- **Python:** Lenguaje de programación de alto nivel, ampliamente utilizado en el desarrollo de software, análisis de datos, inteligencia artificial y automatización.  
+- **FastAPI:** Framework de desarrollo web en Python que permite construir APIs de forma rápida, sencilla y eficiente.  
+- **LangChain:** Herramienta para construir aplicaciones que combinan modelos de lenguaje con fuentes de datos externas y lógica personalizada.  
+- **Inteligencia artificial (IA):** Campo de la informática que desarrolla sistemas capaces de realizar tareas que requieren inteligencia humana, como el aprendizaje, la toma de decisiones y el procesamiento del lenguaje natural.  
+- **Modelos de lenguaje grande (LLM):** Modelos de inteligencia artificial entrenados con grandes volúmenes de texto para comprender y generar lenguaje natural.  
+- **Sistema de recuperación mejorada (RAG):** Técnica que combina modelos de lenguaje con bases de datos externas para recuperar información relevante y generar respuestas más precisas.  
+- **Representación vectorial:** Proceso de convertir datos textuales en representaciones numéricas (vectores) para facilitar su análisis y búsqueda.  
+- **Modelo de embeddings:** Algoritmo que transforma palabras o frases en vectores de manera que su similitud semántica pueda medirse matemáticamente.  
+- **Base de datos vectorial:** Sistema de almacenamiento optimizado para buscar y recuperar información midiendo la similitud entre vectores.  
+- **Base de datos SQL (Structured Query Language):** Sistema de almacenamiento relacional que organiza los datos en tablas con filas y columnas, usando SQL para consultarlos.  
+- **API (Interfaz de Programación de Aplicaciones):** Conjunto de reglas que permite que diferentes sistemas de software se comuniquen entre sí.  
+- **API KEY:** Clave de autenticación utilizada para acceder a servicios protegidos por una API.  
+- **Endpoint (API):** Dirección específica dentro de una API donde se accede a una funcionalidad concreta.  
+- **Payload (HTTP):** Contenido de los datos enviados en una solicitud HTTP, como un formulario o un JSON con información.  
+- **Chatbot:** Programa que interactúa con los usuarios mediante lenguaje natural para responder preguntas o realizar tareas automatizadas.  
+- **Frontend:** Parte visual o interfaz con la que interactúa el usuario en una aplicación web.  
+- **Backend:** Parte lógica o del servidor donde se procesa la información y se ejecutan las funciones principales de una aplicación.  
+- **HTTP (Hypertext Transfer Protocol):** Protocolo para la transferencia de datos en la web.  
+- **HTTPS (HTTP Secure):** Versión segura del protocolo HTTP que cifra los datos para proteger la comunicación.  
+- **Contenido mixto (Mixed Content):** Problema de seguridad que ocurre cuando una página HTTPS carga recursos desde una fuente HTTP, lo cual puede ser bloqueado por los navegadores.  
+- **Certificado SSL/TLS:** Archivo digital que autentica la identidad de un sitio web y cifra la información entre el servidor y el navegador.  
+- **Autoridad Certificadora (CA):** Entidad confiable que emite certificados digitales para garantizar la seguridad en la web.  
+- **Proxy:** Servidor que actúa como intermediario entre un cliente y otro servidor, utilizado para redirigir solicitudes.  
+- **Puerto (de red):** Punto lógico de conexión en un servidor que permite recibir solicitudes de red.  
+- **Widget:** Componente visual incrustado en una página web, como un chatbot o formulario.  
+
+
+::: 
+
+::: {style="text-align: justify"}
+## 0.4 Beneficios
+
+* **Innovación en la oferta de productos**: Introducir un nuevo enfoque en la recomendación de productos, brindando una experiencia más personalizada y efectiva tanto para la empresa como para los clientes.
+* **Optimización de la estrategia del mercado:** La implementación del sistema abre oportunidades para nuevas estrategias de negocio, mejorando la eficiencia y el alcance en la comercialización de productos.
+
+::: 
+
+::: {style="text-align: justify"}
+## 0.5 Costos
+
+* **Tiempo:** El proyecto tiene un plazo estimado de 3 meses para desarrollar una versión funcional y tangible que sirva como punto de partida para futuras mejoras e implementación en el flujo de trabajo.
+* **Financieros:** Se consideran costos asociados a suscripciones de herramientas de pago necesarias para el desarrollo e implementación del sistema.
+
+::: 

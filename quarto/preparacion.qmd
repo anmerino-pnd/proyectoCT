@@ -1,0 +1,156 @@
+---
+title: "Preparación de los datos"
+format: 
+    html:
+         page-layout: article
+toc-title: "Tabla de Contenidos"
+toc: true
+toc-depth: 3
+---
+
+::: {style="text-align: justify"}
+## 1. Preparación de los datos  
+
+Una vez establecidas las conexiones con los servicios de datos, transformamos y consolidamos la información en una base de datos completa y estructurada. Esta base servirá como fuente para el chatbot, permitiéndole responder consultas de manera eficiente.   
+
+Los datos principales provienen de tres conjuntos:  
+
+1. Productos disponibles en la plataforma.  
+2. Productos en promoción.  
+3. Fichas técnicas de los productos, proporcionando información detallada.  
+
+Todos los productos se relacionan a través de las claves `idProducto` y `Clave del producto`. 
+
+### 1.1 Estructuración de los datos 
+
+Para estructurar la información de las fichas técnicas, extraemos los datos relevantes del apartado `@attributes`, transformando la estructura de la siguiente manera:  
+
+**Formato original:**  
+
+```python
+{
+    "ACCCDM1010": {
+        "respuesta": {
+            "tag": "CT-Respuesta",
+            "status": "success",
+            "mensaje": "Consulta realizada",
+            "data": {
+                "Product": {
+                    "@attributes": {}
+                }
+            }
+        }
+    }
+}
+```
+
+**Formato optimizado:**
+
+```python
+{'ACCCDM1010': {
+    'fichaTecnica': {
+
+},
+    'resumen': {
+    
+  }},
+   }
+```
+
+### 1.2 Limpieza y normalización de datos  
+En cuanto a la limpieza de datos para los `productos` y las `promociones`, identificamos tres columnas que requieren un tratamiento similar. Aplicamos los siguientes pasos:  
+
+1. Reemplazo de valores nulos por un espacio `''`.  
+2. Sustitución de los `0` en la **descripción** por un espacio `''`.  
+3. Conversión de las tres columnas a tipo `string`.  
+4. Concatenación de estas columnas para generar una columna más completa.  
+
+Además, a la columna **detalles_precio** en los `productos`, le aplicamos una transformación de formato, convirtiéndola no solo en `string`, sino también en formato `JSON`.  
+
+Una vez realizadas estas transformaciones, incorporamos la ficha técnica tanto a los `productos` como a las `promociones`.  
+
+En el caso de los `productos`, la información final queda estructurada de la siguiente manera:  
+```python
+{
+    "0": {
+        "idProductos": "",
+        "nombre": "",
+        "clave": "ACCCDM1010",
+        "categoria": "",
+        "marca": "",
+        "tipo": "",
+        "modelo": "",
+        "detalles": "",
+        "detalles_precio": [
+            {
+                "listaPrecio": 1,
+                "precio": ""
+            },
+            {
+                "listaPrecio": 2,
+                "precio": ""
+            }
+        ],
+        "fichaTecnica": { ""
+        },
+        "resumen": { ""
+        }
+    },}
+```
+
+Reiteramos que el proceso de limpieza aplicado a las `promociones` fue similar al de los `productos`. A continuación, se presenta el resultado final de la estructura deseada:  
+```python
+{
+    "0": {
+        "idProducto": "",
+        "nombre": "",
+        "producto": "CARBRT010",
+        "categoria": "",
+        "marca": "",
+        "tipo": "",
+        "modelo": "",
+        "detalles": "",
+        "importe": "",
+        "porcentaje": "%",
+        "EnCompraDE": "",
+        "Unidades": "",
+        "limitadoA": "",
+        "fecha_inicio": "",
+        "fecha_fin": "",
+        "precios": "[]",
+        "fichaTecnica": { ""
+        },
+        "resumen": {
+            "ShortSummary": "",
+            "LongSummary": ""
+        }
+    },}
+```
+:::
+
+::: {style="text-align: justify"}
+## 2. Consolidación base de datos vectorial
+
+Ahora que tenemos los datos preparados y con la estructura deseada. Procederemos a crear la base de datos vectorial con esta información. Tomamos los datos y los convertimos en un tipo `Document` para poder pasarlo a `FAISS` (base vectorial) junto con los `embeddings` y guardarlo de forma local.
+
+```python
+docs = [
+    Document(
+        page_content=construir_contenido(producto, campos),
+        metadata={"idProducto": producto["idProductos"], "Nombre": producto["nombre"]}
+    )
+    for producto in datos_dict.values()
+]
+
+# Usar embeddings de OpenAI 
+embeddings = OpenAIEmbeddings(api_key=api_key)
+
+# Crear base de datos FAISS con los documentos
+vectorstore = FAISS.from_documents(docs, embeddings)
+
+# Guardar la base de datos para futuras consultas
+vectorstore.save_local()
+```
+
+
+:::

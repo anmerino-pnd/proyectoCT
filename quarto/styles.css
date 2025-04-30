@@ -1,0 +1,17 @@
+.navbar-brand img {
+    max-height: none !important; /* Elimina cualquier restricción de altura */
+    height: 60px !important;  /* Ajusta la altura según lo necesites */
+    width: auto !important;    /* Mantiene la proporción */
+}
+
+.navbar {
+    background-color: #b1b1b1 !important; /* Naranja oscuro y menos brillante */
+}
+
+.navbar a, .navbar-brand, .navbar-toggler {
+    color: rgb(16, 24, 133) !important; /* Texto y enlaces en blanco */
+}
+
+.navbar a:hover {
+    color: #fafafa !important; /* Tono claro al pasar el mouse */
+}

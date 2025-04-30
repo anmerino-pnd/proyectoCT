@@ -1,0 +1,37 @@
+---
+title: "Chatbot para sugerencias de productos: un enfoque personalizado"
+format: 
+    html:
+         page-layout: article
+toc: false
+author: 
+    - Angel Merino Cedeño
+    - Gerardo Leyva Conde
+    - Roberto Navarro Bartolini
+    - Abraham Rojo Salazar
+date: last-modified
+date-format: long
+lang: es
+---
+
+::: {style="text-align: justify"}
+## Introducción
+
+Este proyecto se enfoca en el desarrollo de un chatbot para la recomendación de productos, basado en un sistema de recuperación de información desde una base de datos vectorial. A través de este chatbot, se busca optimizar la experiencia del cliente, sugiriendo productos relevantes según las especificaciones y presupuesto proporcionados.
+
+El proyecto se divide en seis fases:
+
+1. **Comprensión del Negocio:** Definición de los objetivos y el contexto del proyecto, enfocados en la mejora de la experiencia del cliente y la eficiencia del proceso de recomendación de productos.
+
+2. **Comprensión de los Datos:** Recolección y análisis preliminar de los datos disponibles, tales como características de los productos y preferencias de los usuarios.
+
+3. **Preparación de los Datos:** Limpieza, transformación y estructuración de los datos para que puedan ser utilizados en el sistema de recomendación y la base de datos vectorial.
+
+4. **Desarrollo del Sistema de Recomendación**: Implementación del chatbot que utilizará un modelo de lenguaje grande (LLM) para interpretar las consultas y hacer recomendaciones basadas en la base de datos vectorial.
+
+5. **Evaluación:** Validación de la precisión y relevancia de las recomendaciones ofrecidas por el chatbot, utilizando métricas de evaluación del sistema.
+
+6. **Implementación:** Integración del chatbot en la plataforma de la empresa, presentación de los resultados y recomendaciones para mejorar el sistema de recomendación y la interacción con los clientes.
+
+A través de estas fases, se busca proporcionar una solución innovadora que mejore la interacción con los clientes, optimizando la selección de productos y mejorando la eficiencia del proceso de recomendación.
+:::
