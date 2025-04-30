@@ -1,0 +1,39 @@
+project:
+  type: website
+  render: # Renderizar todos los archivos .qmd
+    - home.qmd
+    - comprension.qmd
+    - comprension_datos.qmd
+    - preparacion.qmd
+    - modelado.qmd
+    - despliegue.qmd
+
+
+website:
+  favicon: favicon.png
+  navbar:
+    logo: ctlogo.png
+    left:
+      - href: home.qmd
+        text: Home
+      - href: comprension.qmd
+        text: Comprensión del negocio
+      - href: comprension_datos.qmd
+        text: Comprensión de los datos
+      - href: preparacion.qmd
+        text: Preparación
+      - href: modelado.qmd
+        text: Modelado y Evaluación
+      - href: despliegue.qmd
+        text: Despliegue
+  back-to-top-navigation: true
+      
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    css: styles.css
+    toc: true
+    execute:
+      echo: false

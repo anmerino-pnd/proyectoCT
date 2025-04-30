@@ -9,11 +9,6 @@ from ct.clients import Clients
 from pydantic import BaseModel
 from ct.config import DATA_DIR
 
-import logging # Importar módulo logging
-
-# Obtener logger para este módulo
-logger = logging.getLogger(__name__)
-
 #assistant = OpenAIAssistant()
 
 rag = LangchainRAG(DATA_DIR)
@@ -29,11 +24,9 @@ class QueryRequest(BaseModel):
 # En chat.py
 def get_chat_history(user_id: str):
     """Devuelve el historial de chat de un usuario en formato JSON."""
-    print(f"🔍 Buscando historial para user_id: '{user_id}'")
     history = assistant.get_session_history(user_id)
     
     if not history.messages:
-        print("⚠️ No hay mensajes en el historial")  # Debug 3
         return []
 
     return [{"role": "user" if isinstance(msg, HumanMessage) else "bot", "content": msg.content} for msg in history.messages]
@@ -55,13 +48,7 @@ async def delete_chat_history_endpoint(user_id: str):
     user_id_normalized = user_id.lower() # Normaliza igual que en handle_history
     try:
         # Llama al nuevo método del asistente
-        session_deleted = assistant.clear_session_history(user_id_normalized)
-
-        if session_deleted:
-            logger.info(f"✅ Historial eliminado exitosamente para user_id: '{user_id_normalized}'.")
-        else:
-             logger.info(f"ℹ️ Intentando eliminar historial para user_id: '{user_id_normalized}', pero no se encontró.")
-
+        assistant.clear_session_history(user_id_normalized)
 
         return Response(status_code=204)
 
