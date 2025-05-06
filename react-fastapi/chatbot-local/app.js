@@ -1,4 +1,4 @@
-let API_BASE = "http://REDACTED_HOST:8000";
+let API_BASE = "https://REDACTED_HOST:8000";
 let userId = null;
 let userKey = null;
 
