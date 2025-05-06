@@ -1,7 +1,7 @@
 class CTAIWidget {
     static init(config = {}) {
         const settings = {
-            apiBase: config.apiBase || "http://10.10.251.160:8000",
+            apiBase: config.apiBase || "https://10.10.251.160:8000",
             userId: config.userId,
             userKey: config.userKey,
             containerId: config.containerId || "ctai-widget-root",
@@ -60,10 +60,8 @@ class CTAIWidget {
         if (!document.querySelector('link[href="styles.css"]')) {
              const styleLink = document.createElement("link");
              styleLink.rel = "stylesheet";
-             // *** CAMBIA ESTA LÍNEA SEGÚN TU AMBIENTE ***
              styleLink.href = "styles.css"; // Para probar en local
-             // styleLink.href = "https://ctdev.ctonline.mx/static2/plugins/chatbot/styles.css"; // Para desplegar
-             // styleLink.href = "https://pagina-dev.empresa.com/chatbot-api/styles.css"; // Proxy en dev
+             // styleLink.href = "https://ctdev.ctonline.mx/static2/plugins/chatbot/styles.css"; 
              document.head.appendChild(styleLink);
         } else {}
         window.CTAI_CONFIG = settings;

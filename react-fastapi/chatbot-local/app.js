@@ -1,4 +1,4 @@
-let API_BASE = "http://10.10.251.160:8000";
+let API_BASE = "https://10.10.251.160:8000";
 let userId = null;
 let userKey = null;
 
