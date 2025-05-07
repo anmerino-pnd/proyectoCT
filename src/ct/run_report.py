@@ -28,7 +28,7 @@ nlp = load_spacy_model()
 # ==== Stopwords combinadas ====
 stop_words_spacy = nlp.Defaults.stop_words
 stop_words_nltk = set(nltk_stopwords.words('spanish'))
-custom_stopwords = {"mx", "https", "dame", "hola", "quiero", "puedes"}
+custom_stopwords = {"mx", "https", "dame", "hola", "quiero", "puedes", "gustaría"}
 combined_stopwords = stop_words_spacy.union(stop_words_nltk, custom_stopwords)
 
 for word in combined_stopwords:
