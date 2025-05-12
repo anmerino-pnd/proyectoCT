@@ -469,12 +469,6 @@ if data:
                     with col3:
                         st.metric("Costo Máximo", f"${df_time['cost'].max():.4f}")
                 
-                    # Tabla detallada (opcional, expandible)
-                    with st.expander("Ver datos detallados"):
-                        st.dataframe(
-                            df_time[['date', 'total_tokens'] + (['cost'] if 'cost' in df_time.columns else [])],
-                            use_container_width=True
-                        )
                     
                     # Costo por conversación
                     cost_by_conversation = df_bot.groupby('conversation_id')['cost'].sum().reset_index()
@@ -542,7 +536,6 @@ if data:
                 avg_response_time = df_bot['response_time'].mean()
                 st.metric("Tiempo Medio de Respuesta (segundos)", f"{avg_response_time:.2f}")
                 
-                st.write(df_bot)
                 # Relación entre longitud y tiempo de respuesta
                 fig = px.histogram(df_bot, x='response_time', y='total_tokens',
                                     title="Relación entre los tokens de respuesta y Tiempo de Respuesta",
