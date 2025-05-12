@@ -182,19 +182,11 @@ class LangchainAssistant(Assistant):
         Construye el ChatPromptTemplate para la generación de respuestas,
         asegurando la correcta inyección de variables dinámicas como listaPrecio y context.
         """
-        # Llama al método que devuelve el string del template del sistema
         system_template = self.answer_template()
 
-        # Crea el ChatPromptTemplate usando from_messages
         prompt = ChatPromptTemplate.from_messages([
-            # 1. Mensaje de Sistema: Usa from_template para permitir inyección de variables
-            #    Langchain buscará 'listaPrecio' y 'context' en los datos de la cadena.
             SystemMessagePromptTemplate.from_template(system_template),
-
-            # 2. Historial: Placeholder gestionado por RunnableWithMessageHistory
             MessagesPlaceholder(variable_name="history"),
-
-            # 3. Entrada del Usuario: Usa from_template para la variable 'input'.
             HumanMessagePromptTemplate.from_template("{input}")
         ])
         return prompt
@@ -252,7 +244,6 @@ class LangchainAssistant(Assistant):
         Contexto: {context}  
         """
             )
-
         return tpl
 
 
@@ -272,15 +263,13 @@ class LangchainAssistant(Assistant):
             conversational_chain = self.build_conversational_chain()
             config = {"configurable": {"session_id": session_id}, "callbacks": [cost_handler]}
 
-            # Guarda la pregunta del usuario en el historial COMPLETO
-            self.add_message_to_full_history(session_id, "human", question) # <-- Guardado para análisis
+            self.add_message_to_full_history(session_id, "human", question) 
 
-            # Preparamos el input para Langchain. ¡Incluye listaPrecio aquí!
-            chain_input = {"input": question, "listaPrecio": listaPrecio or ""} # Asegura que no sea None
+            chain_input = {"input": question, "listaPrecio": listaPrecio or ""} 
 
             async for chunk in conversational_chain.astream(chain_input, config=config):
                 chunk_answer = chunk.get("answer", "")
-                if isinstance(chunk_answer, BaseMessage): # Puede ser AIMessage
+                if isinstance(chunk_answer, BaseMessage): 
                      chunk_content = chunk_answer.content
                 elif isinstance(chunk_answer, str):
                      chunk_content = chunk_answer
@@ -294,25 +283,20 @@ class LangchainAssistant(Assistant):
             duration = time.perf_counter() - start_time
             metadata = self.make_metadata(token_cost_process, duration)
 
-            # Guarda la respuesta COMPLETA del AI en el historial COMPLETO con metadata
-            if full_answer:
-                self.add_message_to_full_history(
-                    session_id,
-                    "assistant",
-                    full_answer,
-                    metadata # Añade la metadata al historial completo
-                )
-            else:
-                 print(f"Advertencia: No se generó respuesta para sesión {session_id}, pregunta: {question}")
-
+            try:
+                if full_answer:
+                    self.add_message_to_full_history(
+                        session_id,
+                        "assistant",
+                        full_answer,
+                        metadata
+                    )
+            except Exception as e:
+                print(f"[WARN] Falló guardar respuesta del asistente: {e}")
 
         except Exception as e:
-            import traceback
             print(f"Error en answer para sesión {session_id}:")
-            traceback.print_exc()
-            # Guarda el error en el historial completo si quieres
-            error_message = f"Error al procesar respuesta: {str(e)}"
-            yield error_message # Envía error al usuario
+            
 
     def make_metadata(self, token_cost_process: TokenCostProcess, duration: float = None) -> dict:
         """Versión simplificada de metadata"""

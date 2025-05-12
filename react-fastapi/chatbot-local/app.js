@@ -1,4 +1,4 @@
-let API_BASE = "https://10.10.251.160:8000";
+
 let userId = null;
 let userKey = null;
 
@@ -49,7 +49,7 @@ function initializeChatbotData() {
     }
     userId = window.CTAI_CONFIG.userId;
     userKey = window.CTAI_CONFIG.userKey;
-    API_BASE = window.CTAI_CONFIG.apiBase || API_BASE;
+    API_BASE = window.CTAI_CONFIG.apiBase;
     if (!userId || !userKey) {
         const chatMessages = document.getElementById("ctai-chat-messages");
         if (chatMessages) {
