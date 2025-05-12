@@ -263,8 +263,6 @@ class LangchainAssistant(Assistant):
             conversational_chain = self.build_conversational_chain()
             config = {"configurable": {"session_id": session_id}, "callbacks": [cost_handler]}
 
-            self.add_message_to_full_history(session_id, "human", question) 
-
             chain_input = {"input": question, "listaPrecio": listaPrecio or ""} 
 
             async for chunk in conversational_chain.astream(chain_input, config=config):
@@ -284,6 +282,8 @@ class LangchainAssistant(Assistant):
             metadata = self.make_metadata(token_cost_process, duration)
 
             try:
+                self.add_message_to_full_history(session_id, "human", question) 
+                
                 if full_answer:
                     self.add_message_to_full_history(
                         session_id,
@@ -292,10 +292,10 @@ class LangchainAssistant(Assistant):
                         metadata
                     )
             except Exception as e:
-                print(f"[WARN] Falló guardar respuesta del asistente: {e}")
+                pass
 
         except Exception as e:
-            print(f"Error en answer para sesión {session_id}:")
+            pass
             
 
     def make_metadata(self, token_cost_process: TokenCostProcess, duration: float = None) -> dict:
