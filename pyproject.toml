@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "cloudscraper>=1.2.71",
+    "dash>=3.0.4",
     "dotenv>=0.9.9",
     "faiss-cpu>=1.10.0",
     "fastapi[standard]>=0.115.11",
