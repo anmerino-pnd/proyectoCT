@@ -6,7 +6,7 @@ from datetime import datetime
 # Configuración
 ORIGEN = os.path.expanduser("~/datos/history.json")
 DESTINO_DIR = os.path.expanduser("~/datos/backups_history")
-INTERVALO_MINUTOS = 5  # intervalo de respaldo en minutos
+INTERVALO_MINUTOS = 1  # intervalo de respaldo en minutos
 
 # Asegúrate de que exista el directorio destino
 os.makedirs(DESTINO_DIR, exist_ok=True)
