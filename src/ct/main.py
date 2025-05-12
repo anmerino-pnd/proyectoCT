@@ -28,7 +28,6 @@ def handle_history(user_id: str):
     user_id = user_id.lower() 
     return get_chat_history(user_id)
 
-
 @app.post("/chat")
 async def handle_chat(request: QueryRequest):
     return await async_chat_endpoint(request)
