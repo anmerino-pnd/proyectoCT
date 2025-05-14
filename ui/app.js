@@ -71,8 +71,9 @@ async function loadHistory() {
         appendMessage("bot", "Cargando historial...");
     } else {}
     try {
-        const response = await fetch(`${API_BASE}/history/${userId}`);
+        const response = await fetch(`${API_BASE}/history?usuario=${userId}`);
         if (chatMessages) chatMessages.innerHTML = "";
+
         if (!response.ok) {
             const errorText = await response.text();
             let errorMessage = errorText;
@@ -83,15 +84,27 @@ async function loadHistory() {
             appendMessage("bot", `Error al cargar historial: ${errorMessage || 'Error desconocido'}`);
             throw new Error(`HTTP error! status: ${response.status}. ${errorMessage}`);
         }
-        const history = await response.json();
-        if (!Array.isArray(history) || history.length === 0) {
+
+        const responseData = await response.json();
+        console.log("Respuesta del servidor:", responseData);
+        // Verificar si la respuesta tiene la estructura esperada
+        if (responseData.estatus !== "success" || !Array.isArray(responseData.datos)) {
             appendMessage("bot", "¡Hola! ¿En qué puedo ayudarte hoy?");
             return;
         }
+
+        const history = responseData.datos;
+
+        if (history.length === 0) {
+            appendMessage("bot", "¡Hola! ¿En qué puedo ayudarte hoy?");
+            return;
+        }
+
         history.forEach(msg => {
             if (msg && msg.role && msg.content) {
                 appendMessage(msg.role === "user" ? "user" : "bot", msg.content);
-            } else {}
+            } else {
+            }
         });
     } catch (error) {
         const chatMessages = document.getElementById("ctai-chat-messages");
@@ -210,7 +223,6 @@ async function sendMessage() {
     }
     if (spinnerVisible) hideSpinner();
 }
-
 
 async function deleteConversation() {
     if (!userId || !API_BASE) {
