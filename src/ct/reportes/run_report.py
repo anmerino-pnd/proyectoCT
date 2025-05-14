@@ -500,7 +500,7 @@ if data:
                 )
                 df_token_cost_time['date'] = pd.to_datetime(df_token_cost_time['year_month'] + '-01')
                 token_cost_date_format = "%Y-%m"
-                token_cost_title_suffix = f"por año"
+                token_cost_title_suffix = f"en el año"
                 token_cost_granularity_label = "Mensual"
 
 
@@ -548,7 +548,7 @@ if data:
                     ))
 
                 fig1.update_layout(
-                    title=f"Tokens {token_cost_title_suffix}",
+                    title=f"Tokens de respuestas {token_cost_title_suffix}",
                     xaxis_title="Fecha",
                     yaxis_title="Cantidad de Tokens",
                     xaxis=dict(
@@ -622,7 +622,7 @@ if data:
                     ))
 
                 fig2.update_layout(
-                    title=f"Costo {token_cost_title_suffix}",
+                    title=f"Costo de respuestas {token_cost_title_suffix}",
                     xaxis_title="Fecha",
                     yaxis_title="Costo ($USD)",
                     xaxis=dict(
@@ -646,7 +646,7 @@ if data:
                 with col1:
                     st.metric(f"Costo total en el {"mes" if time_filter_mode == "Análisis por mes" else "año"}", f"${total_cost:.4f}")
                 with col2:
-                    st.metric(f"Promedio de costo", f"${mean_cost:.4f}")
+                    st.metric(f"Costo promedio", f"${mean_cost:.4f}")
                 with col3:
                     st.metric(f"Costo máximo", f"${df_token_cost_time['cost'].max():.4f}")
 
@@ -677,7 +677,7 @@ if data:
 
 
                      fig.update_layout(
-                         title=f"Distribución de Costos por Usuario ({'Días en' if time_filter_mode == 'Análisis por mes' else 'Meses en'} {f'{selected_month_name}' if selected_month else ''})",
+                         title=f"Distribución de Costos por Usuario",
                          xaxis_title="Costo ($USD)",
                          yaxis_title="Número de Usuarios",
                          bargap=0.1,
@@ -697,9 +697,9 @@ if data:
                      with col1:
                          st.metric(f"Usuarios totales en el {"mes" if time_filter_mode == "Análisis por mes" else "año"}", f"{cost_by_conversation.shape[0]}")
                      with col2:
-                         st.metric("Costo Promedio", f"${mean_cost_conv:.4f}")
+                         st.metric("Costo promedio por usuario", f"${mean_cost_conv:.4f}")
                      with col3:
-                         st.metric("Costo Máximo", f"${cost_by_conversation['cost'].max():.4f}")
+                         st.metric("Costo máximo", f"${cost_by_conversation['cost'].max():.4f}")
                 else:
                      st.info("No hay datos de costo por conversación para mostrar en el período seleccionado.")
 
