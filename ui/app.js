@@ -132,10 +132,6 @@ async function sendMessage() {
     const userInput = document.getElementById('ctai-user-input');
     if (!userInput) return;
     const message = userInput.value.trim();
-    if (!message || !userId || !userKey || !API_BASE) {
-        appendMessage("bot", "Error: Faltan datos de usuario o configuración de API para enviar el mensaje.");
-        return;
-    }
     appendMessage('user', message);
     userInput.value = '';
     userInput.style.height = 'auto';
@@ -151,39 +147,41 @@ async function sendMessage() {
                 listaPrecio: userKey
             })
         });
+
         if (!response.ok) {
             const errorText = await response.text();
             let errorMessage = errorText;
             try {
                 const errorJson = JSON.parse(errorText);
                 if (errorJson.detail) errorMessage = errorJson.detail;
-            } catch (e) {}
+                if (errorJson.mensaje) errorMessage = errorJson.mensaje;
+            } catch (e) {
+            }
             if (spinnerVisible) hideSpinner();
             spinnerVisible = false;
-            appendMessage('bot', `Error al enviar mensaje: ${errorMessage || 'Error desconocido'}`);
+            appendMessage('bot', `Error al enviar mensaje (${response.status}): ${errorMessage || 'Error desconocido'}`);
             throw new Error(errorMessage || `HTTP error ${response.status}`);
         }
-        const chatMessages = document.getElementById('ctai-chat-messages');
-        const msgDiv = document.createElement('div');
-        msgDiv.classList.add('bot-message');
-        if (chatMessages) {
-             chatMessages.appendChild(msgDiv);
-        } else {
-             if (spinnerVisible) hideSpinner();
-             return;
-        }
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let botResponse = '';
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value, { stream: true });
-            if (spinnerVisible && chunk.trim().length > 0) {
-                hideSpinner();
-                spinnerVisible = false;
+
+        const responseData = await response.json();
+
+        if (responseData.estatus === "success" && responseData.datos) {
+            const botResponse = responseData.datos;
+
+            if (spinnerVisible) hideSpinner();
+            spinnerVisible = false;
+
+            const chatMessages = document.getElementById('ctai-chat-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('bot-message');
+
+            if (chatMessages) {
+                 chatMessages.appendChild(msgDiv);
+            } else {
+                 if (spinnerVisible) hideSpinner();
+                 return;
             }
-            botResponse += chunk;
+
             if (typeof marked !== 'undefined') {
                  if (msgDiv.parentNode) {
                       msgDiv.innerHTML = marked.parse(botResponse);
@@ -193,17 +191,26 @@ async function sendMessage() {
             } else {
                 msgDiv.textContent = botResponse;
             }
+
             requestAnimationFrame(() => {
                 const container = document.getElementById("ctai-messages-container");
                  if(container) container.scrollTop = container.scrollHeight;
             });
+
+        } else {
+            if (spinnerVisible) hideSpinner();
+            spinnerVisible = false;
+            const errorMessage = responseData.mensaje || JSON.stringify(responseData) || 'Respuesta inesperada del servidor.';
+            appendMessage('bot', `Error en la respuesta del servidor: ${errorMessage}`);
         }
-        if (spinnerVisible) hideSpinner();
+
     } catch (error) {
         if (spinnerVisible) hideSpinner();
         appendMessage('bot', `Error al obtener respuesta: ${error.message || 'Error desconocido'}`);
     }
+    if (spinnerVisible) hideSpinner();
 }
+
 
 async function deleteConversation() {
     if (!userId || !API_BASE) {
