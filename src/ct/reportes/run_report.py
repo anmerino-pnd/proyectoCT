@@ -200,7 +200,12 @@ if data:
         st.stop()
 
 
-    # Función de preprocesamiento de texto
+    st.sidebar.header("Tabla de Contenidos")
+    st.sidebar.markdown("[Tópicos más frecuentes](#topicos-mas-frecuentes)")
+    st.sidebar.markdown("[Consultas en el tiempo](#consultas-en-el-tiempo)")
+    st.sidebar.markdown("[Frecuencia por hora del día](#frecuencia-por-hora-del-dia)")
+    st.sidebar.markdown("[Análisis de respuestas del asistente](#analisis-de-respuestas-del-asistente)")
+
     def preprocess(corpus):
         lemmatizer = WordNetLemmatizer()
         result = []
@@ -464,7 +469,7 @@ if data:
 
         # Análisis de Tokens y Costos (sin selección de granularidad duplicada)
         if 'total_tokens' in df_bot_filtered.columns and df_bot_filtered['total_tokens'].notna().any() and df_bot_filtered['total_tokens'].sum() > 0:
-            st.subheader("Análisis de Tokens y Costos")
+            st.subheader("Tokens y Costos")
 
             total_tokens = df_bot_filtered['total_tokens'].sum()
             st.metric(f"Tokens totales en el {"mes" if time_filter_mode == "Análisis por mes" else "año"}", f"{round(total_tokens):,.0f}")
