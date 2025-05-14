@@ -45,10 +45,9 @@ async def delete_chat_history_endpoint(user_id: str):
     Endpoint para eliminar el historial de chat de un usuario.
     Responde 204 No Content si se elimina o si no existía (operación idempotente).
     """
-    user_id_normalized = user_id.lower() # Normaliza igual que en handle_history
     try:
         # Llama al nuevo método del asistente
-        assistant.clear_session_history(user_id_normalized)
+        assistant.clear_session_history(user_id)
 
         return Response(status_code=204)
 
