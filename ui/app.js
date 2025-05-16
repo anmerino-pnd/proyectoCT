@@ -61,10 +61,6 @@ function initializeChatbotData() {
 }
 
 async function loadHistory() {
-    if (!userId || !API_BASE) {
-        appendMessage("bot", "Error: No se pudo cargar la configuración para obtener el historial.");
-        return;
-    }
     const chatMessages = document.getElementById("ctai-chat-messages");
     if (chatMessages) {
         chatMessages.innerHTML = "";
