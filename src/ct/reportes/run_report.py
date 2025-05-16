@@ -273,7 +273,7 @@ if data:
     with col1:
         st.metric(f"Total de consultas en el {'mes' if time_filter_mode == 'Análisis por mes' else 'Año'}", df_human_filtered.shape[0])
     with col2:
-        st.metric(f"Promedio de consultas en el {'mes' if time_filter_mode == 'Análisis por mes' else 'Año'}", round(promedio_consultas))
+        st.metric(f"Promedio de consultas por día en el {'mes' if time_filter_mode == 'Análisis por mes' else 'Año'}", round(promedio_consultas))
 
     # Preparar datos para el gráfico de consultas en el tiempo según la granularidad seleccionada
     if time_filter_mode == "Análisis por mes":
