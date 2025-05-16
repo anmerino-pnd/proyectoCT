@@ -265,7 +265,7 @@ if data:
         st.info("No hay preguntas humanas válidas en el período seleccionado para analizar tópicos.")
 
 
-    st.header("Consultas en el Tiempo")
+    st.header("Consultas en el tiempo")
 
     # Mostrar métricas de consultas y conversaciones
     promedio_consultas = df_human_filtered.shape[0] / df_human_filtered['conversation_id'].nunique()
@@ -362,7 +362,7 @@ if data:
          st.info("No hay datos de consultas humanas para mostrar en el tiempo para el período seleccionado.")
 
 
-    st.header("Frecuencia por Hora del Día")
+    st.header("Frecuencia por hora del día")
     # Preparar datos para el gráfico de frecuencia por hora
     df_hour = df_filtered[df_filtered['type'] == 'human'].groupby('hour').size().reset_index(name='count')
 
@@ -433,14 +433,14 @@ if data:
 
 
     if not df_bot_filtered.empty:
-        st.subheader("Longitud de Respuestas")
+        st.subheader("Longitud de respuestas")
 
         df_bot_filtered['word_count'] = pd.to_numeric(df_bot_filtered['word_count'], errors='coerce').fillna(0)
 
         # Mostrar histograma de longitud de respuestas
         if df_bot_filtered['word_count'].sum() > 0:
             fig = px.histogram(df_bot_filtered, x='word_count', nbins=30,
-                                title=f"Distribución de Longitud de Respuestas {'en el mes' if time_filter_mode == 'Análisis por mes' else 'en el año'}",
+                                title=f"Distribución de longitud de respuestas {'en el mes' if time_filter_mode == 'Análisis por mes' else 'en el año'}",
                                 color_discrete_sequence=['royalblue'])
             fig.update_layout(xaxis_title="Número de Palabras", yaxis_title="Frecuencia")
             fig.update_traces(marker=dict(opacity=0.7))
@@ -469,7 +469,7 @@ if data:
 
         # Análisis de Tokens y Costos (sin selección de granularidad duplicada)
         if 'total_tokens' in df_bot_filtered.columns and df_bot_filtered['total_tokens'].notna().any() and df_bot_filtered['total_tokens'].sum() > 0:
-            st.subheader("Tokens y Costos")
+            st.subheader("Tokens y costos")
 
             total_tokens = df_bot_filtered['total_tokens'].sum()
             st.metric(f"Tokens totales en el {"mes" if time_filter_mode == "Análisis por mes" else "año"}", f"{round(total_tokens):,.0f}")
@@ -682,7 +682,7 @@ if data:
 
 
                      fig.update_layout(
-                         title=f"Distribución de Costos por Usuario",
+                         title=f"Distribución de costos por usuario",
                          xaxis_title="Costo ($USD)",
                          yaxis_title="Número de Usuarios",
                          bargap=0.1,
@@ -715,7 +715,7 @@ if data:
 
         # Análisis de Tiempo de Respuesta
         if 'response_time' in df_bot_filtered.columns and df_bot_filtered['response_time'].notna().any() and df_bot_filtered['response_time'].sum() > 0:
-            st.subheader("Tiempo de Respuesta")
+            st.subheader("Tiempo de respuesta")
 
             df_bot_filtered['response_time'] = pd.to_numeric(df_bot_filtered['response_time'], errors='coerce').fillna(0)
             df_response_time_positive = df_bot_filtered[df_bot_filtered['response_time'] > 0].copy()
@@ -724,7 +724,7 @@ if data:
             if not df_response_time_positive.empty:
 
                 fig = px.histogram(df_response_time_positive, x='response_time', nbins=50,
-                                    title=f"Distribución de Tiempos de Respuesta",
+                                    title=f"Distribución de tiempos de respuesta",
                                     color_discrete_sequence=['royalblue'])
                 fig.update_layout(xaxis_title="Tiempo (segundos)", yaxis_title="Frecuencia")
                 fig.update_traces(marker=dict(opacity=0.7))
@@ -735,9 +735,6 @@ if data:
 
                 st.plotly_chart(fig)
 
-                # Mostrar métrica de tiempo medio de respuesta
-                avg_response_time = df_response_time_positive['response_time'].mean()
-                st.metric(f"Tiempo promedio de respuesta en el {"mes" if time_filter_mode == "Análisis por mes" else  "año"}", f"{avg_response_time:.2f} s")
 
             else:
                 st.info("No hay tiempos de respuesta positivos para mostrar en el período seleccionado.")
