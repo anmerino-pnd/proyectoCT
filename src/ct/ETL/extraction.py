@@ -236,10 +236,7 @@ class Extraction():
                           # Validar contenido lógico del JSON
                           if isinstance(json_response, dict):
                               respuesta = json_response.get("respuesta", {})
-                              if respuesta.get("status") == "error":
-                                  mensaje = respuesta.get("mensaje", "Error no especificado")
-                                  raise RuntimeError(f"[{clave}] Error en respuesta: {mensaje}")
-                              else:
+                              if respuesta.get("status") == "success":
                                   specs[clave] = json_response
                           else:
                               raise RuntimeError(f"[{clave}] JSON no tiene formato esperado: {json_response}")

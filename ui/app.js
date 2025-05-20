@@ -83,7 +83,6 @@ async function loadHistory() {
 
         const responseData = await response.json();
         console.log("Respuesta del servidor:", responseData);
-        // Verificar si la respuesta tiene la estructura esperada
         if (responseData.estatus !== "success" || !Array.isArray(responseData.datos)) {
             appendMessage("bot", "¡Hola! ¿En qué puedo ayudarte hoy?");
             return;
@@ -227,7 +226,7 @@ async function deleteConversation() {
     }
 
     try {
-        const response = await fetch(`${API_BASE}/history/${userId}`, { method: 'DELETE' });
+        const response = await fetch(`${API_BASE}/delete-history?usuario=${userId}`, { method: 'DELETE' });
         if (response.status === 204 || response.status === 200) {
             const chatMessages = document.getElementById("ctai-chat-messages");
             if (chatMessages) {

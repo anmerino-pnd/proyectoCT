@@ -52,7 +52,7 @@ Este enfoque de proxy en el backend PHP resuelve el problema del contenido mixto
 
 ### 2.2 Desarrollo del widget frontend
 
-Se desarrolló un widget de chat personalizado e integrable mediante un simple script (`sdk.js`). Este widget se encarga de inyectar la interfaz de usuario (HTML) y cargar la lógica de la aplicación (`app.js`) y los estilos (`styles.css`) de forma dinámica en cualquier página web.
+Se desarrolló un widget de chat personalizado e integrable mediante un simple script (`sdk.js`). Este widget se encarga de inyectar la interfaz de usuario (`html`) y cargar la lógica de la aplicación (`app.js`) y los estilos (`styles.css`) de forma dinámica en cualquier página web.
 
 ### 2.3 Plan de monitoreo
 
