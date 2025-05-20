@@ -50,7 +50,7 @@ class Load:
         products = self.load_products()
         
         # --- Batch size ---
-        batch_size = 1000
+        batch_size = 250
         # Create the vector store
         total_docs = len(products)
         
@@ -58,7 +58,7 @@ class Load:
         for i in range(1, total_docs, batch_size):
             batch = products[i:i + batch_size]
             vector_store.add_documents(batch)
-            time.sleep(15)  # Optional: sleep to avoid hitting API limits
+            time.sleep(5)  # Optional: sleep to avoid hitting API limits
             print(f"Processed {i + batch_size} of {total_docs} documents.")
     
         vector_store.save_local(str(PRODUCTS_VECTOR_PATH))
@@ -68,7 +68,7 @@ class Load:
         sales = self.load_sales()
 
         # --- Batch size ---
-        batch_size = 1000
+        batch_size = 250
         # Create the vector store
         total_docs = len(sales)
         vector_store = self.vector_store(sales[:batch_size])  # Initialize with the first batch
@@ -76,7 +76,7 @@ class Load:
         for i in range(1, total_docs, batch_size):
             batch = sales[i:i + batch_size]
             vector_store.add_documents(batch)
-            time.sleep(15)
+            time.sleep(5)
             print(f"Processed {i + batch_size} of {total_docs} documents.")
 
         vector_store.save_local(str(SALES_PRODUCTS_VECTOR_PATH))
