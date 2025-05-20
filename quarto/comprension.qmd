@@ -89,6 +89,7 @@ Los recursos que se tienen actualmente para este proyecto son:
 **Restricciones:**
 
 * Limitaciones en el uso del enlace de la conexión de la base de datos ya que se puede saturar.
+* Conexiones del sistema con la red de la empresa presentan problemas de sseguridad y permisos que se deben verificar y aprobar por las personas encargadas de infraestructura.
 
 ::: 
 
