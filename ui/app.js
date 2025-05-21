@@ -220,14 +220,9 @@ async function sendMessage() {
 }
 
 async function deleteConversation() {
-    if (!userId || !API_BASE) {
-        appendMessage("bot", "Error: No se pudo eliminar la conversación debido a configuración faltante.");
-        return;
-    }
-
     try {
         const response = await fetch(`${API_BASE}/delete-history?usuario=${userId}`, { method: 'DELETE' });
-        if (response.status === 204 || response.status === 200) {
+        if (response.status === 204 || response.status === 200 || response.estatus === 'success') {
             const chatMessages = document.getElementById("ctai-chat-messages");
             if (chatMessages) {
                 chatMessages.innerHTML = "";
