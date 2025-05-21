@@ -68,7 +68,7 @@ class Load:
         sales = self.load_sales()
 
         # --- Batch size ---
-        batch_size = 250
+        batch_size = 200
         # Create the vector store
         total_docs = len(sales)
         vector_store = self.vector_store(sales[:batch_size])  # Initialize with the first batch
