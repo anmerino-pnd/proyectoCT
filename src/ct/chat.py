@@ -49,7 +49,7 @@ async def delete_chat_history_endpoint(user_id: str):
         # Llama al nuevo método del asistente
         assistant.clear_session_history(user_id)
 
-        return Response(status_code=204)
+        return "success"
 
 
     except Exception as e:

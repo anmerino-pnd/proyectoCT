@@ -5,7 +5,7 @@ from typing import AsyncGenerator, Dict
 from datetime import datetime, timezone
 
 from ct.llm import LLM
-from ct.config import HISTORY_FILE
+from ct.config import HISTORY_FILE, BACKUP_HISTORY_FILE
 from ct.tools.assistant import Assistant
 from ct.tokens import TokenCostProcess, CostCalcAsyncHandler
 
@@ -28,6 +28,7 @@ class LangchainAssistant(Assistant):
         self.retriever = retriever
 
         self.history_file = HISTORY_FILE
+        self.backup_history_file = BACKUP_HISTORY_FILE
         self._ensure_history_file()
         self.histories: Dict[str, list] = self.load_history()
 
@@ -71,6 +72,14 @@ class LangchainAssistant(Assistant):
                 json.dump(self.histories, f, indent=4, ensure_ascii=False)
         except Exception as e:
             print(f"Error al guardar el historial completo en {self.history_file}: {e}")
+    
+    def backup_full_history(self):
+        """Copia de seguridad del historial completo en un archivo JSON separado."""
+        try:
+            with open(self.backup_history_file, "w", encoding="utf-8") as f:
+                json.dump(self.histories, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Error al guardar la copia de seguridad del historial: {e}")
 
     def add_message_to_full_history(self, session_id: str, message_type: str, content: str, metadata: dict = None):
         """Añade un mensaje al historial COMPLETO (self.histories) y lo guarda en JSON."""
@@ -93,6 +102,7 @@ class LangchainAssistant(Assistant):
 
 
         self.save_full_history()
+        self.backup_full_history()
     
     def clear_session_history(self, session_id: str) -> bool:
         """
@@ -107,7 +117,6 @@ class LangchainAssistant(Assistant):
         if history_existed:
             self.histories[session_id] = []  
                
-            # Guarda el historial modificado (sin la sesión eliminada) en el archivo
             self.save_full_history()
             return True
         else:
