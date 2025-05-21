@@ -1,7 +1,7 @@
 class CTAIWidget {
     static init(config = {}) {
         const settings = {
-            apiBase: config.apiBase || "https://REDACTED_HOST:8000",
+            apiBase: config.apiBase,
             userId: config.userId,
             userKey: config.userKey,
             containerId: config.containerId || "ctai-widget-root",
