@@ -144,6 +144,7 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#plan-de-monitoreo" id="toc-plan-de-monitoreo" class="nav-link" data-scroll-target="#plan-de-monitoreo">2.3 Plan de monitoreo</a></li>
   <li><a href="#plan-de-mantenimiento" id="toc-plan-de-mantenimiento" class="nav-link" data-scroll-target="#plan-de-mantenimiento">2.4 Plan de mantenimiento</a></li>
   <li><a href="#experiencia-de-desarrollo" id="toc-experiencia-de-desarrollo" class="nav-link" data-scroll-target="#experiencia-de-desarrollo">2.5 Experiencia de desarrollo</a></li>
+  <li><a href="#despliegue-del-chatbot-en-el-sistema-de-desarrollo" id="toc-despliegue-del-chatbot-en-el-sistema-de-desarrollo" class="nav-link" data-scroll-target="#despliegue-del-chatbot-en-el-sistema-de-desarrollo">2.6 Despliegue del chatbot en el sistema de desarrollo</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -195,13 +196,14 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="arquitectura-de-despliegue-y-conexión">2.1. Arquitectura de Despliegue y Conexión</h3>
 <p>La fase de implementación en el entorno de pruebas requiere el despliegue de la API del chatbot (desarrollada en Python con FastAPI) y la integración del widget (desarrollado en JavaScript, HTML y CSS) en la página web de pruebas de CT Online.</p>
 <p>Un desafío técnico crucial identificado durante la planificación del despliegue fue la <strong>política de seguridad de “contenido mixto” (mixed content)</strong> impuesta por los navegadores modernos. Dado que la página de pruebas de la empresa se sirve a través de HTTPS para garantizar una conexión segura, el navegador bloquea las peticiones que el código JavaScript del widget intenta realizar a recursos o servicios que no son seguros, como la API FastAPI que opera con el protocolo HTTP. Realizar llamadas directas desde HTTPS a HTTP resulta en un error de “mixed content”, impidiendo la comunicación.</p>
+<p>También se evaluó la posibilidad de servir la API directamente a través de HTTPS. Sin embargo, esta alternativa implicaba mayores retos técnicos y operativos, como la gestión de certificados SSL válidos que autentiquen la comunicación segura entre el servidor y los navegadores. Aunque se intentó utilizar un certificado autofirmado, los navegadores modernos no lo reconocen como confiable, lo que resultaba en el bloqueo automático de las conexiones. Además del reto técnico, esta opción implicaba complicaciones administrativas relacionadas con la obtención, configuración y renovación de certificados válidos, lo que aumentaba la complejidad del despliegue inicial.</p>
 <p>Para superar este obstáculo y permitir la comunicación segura entre el frontend en HTTPS y la API, se ha adoptado la siguiente arquitectura de despliegue utilizando un <strong>backend proxy</strong>:</p>
 <ul>
 <li>La aplicación principal de la empresa, que opera en un entorno seguro con <strong>HTTPS</strong>, actuará como intermediaria. Dado que esta aplicación utiliza <strong>PHP</strong>, el proxy se implementará en este lenguaje.</li>
-<li>El widget, integrado en la página de pruebas (servida en HTTPS), no realizará llamadas directas a la API FastAPI en HTTP. En su lugar, el JavaScript del widget será configurado para enviar todas sus peticiones a un <strong>nuevo endpoint específico en el backend PHP</strong>.</li>
+<li>El widget, integrado en la página de pruebas (servida en HTTPS), no realizará llamadas directas a la API FastAPI. En su lugar, el JavaScript del widget será configurado para enviar todas sus peticiones a un <strong>nuevo endpoint específico en el backend PHP</strong>.</li>
 <li>El backend PHP recibirá estas peticiones entrantes del frontend (en HTTPS).</li>
-<li>El código PHP, utilizando librerías HTTP, realizará entonces la <strong>solicitud real a la API FastAPI</strong>. La comunicación entre el backend PHP y la API FastAPI no está sujeta a las restricciones de contenido mixto del navegador.</li>
-<li>El backend PHP recibirá la respuesta de la API FastAPI y la reenviará de vuelta al frontend del widget (en HTTPS).</li>
+<li>El código PHP, realizará entonces la <strong>solicitud real a la API</strong>. La comunicación entre el backend PHP y la API no está sujeta a las restricciones de contenido mixto del navegador, o sea, sin importa si la API se sirve en HTTP o HTTPS, el PHP siempre se puede comunicar con el servicio sin problema.</li>
+<li>El backend PHP recibirá la respuesta de la API y la reenviará de vuelta al frontend del widget (en HTTPS), en otras palabras, se apunta así mismo.</li>
 </ul>
 <p>Este enfoque de proxy en el backend PHP resuelve el problema del contenido mixto al asegurar que la comunicación entre el navegador (frontend) y la infraestructura del backend de la empresa siempre se realice a través de HTTPS. El desafío de integrar una fuente HTTP en un entorno HTTPS queda encapsulado en la comunicación de servidor a servidor.</p>
 </section>
@@ -232,7 +234,27 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="experiencia-de-desarrollo" class="level3">
 <h3 class="anchored" data-anchor-id="experiencia-de-desarrollo">2.5 Experiencia de desarrollo</h3>
-<p>El proyecto ha permitido consolidar la experiencia en el ciclo completo de desarrollo de una aplicación basada en modelos de lenguaje, desde la comprensión y preparación de datos complejos, pasando por el prototipado con herramientas como Langchain, hasta el desarrollo de una API robusta con FastAPI y la implementación de una interfaz de usuario dinámica y reusable (widget frontend). La resolución de desafíos específicos como el manejo de diferentes estructuras de datos para las vector stores y la integración segura (HTTPS/contenido mixto) en un entorno web real han sido aprendizajes clave. Se han seguido buenas prácticas de desarrollo, enfocándose en la modularidad para facilitar futuras expansiones (ej: integración de LangGraph) y el mantenimiento del código.</p>
+<p>El proyecto ha permitido consolidar la experiencia en el ciclo completo de desarrollo de una aplicación basada en modelos de lenguaje, desde la comprensión y preparación de datos complejos, pasando por el prototipado con herramientas como Langchain, hasta el desarrollo de una API robusta con FastAPI y la implementación de una interfaz de usuario dinámica y reusable (widget frontend desarrollado en <code>JS</code>, <code>HTML</code> y <code>CSS</code>). La resolución de desafíos específicos como el manejo de diferentes estructuras de datos para las vector stores y la integración segura de una API a un entorno web real (HTTPS/contenido mixto, CORS, permisos de red) han sido aprendizajes clave con complicaciones y problemas que se pudieron corregir y solucionar. Se han seguido buenas prácticas de desarrollo, enfocándose en la modularidad para facilitar futuras expansiones (ej: integración de LangGraph) y el mantenimiento del código.</p>
+</section>
+<section id="despliegue-del-chatbot-en-el-sistema-de-desarrollo" class="level3">
+<h3 class="anchored" data-anchor-id="despliegue-del-chatbot-en-el-sistema-de-desarrollo">2.6 Despliegue del chatbot en el sistema de desarrollo</h3>
+<p>El chatbot fue desplegado exitosamente en el entorno de pruebas de CT Online, habilitado específicamente para fines de desarrollo e integración continua. Este entorno permite validar en condiciones casi reales el comportamiento tanto del frontend (widget) como de la API conversacional.</p>
+<p>El proceso de despliegue consistió en los siguientes pasos:</p>
+<ul>
+<li><strong>Montaje del entorno de la API:</strong> La API desarrollada con FastAPI se desplegó en un servidor, o ambiente virtual de linux, utilizando Gunicorn como servidor de aplicaciones y conectándose al backend de la página de CT Online.</li>
+<li><strong>Integración del widget en la página de pruebas:</strong> Se inyectó el script del widget directamente en la página, asegurando que se pudieran cargar dinámicamente los recursos necesarios (<code>JS</code>, <code>HTML</code> y <code>CSS</code>) desde un servidor de archivos estáticos. La integración se validó en distintos navegadores modernos para asegurar la compatibilidad y el correcto funcionamiento.</li>
+<li><strong>Gestión de versiones y control de cambios:</strong> Se utilizó Git para gestionar versiones del código tanto del sistema del Chatbot, la API y del widget. Esto permitió llevar un registro detallado de los cambios realizados y facilitó el proceso de despliegue incremental, en caso de futuras modificaciones o ajustes.</li>
+<li><strong>Verificación funcional:</strong> Tras el despliegue inicial, se realizaron pruebas manuales y automatizadas para verificar el correcto funcionamiento del flujo de conversación, el tiempo de respuesta de la API y el comportamiento del widget en diferentes escenarios (errores, entradas no reconocidas, ausencia de resultados, etc.).</li>
+<li><strong>Consideraciones de seguridad:</strong> Aunque se trata de un entorno de pruebas, se aseguraron medidas básicas como la validación de origen en CORS, limitación de rutas expuestas en la API, y uso de HTTPS para todas las comunicaciones entre cliente y servidor.</li>
+</ul>
+<p>La imagen a continuación muestra el chatbot funcionando en su entorno de desarrollo, con el widget incrustado en la página de pruebas de CT Online:</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./ctdev.jpg" class="img-fluid figure-img" style="width:90.0%"></p>
+<figcaption>Chatbot desplegado</figcaption>
+</figure>
+</div>
+<p>Este hito marca un avance significativo hacia la validación en entorno real del sistema conversacional, permitiendo recopilar feedback de usuarios internos antes de considerar un despliegue completo en producción.</p>
 </section>
 </section>
 
