@@ -26,15 +26,10 @@ class LangchainAssistant(Assistant):
         self.llm, self.model = llm_instance.OpenAI()  # O .Ollama()
         self.retriever = retriever
 
-        self.mongo_uri = mongo_uri
-        self.mongo_db = mongo_db
-        self.mongo_collection = mongo_collection
-        self.mongo_collection_backup = mongo_collection_backup
-
-        self.client = MongoClient(self.mongo_uri)
-        self.db = self.client[self.mongo_db]
-        self.collection = self.db[self.mongo_collection]
-        self.collection_backup = self.db[self.mongo_collection_backup]
+        self.client = MongoClient(mongo_uri)
+        self.db = self.client[mongo_db]
+        self.collection = self.db[mongo_collection]
+        self.collection_backup = self.db[mongo_collection_backup]
 
         self.session_memory: Dict[str, Any] = {}
         self.memory_window_size = 3 # O el valor que elijas (k=5 turnos)
