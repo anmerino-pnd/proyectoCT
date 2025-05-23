@@ -1,23 +1,22 @@
 import os
 import json
 import time
-from typing import AsyncGenerator, Dict
+from typing import AsyncGenerator, Dict, Any
 from datetime import datetime, timezone
 
 from ct.llm import LLM
-from ct.config import HISTORY_FILE, BACKUP_HISTORY_FILE
 from ct.tools.assistant import Assistant
 from ct.tokens import TokenCostProcess, CostCalcAsyncHandler
+from ct.clients import mongo_uri, mongo_db, mongo_collection, mongo_collection_backup
 
+from pymongo import MongoClient
 from langchain_core.runnables import ConfigurableFieldSpec
+from langchain.memory import ConversationBufferWindowMemory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain.schema import AIMessage, HumanMessage, BaseMessage 
 from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain.chains.combine_documents import create_stuff_documents_chain
-
-from langchain.memory import ConversationBufferWindowMemory
 from langchain_community.chat_message_histories import ChatMessageHistory
-
+from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain, create_history_aware_retriever
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
@@ -27,110 +26,80 @@ class LangchainAssistant(Assistant):
         self.llm, self.model = llm_instance.OpenAI()  # O .Ollama()
         self.retriever = retriever
 
-        self.history_file = HISTORY_FILE
-        self.backup_history_file = BACKUP_HISTORY_FILE
-        self._ensure_history_file()
-        self.histories: Dict[str, list] = self.load_history()
+        self.mongo_uri = mongo_uri
+        self.mongo_db = mongo_db
+        self.mongo_collection = mongo_collection
+        self.mongo_collection_backup = mongo_collection_backup
 
-        self.session_memory: Dict[str, ConversationBufferWindowMemory] = {}
+        self.client = MongoClient(self.mongo_uri)
+        self.db = self.client[self.mongo_db]
+        self.collection = self.db[self.mongo_collection]
+        self.collection_backup = self.db[self.mongo_collection_backup]
+
+        self.session_memory: Dict[str, Any] = {}
         self.memory_window_size = 3 # O el valor que elijas (k=5 turnos)
 
         self.rag_chain = self.build_chain()
 
-    def _ensure_history_file(self):
-        """Verifica si el archivo de historial existe, si no, lo crea vacío."""
-        if not os.path.exists(self.history_file):
-            os.makedirs(os.path.dirname(self.history_file), exist_ok=True) # Asegura que el directorio exista
-            with open(self.history_file, "w", encoding="utf-8") as f:
-                json.dump({}, f, indent=4, ensure_ascii=False)
-
-    def load_history(self) -> dict:
-        """Carga el historial de conversaciones COMPLETO desde un archivo JSON."""
-        try:
-            with open(self.history_file, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            print(f"Advertencia: No se pudo cargar el historial desde {self.history_file}. Iniciando con historial vacío.")
-            return {}
-        
     def get_session_history(self, session_id: str) -> BaseChatMessageHistory:
-        """Obtiene el historial de una sesión específica y lo convierte en BaseChatMessageHistory."""
-        if session_id not in self.histories:
-            self.histories[session_id] = []
-
-        messages = [
-            HumanMessage(content=m["content"]) if m["type"] == "human" else AIMessage(content=m["content"])
-            for m in self.histories[session_id]
-        ]
+        """Convierte el historial de MongoDB a objetos ChatMessageHistory."""
+        doc = self.collection.find_one({"session_id": session_id})
+        messages = []
+        if doc:
+            messages = [
+                HumanMessage(content=m["content"]) if m["type"] == "human" else AIMessage(content=m["content"])
+                for m in doc["history"]
+            ]
         return ChatMessageHistory(messages=messages)
-        
-    def save_full_history(self):
-        """Guarda el diccionario COMPLETO de historiales en el archivo JSON."""
-        # Esta función podría llamarse periódicamente o al cerrar la app
-        try:
-            with open(self.history_file, "w", encoding="utf-8") as f:
-                json.dump(self.histories, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error al guardar el historial completo en {self.history_file}: {e}")
-    
-    def backup_full_history(self):
-        """Copia de seguridad del historial completo en un archivo JSON separado."""
-        try:
-            with open(self.backup_history_file, "w", encoding="utf-8") as f:
-                json.dump(self.histories, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            print(f"Error al guardar la copia de seguridad del historial: {e}")
 
     def add_message_to_full_history(self, session_id: str, message_type: str, content: str, metadata: dict = None):
-        """Añade un mensaje al historial COMPLETO (self.histories) y lo guarda en JSON."""
-        if session_id not in self.histories:
-            self.histories[session_id] = []
-
-        # Tu lógica de validación y formato de mensaje
-        if not isinstance(content, str):
-             content = str(content) # Simplificado
+        """Agrega un mensaje al historial de MongoDB (por sesión) y hace backup."""
+        doc = self.collection.find_one({"session_id": session_id})
+        history = doc["history"] if doc else []
 
         message = {
             "type": message_type,
-            "content": content,
+            "content": str(content),
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         if metadata:
             message["metadata"] = metadata
 
-        self.histories[session_id].append(message)
+        history.append(message)
 
+        self.collection.update_one(
+            {"session_id": session_id},
+            {"$set": {"history": history}},
+            upsert=True
+        )
 
-        self.save_full_history()
-        self.backup_full_history()
+        # También guarda en colección de respaldo
+        self.collection_backup.update_one(
+            {"session_id": session_id},
+            {"$set": {"history": history}},
+            upsert=True
+        )
+
     
     def clear_session_history(self, session_id: str) -> bool:
-        """
-        Elimina el historial de una sesión específica tanto de la memoria
-        en ejecución como del archivo JSON.
+        """Limpia el historial de una sesión en MongoDB."""
+        result = self.collection.delete_one({"session_id": session_id})
+        return result.deleted_count > 0
 
-        Retorna True si la sesión existía y fue eliminada, False si no existía.
-        """
-
-        history_existed = session_id in self.histories
-
-        if history_existed:
-            self.histories[session_id] = []  
-               
-            self.save_full_history()
-            return True
-        else:
-            return False 
     
     def get_windowed_memory_for_session(self, session_id: str) -> BaseChatMessageHistory:
-        """Obtiene el backend de memoria windowed (limitada) para una sesión específica."""
+        """Obtiene el backend de memoria limitada (windowed) para una sesión específica desde MongoDB."""
         if session_id not in self.session_memory:
             initial_messages = []
-            if session_id in self.histories:
-                full_session_history = self.histories[session_id]
-                # Tomamos los últimos N mensajes (N = window_size * 2)
-                last_n_messages = full_session_history[-(self.memory_window_size * 2):]
-                for msg_data in last_n_messages:
+
+            # Solo pedimos los últimos (window_size * 2) mensajes con $slice
+            doc = self.collection.find_one(
+                {"session_id": session_id},
+                projection={"history": {"$slice": -(self.memory_window_size * 2)}}
+            )
+
+            if doc and "history" in doc:
+                for msg_data in doc["history"]:
                     content = msg_data.get("content", "")
                     if msg_data.get("type") == "human":
                         initial_messages.append(HumanMessage(content=content))
@@ -141,12 +110,13 @@ class LangchainAssistant(Assistant):
                 k=self.memory_window_size,
                 memory_key="history",
                 input_key="input",
-                output_key="answer", # Clave donde buscará la respuesta del AI
-                chat_memory=ChatMessageHistory(messages=initial_messages), # Inicializa con mensajes recientes
+                output_key="answer",
+                chat_memory=ChatMessageHistory(messages=initial_messages),
                 return_messages=True
             )
-        # Devolvemos el backend (ChatMessageHistory) que usa RunnableWithMessageHistory
+
         return self.session_memory[session_id].chat_memory
+
 
     def build_chain(self):
         history_aware_retriever = create_history_aware_retriever(self.llm, self.retriever, self.QPromptTemplate())
