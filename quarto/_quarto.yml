@@ -1,6 +1,6 @@
 project:
   type: website
-  output-dir: docs
+  output-dir: ../docs
   render: # Renderizar todos los archivos .qmd
     - home.qmd
     - comprension.qmd
