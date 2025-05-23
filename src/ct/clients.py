@@ -24,6 +24,11 @@ cookie: str = os.getenv('Token-ct')
 dominio : str = os.getenv('dominio')
 boundary: str = os.getenv('boundary')
 
+mongo_uri: str = os.getenv('MONGO_URI')
+mongo_db: str = os.getenv('MONGO_DB')
+mongo_collection: str = os.getenv('MONGO_COLLECTION')
+mongo_collection_backup: str = os.getenv('MONGO_COLLECTION_BACKUP')
+
 # Credenciales de OpenAI
 openai_api_key: str = os.getenv("OPENAI_API_KEY")
 openai = openai_api.OpenAI(api_key=openai_api_key)
@@ -41,6 +46,3 @@ class Clients:
         clientes = Clients.load_clients()
         return clientes.get(cliente_clave)
     
-# IP de la API 
-
-API_INTERNA_URL : str = os.getenv('API_INTERNA_URL')
