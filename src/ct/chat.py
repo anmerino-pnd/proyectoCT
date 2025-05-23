@@ -4,19 +4,13 @@ from fastapi.responses import StreamingResponse
 from ct.langchain.rag import LangchainRAG
 from langchain.schema import HumanMessage
 from typing import AsyncGenerator
-from ct.clients import Clients
+from ct.clients import QueryRequest
 from pydantic import BaseModel
 from ct.config import DATA_DIR
 
 
 rag = LangchainRAG(DATA_DIR)
 assistant = rag.assistant
-clients = Clients()
-
-class QueryRequest(BaseModel):
-    user_query: str
-    user_id: str
-    listaPrecio: str 
 
 
 def get_chat_history(user_id: str):
@@ -31,7 +25,7 @@ def get_chat_history(user_id: str):
 
 async def async_chat_generator(request: QueryRequest) -> AsyncGenerator[str, None]:
         async for chunk in rag.run(request.user_query, request.user_id, request.listaPrecio):
-            yield chunk  # Envía cada chunk al frontend de inmediato
+            yield chunk  
 
 
 async def async_chat_endpoint(request: QueryRequest):
@@ -43,7 +37,6 @@ async def delete_chat_history_endpoint(user_id: str):
     Responde 204 No Content si se elimina o si no existía (operación idempotente).
     """
     try:
-        # Llama al nuevo método del asistente
         assistant.clear_session_history(user_id)
 
         return "success"

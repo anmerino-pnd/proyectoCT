@@ -12,16 +12,14 @@ class Transform:
         'fichaTecnica': {},  
         'resumen': {}  
     }
-            # Extraer características de ProductFeature
         if "ProductFeature" in specifications:
             product_feature = specifications["ProductFeature"]
 
-            # Si es una cadena, lo ignoramos o lo manejamos según sea necesario
             if isinstance(product_feature, str):
                 print(f"Advertencia: `ProductFeature` es una cadena en lugar de una lista. Valor: {product_feature}")
             elif isinstance(product_feature, list):  
                 for feature in product_feature:
-                    if not isinstance(feature, dict):  # Saltar elementos que no sean diccionarios
+                    if not isinstance(feature, dict):  
                         print(f"Advertencia: Se esperaba un diccionario, pero se encontró {type(feature)}: {feature}")
                         continue  
 
@@ -30,7 +28,6 @@ class Transform:
 
                     resultado['fichaTecnica'][name] = local_value
 
-        # Agregar SummaryDescription si está presente
         if "SummaryDescription" in specifications:
             resultado['resumen']["ShortSummary"] = specifications["SummaryDescription"].get("ShortSummaryDescription", "No disponible")
             resultado['resumen']["LongSummary"] = specifications["SummaryDescription"].get("LongSummaryDescription", "No disponible")

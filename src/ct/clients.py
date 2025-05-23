@@ -2,7 +2,13 @@ import os
 import json
 from pathlib import Path
 import openai as openai_api
+from pydantic import BaseModel
 from dotenv import load_dotenv
+
+class QueryRequest(BaseModel):
+    user_query: str
+    user_id: str
+    listaPrecio: str 
 
 load_dotenv()
 
@@ -25,8 +31,10 @@ boundary: str = os.getenv('boundary')
 
 mongo_uri: str = os.getenv('MONGO_URI')
 mongo_db: str = os.getenv('MONGO_DB')
-mongo_collection: str = os.getenv('MONGO_COLLECTION')
+mongo_collection_history: str = os.getenv('MONGO_COLLECTION_HISTORY')
 mongo_collection_backup: str = os.getenv('MONGO_COLLECTION_BACKUP')
+mongo_collection_products: str = os.getenv('MONGO_COLLECTION_PRODUCTS')
+mongo_collection_sales: str = os.getenv('MONGO_COLLECTION_SALES')
 
 # Credenciales de OpenAI
 openai_api_key: str = os.getenv("OPENAI_API_KEY")
