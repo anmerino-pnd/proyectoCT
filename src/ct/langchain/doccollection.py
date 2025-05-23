@@ -1,7 +1,7 @@
 import pandas as pd
 from ct.tools.doccollection import DocCollection
 from langchain.schema import Document
-from typing import List, Optional, Dict, Any
+from typing import List
 
 class DisjointCollection(DocCollection):
     def __init__(self, chunk_size: int = 1000):
