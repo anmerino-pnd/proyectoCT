@@ -9,6 +9,7 @@ author:
     - Gerardo Leyva Conde
     - Roberto Navarro Bartolini
     - Abraham Rojo Salazar
+    - Oscar Esquer
 date: last-modified
 date-format: long
 lang: es
