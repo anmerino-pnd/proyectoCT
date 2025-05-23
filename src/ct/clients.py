@@ -3,7 +3,6 @@ import json
 from pathlib import Path
 import openai as openai_api
 from dotenv import load_dotenv
-from ct.config import CLIENTES_FILE
 
 load_dotenv()
 
@@ -33,16 +32,3 @@ mongo_collection_backup: str = os.getenv('MONGO_COLLECTION_BACKUP')
 openai_api_key: str = os.getenv("OPENAI_API_KEY")
 openai = openai_api.OpenAI(api_key=openai_api_key)
 
-class Clients:
-    @staticmethod
-    def load_clients():
-        if os.path.exists(CLIENTES_FILE):
-            with open(CLIENTES_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        return {}
-
-    @staticmethod
-    def get_lista_precio(cliente_clave):
-        clientes = Clients.load_clients()
-        return clientes.get(cliente_clave)
-    
