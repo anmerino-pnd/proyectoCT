@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.40">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Comprensión del negocio</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./favicon.png" rel="icon" type="image/png">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-549806ee2085284f45b00abea8c6df48.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-8ea72dc5fed832574809a9c94082fbbb.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-ddd961a2510921635943dfbbd19534c4.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-dark-ae2d0dcda2edce4ab590422bb373b64f.min.css" rel="prefetch" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="./index.html" class="navbar-brand navbar-brand-logo">
+    <img src="./ctlogo.png" alt="" class="navbar-logo">
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="./home.html"> 
+<span class="menu-text">Home</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link active" href="./comprension.html" aria-current="page"> 
+<span class="menu-text">Comprensión del negocio</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./comprension_datos.html"> 
+<span class="menu-text">Comprensión de los datos</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./preparacion.html"> 
+<span class="menu-text">Preparación</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./modelado.html"> 
+<span class="menu-text">Modelado y Evaluación</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./despliegue.html"> 
+<span class="menu-text">Despliegue</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Tabla de Contenidos</h2>
+   
+  <ul>
+  <li><a href="#objetivos-de-la-línea-de-investigación" id="toc-objetivos-de-la-línea-de-investigación" class="nav-link active" data-scroll-target="#objetivos-de-la-línea-de-investigación">0.1 Objetivos de la línea de investigación</a></li>
+  <li><a href="#evaluación-de-la-situación-actual" id="toc-evaluación-de-la-situación-actual" class="nav-link" data-scroll-target="#evaluación-de-la-situación-actual">0.2 Evaluación de la situación actual</a>
+  <ul class="collapse">
+  <li><a href="#requisitos-supuestos-y-restricciones" id="toc-requisitos-supuestos-y-restricciones" class="nav-link" data-scroll-target="#requisitos-supuestos-y-restricciones">0.2.1 Requisitos, supuestos y restricciones</a></li>
+  </ul></li>
+  <li><a href="#terminologia" id="toc-terminologia" class="nav-link" data-scroll-target="#terminologia">0.3 Terminología</a></li>
+  <li><a href="#beneficios" id="toc-beneficios" class="nav-link" data-scroll-target="#beneficios">0.4 Beneficios</a></li>
+  <li><a href="#costos" id="toc-costos" class="nav-link" data-scroll-target="#costos">0.5 Costos</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Comprensión del negocio</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<div style="text-align: justify">
+<p>CT Internacional es una empresa mexicana encargada en distribuir soluciones de Tecnologías de la Información (<a href="#terminologia">TI</a>), preferida para hacer negocios de los distribuidores e integradores del mundo de la tecnología. Fundada en 1992 en la ciudad de Hermosillo, esta empresa surgió como una respuesta a la oportunidad de llevar soluciones de TI, principalmente en el noroeste del país (<a href="https://ctonline.mx/static2/img/about/historia.png">Saúl Rojo</a>). La cual poco a poco se fue expandiendo hasta lograr el alcance que tiene hoy en día, convirtiéndose en una empresa mayorista de alto impacto en el canal de distribución. Actualmente es una de las <a href="https://bieninformado.mx/ct-internacional-recibe-el-reconocimiento-como-una-de-las-mejores-empresas-mexicanas-2024/">mejores empresas mexicanas</a> y tiene presencia con 52 sucursales en todos los estados del país. Además cuenta con un canal de distribución integrado por más de 31 mil clientes y aliados de negocio a quiénes proporciona un extenso catálogo de productos y servicios de más de 202 marcas agrupadas en 12 unidades de negocio.</p>
+<p>Teniendo <strong>más de 25 años en el mercado</strong>, el <strong>crecimiento constante del negocio</strong> y del mundo de la tecnología, además de la <strong>gran cantidad de productos</strong> que ofrecen para su distribución; la empresa tiene la oportunidad de aprovechar los avances tecnológicos que se han ido generado hoy en día a su favor. Esto con la intención de ofrecer un mejor servicio a sus clientes y darles un mejor acercamiento de sus productos para que sean capaces de ver un catálogo especial o personalizado en sus necesidades específicas.</p>
+<p><strong>Objetivo del proyecto:</strong></p>
+<p>Optimizar el proceso de recomendación de productos dentro de la empresa mediante el uso de <a href="#terminologia">inteligencia artificial</a>, mejorando la precisión y eficiencia en la búsqueda de opciones alineadas con las necesidades de los clientes.</p>
+<p><strong>Impacto:</strong></p>
+<p>La empresa se estaría adaptando a la nueva era tecnológica, consolidando su liderazgo en el mercado al ofrecer productos que antes podían pasar desapercibidos para el cliente. Con este sistema, los consumidores pueden tomar decisiones ajustadas a sus necesidades, generando valor tanto para ellos como para la empresa.</p>
+</div>
+<section id="objetivos-de-la-línea-de-investigación" class="level2" style="text-align: justify">
+<h2 class="anchored" data-anchor-id="objetivos-de-la-línea-de-investigación">0.1 Objetivos de la línea de investigación</h2>
+<p>Esta línea de investigación se enfoca en aprovechar la información disponible sobre los productos de la empresa, incluyendo características técnicas, precios y disponibilidad, con el objetivo de optimizar su accesibilidad y uso en procesos comerciales.</p>
+<p>El primer paso es extraer, analizar y evaluar la calidad de los datos almacenados en la base de datos de la empresa para determinar si son suficientes para el desarrollo del sistema o si es necesario complementarlos con información adicional.</p>
+<p>Una vez validada la información, se procederá a su transformación mediante <a href="#terminologia">modelos de embeddings</a>, convirtiéndola en <a href="#terminologia">representaciones vectoriales</a> para su almacenamiento en una <a href="#terminologia">base de datos vectorial</a>.</p>
+<p>El objetivo final es desarrollar un sistema que permita a los usuarios consultar productos con base en especificaciones detalladas mediante un <a href="#terminologia">chatbot</a>, el cual recuperará información relevante desde la base de datos vectorial, mejorando la precisión y relevancia de las recomendaciones.</p>
+<p><strong>Actualmente:</strong></p>
+<p>Los productos se ofrecen a través de la plataforma, donde los clientes pueden realizar búsquedas según sus necesidades. Sin embargo, el sistema de búsqueda presenta limitaciones: si los clientes no utilizan ciertas palabras clave que están relacionadas al producto, encontrar lo que buscan puede volverse complicado. Además, la empresa cuenta con un sistema de asistencia por llamada o correo, donde un operador ayuda a los clientes a resolver dudas o encontrar productos específicos.</p>
+<p><strong>Objetivo principal:</strong></p>
+<p>Desarrollar un chatbot de recomendación de productos basado en un sistema de generación de recuperación aumentada (<a href="#terminologia">RAG</a>) conectada a una base de datos vectorial para ofrecer respuestas precisas y relevantes a los usuarios, optimizando el proceso de búsqueda de productos que la empresa ofrece.</p>
+<p><strong>Objetivos específicos:</strong></p>
+<ul>
+<li><strong>Analizar y organizar la información disponible</strong> sobre un conjunto de los productos para evaluar su calidad y definir los atributos clave que se utilizarán en el sistema de recomendación. Además, identificar si es necesario crear nuevas características o ajustar las existentes para mejorar la precisión de las recomendaciones.</li>
+<li><strong>Desarrollar un modelo de representación vectorial</strong> que convierta la información de los productos en representaciones vectoriales para su almacenamiento y recuperación eficiente.</li>
+<li><strong>Implementar un sistema RAG</strong> que integre un modelo de lenguaje grande (<a href="#terminologia">LLM</a>) con la base de datos vectorial para generar recomendaciones de productos precisas y relevantes.</li>
+<li><strong>Validar el desempeño del sistema</strong> mediante pruebas de precisión, relevancia de las recomendaciones y eficiencia en la recuperación de información.</li>
+</ul>
+<p><strong>Criterios de éxito:</strong></p>
+<ol type="1">
+<li><p><strong>Precisión en la recomendación de productos:</strong></p>
+<ul>
+<li>Al menos el 90% de las 100 recomendaciones evaluadas deben coincidir con las necesidades descritas por el usuario, dando una respuesta directa, precisa y concisa en la información que proporcionada. La calidad de estas recomendaciones será validada por expertos con conocimiento en los productos.</li>
+</ul></li>
+<li><p><strong>Reproducibilidad y consistencia:</strong></p>
+<ul>
+<li>Consultas similares deben producir respuestas coherentes en al menos el 90% de los 100 casos, evitando variaciones innecesaria, además de sugerencia de productos no disponibles o fuera de stock, ni productos que no existan. Este criterio también será evaluado por los mismos expertos quiénes determinarán la calidad de la respuesta.</li>
+</ul></li>
+<li><p><strong>Escalabilidad:</strong></p>
+<ul>
+<li>La estructura del sistema mantiene su rendimiento al aumentar la cantidad de productos de la base de datos.</li>
+<li>La calidad de las respuestas y el rendimiento del chatbot se mantiene constante al aumentar la cantidad de usuarios.</li>
+</ul></li>
+</ol>
+</section>
+<section id="evaluación-de-la-situación-actual" class="level2" style="text-align: justify">
+<h2 class="anchored" data-anchor-id="evaluación-de-la-situación-actual">0.2 Evaluación de la situación actual</h2>
+<p>Los recursos que se tienen actualmente para este proyecto son:</p>
+<ul>
+<li><strong>Datos:</strong> Registro de todos los productos de la empresa disponibles para distribución. La información incluye nombre, marca, tipo, modelo, descripción, palabras clave, stock disponible, ficha técnica con especificaciones, características principales, fecha del registro y precio. Toda esta información se tiene en una <a href="#terminologia">base de datos SQL</a>, la cual se actualiza periódicamente.</li>
+<li><strong>Herramientas:</strong> <a href="#terminologia">Python</a>, servicios de OpenAI y bases de datos SQL.</li>
+<li><strong>Equipo humano:</strong> Especialistas en el sistema de distribución de la empresa, expertos en la estructura y manejo de la base de datos para facilitar la extracción de datos, y científicos de datos encargados del desarrollo y evaluación del sistema junto con los especialistas.</li>
+</ul>
+<section id="requisitos-supuestos-y-restricciones" class="level3">
+<h3 class="anchored" data-anchor-id="requisitos-supuestos-y-restricciones">0.2.1 Requisitos, supuestos y restricciones</h3>
+<p><strong>Requisitos:</strong></p>
+<ul>
+<li>Acceso a los registros de los productos de la empresa y equipo de compúto con características específicas para el desarrollo del proyecto.</li>
+<li>Comunicación constante con los expertos de la empresa para constante evaluación y retroalimentación.</li>
+<li>Credenciales para el uso y acceso de herramientas de la empresa.</li>
+</ul>
+<p><strong>Supuestos:</strong></p>
+<ul>
+<li>Los permisos y el acceso a la base de datos se matendrá a la disposición del equipo siempre que se necesite sin problemas.</li>
+<li><a href="#terminologia">API KEY</a> con créditos suficientes disponibles, para evitar problemas con las llamadas de los modelos de OpenAI.</li>
+</ul>
+<p><strong>Restricciones:</strong></p>
+<ul>
+<li>Limitaciones en el uso del enlace de la conexión de la base de datos ya que se puede saturar.</li>
+<li>Conexiones del sistema con la red de la empresa presentan problemas de sseguridad y permisos que se deben verificar y aprobar por las personas encargadas de infraestructura.</li>
+</ul>
+</section>
+</section>
+<section id="terminologia" class="level2" style="text-align: justify">
+<h2 class="anchored" data-anchor-id="terminologia">0.3 Terminología</h2>
+<p>Algunas de las terminologías clave para este proyecto son:</p>
+<ul>
+<li><strong>Python:</strong> Lenguaje de programación de alto nivel, ampliamente utilizado en el desarrollo de software, análisis de datos, inteligencia artificial y automatización.<br>
+</li>
+<li><strong>FastAPI:</strong> Framework de desarrollo web en Python que permite construir APIs de forma rápida, sencilla y eficiente.<br>
+</li>
+<li><strong>LangChain:</strong> Herramienta para construir aplicaciones que combinan modelos de lenguaje con fuentes de datos externas y lógica personalizada.<br>
+</li>
+<li><strong>Inteligencia artificial (IA):</strong> Campo de la informática que desarrolla sistemas capaces de realizar tareas que requieren inteligencia humana, como el aprendizaje, la toma de decisiones y el procesamiento del lenguaje natural.<br>
+</li>
+<li><strong>Modelos de lenguaje grande (LLM):</strong> Modelos de inteligencia artificial entrenados con grandes volúmenes de texto para comprender y generar lenguaje natural.<br>
+</li>
+<li><strong>Sistema de recuperación mejorada (RAG):</strong> Técnica que combina modelos de lenguaje con bases de datos externas para recuperar información relevante y generar respuestas más precisas.<br>
+</li>
+<li><strong>Representación vectorial:</strong> Proceso de convertir datos textuales en representaciones numéricas (vectores) para facilitar su análisis y búsqueda.<br>
+</li>
+<li><strong>Modelo de embeddings:</strong> Algoritmo que transforma palabras o frases en vectores de manera que su similitud semántica pueda medirse matemáticamente.<br>
+</li>
+<li><strong>Base de datos vectorial:</strong> Sistema de almacenamiento optimizado para buscar y recuperar información midiendo la similitud entre vectores.<br>
+</li>
+<li><strong>Base de datos SQL (Structured Query Language):</strong> Sistema de almacenamiento relacional que organiza los datos en tablas con filas y columnas, usando SQL para consultarlos.<br>
+</li>
+<li><strong>API (Interfaz de Programación de Aplicaciones):</strong> Conjunto de reglas que permite que diferentes sistemas de software se comuniquen entre sí.<br>
+</li>
+<li><strong>API KEY:</strong> Clave de autenticación utilizada para acceder a servicios protegidos por una API.<br>
+</li>
+<li><strong>Endpoint (API):</strong> Dirección específica dentro de una API donde se accede a una funcionalidad concreta.<br>
+</li>
+<li><strong>Payload (HTTP):</strong> Contenido de los datos enviados en una solicitud HTTP, como un formulario o un JSON con información.<br>
+</li>
+<li><strong>Chatbot:</strong> Programa que interactúa con los usuarios mediante lenguaje natural para responder preguntas o realizar tareas automatizadas.<br>
+</li>
+<li><strong>Frontend:</strong> Parte visual o interfaz con la que interactúa el usuario en una aplicación web.<br>
+</li>
+<li><strong>Backend:</strong> Parte lógica o del servidor donde se procesa la información y se ejecutan las funciones principales de una aplicación.<br>
+</li>
+<li><strong>HTTP (Hypertext Transfer Protocol):</strong> Protocolo para la transferencia de datos en la web.<br>
+</li>
+<li><strong>HTTPS (HTTP Secure):</strong> Versión segura del protocolo HTTP que cifra los datos para proteger la comunicación.<br>
+</li>
+<li><strong>Contenido mixto (Mixed Content):</strong> Problema de seguridad que ocurre cuando una página HTTPS carga recursos desde una fuente HTTP, lo cual puede ser bloqueado por los navegadores.<br>
+</li>
+<li><strong>Certificado SSL/TLS:</strong> Archivo digital que autentica la identidad de un sitio web y cifra la información entre el servidor y el navegador.<br>
+</li>
+<li><strong>Autoridad Certificadora (CA):</strong> Entidad confiable que emite certificados digitales para garantizar la seguridad en la web.<br>
+</li>
+<li><strong>Proxy:</strong> Servidor que actúa como intermediario entre un cliente y otro servidor, utilizado para redirigir solicitudes.<br>
+</li>
+<li><strong>Puerto (de red):</strong> Punto lógico de conexión en un servidor que permite recibir solicitudes de red.<br>
+</li>
+<li><strong>Widget:</strong> Componente visual incrustado en una página web, como un chatbot o formulario.</li>
+</ul>
+</section>
+<section id="beneficios" class="level2" style="text-align: justify">
+<h2 class="anchored" data-anchor-id="beneficios">0.4 Beneficios</h2>
+<ul>
+<li><strong>Innovación en la oferta de productos</strong>: Introducir un nuevo enfoque en la recomendación de productos, brindando una experiencia más personalizada y efectiva tanto para la empresa como para los clientes.</li>
+<li><strong>Optimización de la estrategia del mercado:</strong> La implementación del sistema abre oportunidades para nuevas estrategias de negocio, mejorando la eficiencia y el alcance en la comercialización de productos.</li>
+</ul>
+</section>
+<section id="costos" class="level2" style="text-align: justify">
+<h2 class="anchored" data-anchor-id="costos">0.5 Costos</h2>
+<ul>
+<li><strong>Tiempo:</strong> El proyecto tiene un plazo estimado de 3 meses para desarrollar una versión funcional y tangible que sirva como punto de partida para futuras mejoras e implementación en el flujo de trabajo.</li>
+<li><strong>Financieros:</strong> Se consideran costos asociados a suscripciones de herramientas de pago necesarias para el desarrollo e implementación del sistema.</li>
+</ul>
+</section>
+
+
+
+<a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Back to top</a></main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+    const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+    const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+    let newTheme = '';
+    if(darkModeDefault) {
+      newTheme = isAlternate ? baseTheme : alternateTheme;
+    } else {
+      newTheme = isAlternate ? alternateTheme : baseTheme;
+    }
+    const changeGiscusTheme = () => {
+      // From: https://github.com/giscus/giscus/issues/336
+      const sendMessage = (message) => {
+        const iframe = document.querySelector('iframe.giscus-frame');
+        if (!iframe) return;
+        iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+      }
+      sendMessage({
+        setConfig: {
+          theme: newTheme
+        }
+      });
+    }
+    const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+    if (isGiscussLoaded) {
+      changeGiscusTheme();
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  const darkModeDefault = false;
+  let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+    toggleGiscusIfUsed(toAlternate, darkModeDefault);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
