@@ -61,6 +61,7 @@ Desarrollar un chatbot de recomendación de productos basado en un sistema de ge
 
 3. **Escalabilidad:** 
     * La estructura del sistema mantiene su rendimiento al aumentar la cantidad de productos de la base de datos.
+    * La calidad de las respuestas y el rendimiento del chatbot se mantiene constante al aumentar la cantidad de usuarios.
 
 :::
 
