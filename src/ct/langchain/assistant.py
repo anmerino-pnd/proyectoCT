@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from ct.llm import LLM
 from ct.tools.assistant import Assistant
 from ct.tokens import TokenCostProcess, CostCalcAsyncHandler
-from ct.clients import mongo_uri, mongo_db, mongo_collection, mongo_collection_backup
+from ct.clients import mongo_uri, mongo_db, mongo_collection_history, mongo_collection_backup
 
 from pymongo import MongoClient
 from langchain_core.runnables import ConfigurableFieldSpec
@@ -23,16 +23,16 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, Syst
 class LangchainAssistant(Assistant):
     def __init__(self, retriever):
         llm_instance = LLM()
-        self.llm, self.model = llm_instance.OpenAI()  # O .Ollama()
+        self.llm, self.model = llm_instance.OpenAI()  
         self.retriever = retriever
 
         self.client = MongoClient(mongo_uri)
         self.db = self.client[mongo_db]
-        self.collection = self.db[mongo_collection]
+        self.collection = self.db[mongo_collection_history]
         self.collection_backup = self.db[mongo_collection_backup]
 
         self.session_memory: Dict[str, Any] = {}
-        self.memory_window_size = 3 # O el valor que elijas (k=5 turnos)
+        self.memory_window_size = 3 
 
         self.rag_chain = self.build_chain()
 
@@ -68,7 +68,6 @@ class LangchainAssistant(Assistant):
             upsert=True
         )
 
-        # También guarda en colección de respaldo
         self.collection_backup.update_one(
             {"session_id": session_id},
             {"$set": {"history": history}},
@@ -87,7 +86,6 @@ class LangchainAssistant(Assistant):
         if session_id not in self.session_memory:
             initial_messages = []
 
-            # Solo pedimos los últimos (window_size * 2) mensajes con $slice
             doc = self.collection.find_one(
                 {"session_id": session_id},
                 projection={"history": {"$slice": -(self.memory_window_size * 2)}}
@@ -119,18 +117,17 @@ class LangchainAssistant(Assistant):
         return create_retrieval_chain(history_aware_retriever, question_answer_chain)
     
     def build_conversational_chain(self) -> RunnableWithMessageHistory:
-         # self.rag_chain ya está construido en __init__
          return RunnableWithMessageHistory(
              self.rag_chain,
-             self.get_windowed_memory_for_session, # Usa la memoria windowed
+             self.get_windowed_memory_for_session, 
              input_messages_key="input",
              history_messages_key="history",
              output_messages_key="answer",
              history_factory_config=[
                  ConfigurableFieldSpec(
-                     id="session_id",      # El nombre del argumento en tu función get_windowed_memory_for_session
-                     annotation=str,       # El tipo de dato esperado (opcional pero bueno ponerlo)
-                     name="session_id",      # Cómo se llamará esta configuración (usualmente igual a id)
+                     id="session_id",      
+                     annotation=str,       
+                     name="session_id",      
                  )
              ]
          )
