@@ -1,7 +1,6 @@
 from pathlib import Path
 from fastapi import HTTPException, Response
 from fastapi.responses import StreamingResponse
-from ct.openai.assistant import OpenAIAssistant
 from ct.langchain.rag import LangchainRAG
 from langchain.schema import HumanMessage
 from typing import AsyncGenerator
@@ -9,7 +8,6 @@ from ct.clients import Clients
 from pydantic import BaseModel
 from ct.config import DATA_DIR
 
-#assistant = OpenAIAssistant()
 
 rag = LangchainRAG(DATA_DIR)
 assistant = rag.assistant
@@ -21,7 +19,6 @@ class QueryRequest(BaseModel):
     listaPrecio: str 
 
 
-# En chat.py
 def get_chat_history(user_id: str):
     """Devuelve el historial de chat de un usuario en formato JSON."""
     history = assistant.get_session_history(user_id)
