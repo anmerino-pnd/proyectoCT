@@ -67,22 +67,17 @@ class Transform:
     
     def clean_products(self) -> dict:
         products = self.transform_products()
-        print("Productos transformados obtenidos.")
         claves = products['clave'].unique().tolist()
-        print(f"Cantidad de claves únicas: {len(claves)}")
         specs = self.data.get_specifications(claves)
-        print("Especificaciones obtenidas.")
         fichas_tecnicas = self.transform_specifications(specs)
-        print("Transformación de especificaciones completada.")
         claves_fichas = fichas_tecnicas.keys()
         products_dict : dict = products.to_dict(orient='records')
+        i = 0
         for producto in products_dict:
             if producto['clave'] in claves_fichas:  # Verificamos si la clave existe
                 ficha = fichas_tecnicas[producto['clave']]
                 producto['fichaTecnica'] = ficha['fichaTecnica']
                 producto['resumen'] = ficha['resumen']
-        pprint.pprint(products_dict[0].keys(), indent=4)
-        pprint.pprint(products_dict[0], indent=4)
         return products_dict
 
     def transform_sales(self) -> pd.DataFrame:
@@ -114,8 +109,6 @@ class Transform:
                 ficha = fichas_tecnicas[sale['clave']]
                 sale['fichaTecnica'] = ficha['fichaTecnica']
                 sale['resumen'] = ficha['resumen']
-        pprint.pprint(sales_dict[0].keys(), indent=4)
-        pprint.pprint(sales_dict[0], indent=4)
         return sales_dict
 
 

@@ -43,7 +43,6 @@ class Extraction():
       ON pro.idProductos = pre.idProducto
     WHERE e.cantidad > 0
     AND pro.idProductos > 0
-    LIMIT 10
     ;
     """
     return query
@@ -186,7 +185,6 @@ class Extraction():
         AND pro.descripcion_corta_icecat != ''
         GROUP BY pros.idProducto
         ORDER BY pros.importe ASC
-        LIMIT 10
         ;"""
       return query 
 
