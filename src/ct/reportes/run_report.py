@@ -1,17 +1,20 @@
-import streamlit as st
 import os
 import json
-import pandas as pd
 import pytz
 import nltk
 import spacy
+import numpy as np
+import pandas as pd
+import streamlit as st
 import plotly.express as px
+from pymongo import MongoClient
 import plotly.graph_objects as go
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords as nltk_stopwords
 from sklearn.feature_extraction.text import CountVectorizer
-import numpy as np
+from ct.clients import mongo_uri, mongo_db, mongo_collection_backup
+
 
 # Descargar recursos de NLTK si no están presentes
 nltk_needed = ['wordnet', 'punkt', 'stopwords']
@@ -59,32 +62,19 @@ if nlp:
 
 st.title("Análisis de Historial de Conversaciones")
 
-data = None
-default_json_path = "history_backup.json"
+cliente = MongoClient(mongo_uri)
+db = cliente[mongo_db]
+coleccion = db[mongo_collection_backup]
 
-# Cargar datos desde el archivo JSON
-if os.path.exists(default_json_path) and os.path.getsize(default_json_path) > 0:
-    try:
-        with open(default_json_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except json.JSONDecodeError:
-        st.error(f"Error decodificando el archivo JSON: {default_json_path}. Asegúrate de que el formato sea válido.")
-    except FileNotFoundError:
-         st.error(f"El archivo no fue encontrado: {default_json_path}")
-    except Exception as e:
-        st.error(f"No se pudo cargar {default_json_path}: {e}")
-elif os.path.exists(default_json_path) and os.path.getsize(default_json_path) == 0:
-     st.warning(f"El archivo {default_json_path} está vacío.")
-else:
-    st.info(f"El archivo {default_json_path} no existe. Por favor, sube un archivo JSON o asegúrate de tener `history_backup.json` disponible.")
+data = coleccion.find_one()
 
 
 if data:
-    # Procesar datos JSON a DataFrame
+    data.pop('_id', None)  
     @st.cache_data
-    def process_json(raw_data):
+    def process_json(_raw_data):
         rows = []
-        for conversation_id, msgs in raw_data.items():
+        for conversation_id, msgs in _raw_data.items():
             for i in msgs:
                 if isinstance(i, dict) and all(k in i for k in ['type', 'content', 'timestamp']) and isinstance(i['content'], str):
                     row_data = {
@@ -115,7 +105,6 @@ if data:
         df['full_date'] = pd.to_datetime(df['timestamp'], utc=True, errors='coerce')
         df.dropna(subset=['full_date'], inplace=True)
 
-        # Convertir a zona horaria local
         try:
             tz = pytz.timezone("America/Hermosillo")
             df['full_date'] = df['full_date'].dt.tz_convert(tz)
@@ -123,21 +112,19 @@ if data:
             st.error("Error: Zona horaria 'America/Hermosillo' no reconocida.")
             df['full_date'] = df['full_date'].dt.tz_convert('UTC')
         except Exception as e:
-             st.error(f"Error al convertir la zona horaria: {e}")
-             df['full_date'] = df['full_date'].dt.tz_convert('UTC')
+            st.error(f"Error al convertir la zona horaria: {e}")
+            df['full_date'] = df['full_date'].dt.tz_convert('UTC')
 
-
-        # Extraer componentes de fecha y hora
         df['date'] = df['full_date'].dt.date
         df['year'] = df['full_date'].dt.year
         df['month'] = df['full_date'].dt.month
         df['day'] = df['full_date'].dt.day
         df['hour'] = df['full_date'].dt.hour
 
-        # Calcular conteo de palabras
         df['word_count'] = df['content'].str.split().str.len().fillna(0).astype(int)
 
         return df
+
 
     df = process_json(data)
 
