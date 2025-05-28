@@ -5,7 +5,6 @@ from typing import AsyncGenerator, Dict, Any
 from datetime import datetime, timezone
 
 from ct.llm import LLM
-from ct.tools.assistant import Assistant
 from ct.tokens import TokenCostProcess, CostCalcAsyncHandler
 from ct.clients import mongo_uri, mongo_db, mongo_collection_history, mongo_collection_backup
 
@@ -20,7 +19,7 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain, create_history_aware_retriever
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
-class LangchainAssistant(Assistant):
+class LangchainAssistant:
     def __init__(self, retriever):
         llm_instance = LLM()
         self.llm, self.model = llm_instance.OpenAI()  
@@ -112,11 +111,13 @@ class LangchainAssistant(Assistant):
 
 
     def build_chain(self):
+        """Construye la cadena de RAG con un retriever que tiene en cuenta el historial de chat."""
         history_aware_retriever = create_history_aware_retriever(self.llm, self.retriever, self.QPromptTemplate())
         question_answer_chain = create_stuff_documents_chain(self.llm, self.APromptTemplate())
         return create_retrieval_chain(history_aware_retriever, question_answer_chain)
     
     def build_conversational_chain(self) -> RunnableWithMessageHistory:
+         """Construye la cadena de RAG con memoria windowed y manejo de historial."""
          return RunnableWithMessageHistory(
              self.rag_chain,
              self.get_windowed_memory_for_session, 
@@ -133,6 +134,7 @@ class LangchainAssistant(Assistant):
          )
     
     def QPromptTemplate(self):
+        """Construye el ChatPromptTemplate para la reformulación de preguntas,"""
         return ChatPromptTemplate.from_messages([
             ("system", self.history_system()),
             MessagesPlaceholder("history"),
@@ -149,8 +151,7 @@ class LangchainAssistant(Assistant):
          )
 
     def APromptTemplate(self):
-        """
-        Construye el ChatPromptTemplate para la generación de respuestas,
+        """Construye el ChatPromptTemplate para la generación de respuestas,
         asegurando la correcta inyección de variables dinámicas como listaPrecio y context.
         """
         system_template = self.answer_template()
