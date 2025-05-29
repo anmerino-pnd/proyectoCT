@@ -8,7 +8,7 @@ class LLM:
         self.model = None
         self.temperature = 0.0
 
-    def OpenAI(self):
+    def  OpenAI(self):
         self.model = "gpt-4o"
         self.llm = ChatOpenAI(
             openai_api_key=api,
