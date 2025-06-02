@@ -45,9 +45,6 @@ class LangchainAssistant:
 
     def add_message_to_full_history(self, session_id: str, message_type: str, content: str, metadata: dict = None):
         """Agrega un mensaje al historial de MongoDB (por sesión) y hace backup."""
-        doc = self.collection.find_one({"session_id": session_id})
-        history = doc["history"] if doc else []
-
         message = {
             "type": message_type,
             "content": str(content),
@@ -56,24 +53,30 @@ class LangchainAssistant:
         if metadata:
             message["metadata"] = metadata
 
+        # Actualiza la colección principal (reemplaza history completo)
+        doc = self.collection.find_one({"session_id": session_id})
+        history = doc["history"] if doc else []
         history.append(message)
-
         self.collection.update_one(
             {"session_id": session_id},
             {"$set": {"history": history}},
             upsert=True
         )
 
+        # En la colección de backup, simplemente agrega el mensaje al array (sin borrar lo viejo)
         self.collection_backup.update_one(
             {"session_id": session_id},
-            {"$set": {"history": history}},
+            {"$push": {"history": message}},
             upsert=True
         )
 
-    def clear_session_history(self, session_id: str) -> bool:
-        """Limpia el historial de una sesión en MongoDB."""
-        result = self.collection.delete_one({"session_id": session_id})
-        return result.deleted_count > 0
+    def clear_session_history(self, session_id: str) :
+        """Borra el historial de chat de un usuario SIN eliminar el documento ni cambiar el _id."""
+        self.collection.update_one(
+            {"session_id": session_id},
+            {"$set": {"history": []}}
+        )
+        return True
 
     def build_chain(self):
         """Construye la cadena de RAG con un retriever que tiene en cuenta el historial de chat."""
