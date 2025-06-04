@@ -42,18 +42,6 @@ class LangchainAssistant:
         except Exception as e:
             raise
 
-#    def get_session_history(self, session_id: str) -> list[BaseMessage]:
-#        messages_data = []
-#        try:
-#            cursor = self.messages.find({"session_id": session_id}).sort("timestamp", ASCENDING)
-            for m in cursor:
-                if m["type"] == "human":
-                    messages_data.append(HumanMessage(content=m["content"]))
-                elif m["type"] == "assistant":
-                    messages_data.append(AIMessage(content=m["content"]))
-#        except PyMongoError as e:
-            pass
-#        return messages_data
 
     def get_session_history(self, session_id: str) -> list[BaseMessage]:
         messages_data = []
@@ -225,8 +213,13 @@ class LangchainAssistant:
             metadata = self.make_metadata(token_cost_process, duration)
 
             if full_answer:
-                self.add_message(session_id, "human", question)
-                self.add_message(session_id, "assistant", full_answer, metadata)
+                try:
+                    self.add_message(session_id, "human", question)
+                    self.add_message(session_id, "assistant", full_answer, metadata)
+
+                    self.add_message_backup(session_id, question, full_answer, metadata)
+                except Exception as e:
+                    pass
 
         except PyMongoError as e:
             pass
@@ -236,23 +229,7 @@ class LangchainAssistant:
     def add_message(self, session_id: str, message_type: str, content: str, metadata: dict = None):
         timestamp = datetime.now(timezone.utc)
 
-        message_doc = {
-            "session_id": session_id,
-            "type": message_type,
-            "content": str(content),
-            "timestamp": timestamp,
-        }
-
-        if message_type == "assistant" and metadata:
-            message_doc["metadata"] = metadata
-        elif message_type == "assistant":
-            message_doc["metadata"] = {}
-
         try:
-            
-            self.message_backup.insert_one(message_doc)
-
-            # Actualizar el resumen embebido en 'sessions'
             short_msg = {
                 "type": message_type,
                 "content": str(content),
@@ -277,6 +254,29 @@ class LangchainAssistant:
         except Exception as e:
             pass
 
+    def add_message_backup(self, session_id: str, question: str, full_answer: str, metadata: dict):
+        timestamp = datetime.now(timezone.utc)
+
+        message_doc = {
+            "session_id": session_id,
+            "question": question,
+            "answer": full_answer,
+            "timestamp": timestamp,
+            "input_tokens": metadata["tokens"]["input"],
+            "output_tokens": metadata["tokens"]["output"],
+            "total_tokens": metadata["tokens"]["total"],
+            "estimated_cost": metadata["tokens"]["estimated_cost"],
+            "duration_seconds": metadata["duration"]["seconds"],
+            "tokens_per_second": metadata["duration"]["tokens_per_second"],
+            "model_used": metadata["cost_model"]
+        }
+
+        try:
+            self.message_backup.insert_one(message_doc)
+        except PyMongoError as e:
+            pass
+        except Exception as e:
+            pass
 
     def make_metadata(self, token_cost_process: TokenCostProcess, duration: float = None) -> dict:
         cost = token_cost_process.get_total_cost_for_model(self.model)
