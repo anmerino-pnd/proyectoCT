@@ -234,12 +234,10 @@ class LangchainAssistant:
             pass
     
     def add_message(self, session_id: str, message_type: str, content: str, metadata: dict = None):
-        message_id = str(uuid.uuid4())
         timestamp = datetime.now(timezone.utc)
 
         message_doc = {
             "session_id": session_id,
-            "message_id": message_id,
             "type": message_type,
             "content": str(content),
             "timestamp": timestamp,
@@ -294,7 +292,6 @@ class LangchainAssistant:
             "duration": {
                 "seconds": duration,
                 "tokens_per_second": token_cost_process.total_tokens / duration if duration and duration > 0 else 0
-            },
-            "timestamp_generated": datetime.now(timezone.utc).isoformat()
+            }
         }
         return metadata
