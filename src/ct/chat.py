@@ -17,10 +17,10 @@ def get_chat_history(user_id: str):
     """Devuelve el historial de chat de un usuario en formato JSON."""
     history = assistant.get_session_history(user_id)
     
-    if not history.messages:
+    if not history:
         return []
 
-    return [{"role": "user" if isinstance(msg, HumanMessage) else "bot", "content": msg.content} for msg in history.messages]
+    return [{"role": "user" if isinstance(msg, HumanMessage) else "bot", "content": msg.content} for msg in history]
 
 
 async def async_chat_generator(request: QueryRequest) -> AsyncGenerator[str, None]:
