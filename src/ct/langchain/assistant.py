@@ -3,14 +3,15 @@ import json
 import time
 from typing import AsyncGenerator, Dict, Any
 from datetime import datetime, timezone
+import uuid
 
 from ct.llm import LLM
 from ct.tokens import TokenCostProcess, CostCalcAsyncHandler
-from ct.clients import mongo_uri, mongo_db, mongo_collection_history, mongo_collection_backup
+from ct.clients import mongo_uri, mongo_db, mongo_collection_sessions, mongo_collection_message_backup
 
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo.errors import PyMongoError
 from langchain_core.messages import trim_messages
-from langchain_core.runnables import ConfigurableFieldSpec
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains import create_retrieval_chain, create_history_aware_retriever
@@ -22,64 +23,81 @@ class LangchainAssistant:
         self.llm, self.model = llm_instance.OpenAI()
         self.retriever = retriever
 
-        self.client = MongoClient(mongo_uri)
-        self.db = self.client[mongo_db]
-        self.collection = self.db[mongo_collection_history]
-        self.collection_backup = self.db[mongo_collection_backup]
+        try:
+            self.client = MongoClient(mongo_uri)
+            self.db = self.client[mongo_db]
 
-        self.memory_window_size = 3  # número de mensajes o tokens permitidos
+            self.sessions = self.db[mongo_collection_sessions]
+            self.message_backup = self.db[mongo_collection_message_backup]
 
-        self.rag_chain = self.build_chain()
+            self.sessions.create_index("session_id", unique=True)
+            self.message_backup.create_index("session_id")
+            self.message_backup.create_index([("session_id", ASCENDING), ("timestamp", DESCENDING)])
 
-    def get_session_history(self, session_id: str) -> list:
-        """Devuelve el historial completo de mensajes desde MongoDB."""
-        doc = self.collection.find_one({"session_id": session_id})
-        messages = []
-        if doc and "history" in doc:
-            for m in doc["history"]:
+            self.memory_window_size = 3000
+            self.rag_chain = self.build_chain()
+
+        except PyMongoError as e:
+            raise
+        except Exception as e:
+            raise
+
+#    def get_session_history(self, session_id: str) -> list[BaseMessage]:
+#        messages_data = []
+#        try:
+#            cursor = self.messages.find({"session_id": session_id}).sort("timestamp", ASCENDING)
+            for m in cursor:
                 if m["type"] == "human":
-                    messages.append(HumanMessage(content=m["content"]))
+                    messages_data.append(HumanMessage(content=m["content"]))
                 elif m["type"] == "assistant":
-                    messages.append(AIMessage(content=m["content"]))
-        return messages
+                    messages_data.append(AIMessage(content=m["content"]))
+#        except PyMongoError as e:
+            pass
+#        return messages_data
 
-    def add_message_to_full_history(self, session_id: str, message_type: str, content: str, metadata: dict = None):
-        """Agrega un mensaje al historial de MongoDB (por sesión) y hace backup."""
-        message = {
-            "type": message_type,
-            "content": str(content),
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-        if metadata:
-            message["metadata"] = metadata
+    def get_session_history(self, session_id: str) -> list[BaseMessage]:
+        messages_data = []
+        try:
+            session = self.sessions.find_one(
+                {"session_id": session_id},
+                {"last_messages": 1}
+            )
+            if session and "last_messages" in session:
+                for m in session["last_messages"]:
+                    if m["type"] == "human":
+                        messages_data.append(HumanMessage(content=m["content"]))
+                    elif m["type"] == "assistant":
+                        messages_data.append(AIMessage(content=m["content"]))
+        except PyMongoError as e:
+            pass
+        return messages_data
+    
+    def clear_session_history(self, session_id: str):
+        try:
+            self.sessions.update_one(
+                {"session_id": session_id},
+                {"$set": {"last_messages": []}}
+            )
+            return True
+        except PyMongoError as e:
+            return False
+        except Exception as e:
+            return False
 
-        # Actualiza la colección principal (reemplaza history completo)
-        doc = self.collection.find_one({"session_id": session_id})
-        history = doc["history"] if doc else []
-        history.append(message)
-        self.collection.update_one(
-            {"session_id": session_id},
-            {"$set": {"history": history}},
-            upsert=True
-        )
-
-        # En la colección de backup, simplemente agrega el mensaje al array (sin borrar lo viejo)
-        self.collection_backup.update_one(
-            {"session_id": session_id},
-            {"$push": {"history": message}},
-            upsert=True
-        )
-
-    def clear_session_history(self, session_id: str) :
-        """Borra el historial de chat de un usuario SIN eliminar el documento ni cambiar el _id."""
-        self.collection.update_one(
-            {"session_id": session_id},
-            {"$set": {"history": []}}
-        )
-        return True
+    def ensure_session(self, session_id: str):
+        try:
+            self.sessions.update_one(
+                {"session_id": session_id},
+                {"$setOnInsert": {"created_at": datetime.now(timezone.utc)},
+                 "$set": {"last_activity": datetime.now(timezone.utc)}},
+                upsert=True
+            )
+        except PyMongoError as e:
+            pass
+        except Exception as e:
+            pass
 
     def build_chain(self):
-        """Construye la cadena de RAG con un retriever que tiene en cuenta el historial de chat."""
         history_aware_retriever = create_history_aware_retriever(self.llm, self.retriever, self.QPromptTemplate())
         question_answer_chain = create_stuff_documents_chain(self.llm, self.APromptTemplate())
         return create_retrieval_chain(history_aware_retriever, question_answer_chain)
@@ -109,23 +127,54 @@ class LangchainAssistant:
         ])
 
     def answer_template(self) -> str:
-        tpl = (
-            """
-            Eres un asistente especializado exclusivamente en responder preguntas relacionadas con productos y promociones.
-            Basate solo en los siguientes fragmentos de contexto para responder la consulta del usuario.
+        return (
+        """
+        Eres un asistente especializado exclusivamente en responder preguntas relacionadas con productos y promociones.
+        
+        Basate solo en los siguientes fragmentos de contexto para responder la consulta del usuario.  
 
-            El usuario pertenece a la listaPrecio {listaPrecio}, así que usa exclusivamente los precios de esta lista.
-            No menciones la lista de precios en la respuesta, solo proporciona el precio final en formato de precio.
+        El usuario pertenece a la listaPrecio {listaPrecio}, así que usa exclusivamente los precios de esta lista. 
+        No menciones la lista de precios en la respuesta, solo proporciona el precio final en formato de precio (por ejemplo, $1,000.00).  
+        Para el valor de la moneda, si moneda es 1, usa "MXN", si es 0, usa "USD".
 
-            Siempre aclara al final que la disponibilidad y los precios pueden cambiar.
+        Si hay productos en oferta, menciónalos primero. 
+        Si no hay promociones, ofrece los productos normales con su precio correcto.  
+        Si el usuario pregunta por un producto específico, verifica si está en promoción y notifícalo.  
 
-            Contexto: {context}
-            """
+        Para que un producto se considere en promoción debe tener las variables de precio_oferta, descuento, EnCompraDE y Unidades.
+        Luego, estas deben cumplir las siguientes condiciones:
+
+        1. Si el producto tiene un precio_oferta mayor a 0.0:  
+            - Usa este valor como el precio final y ofrécelo al usuario. 
+
+        2. Si el precio_oferta es 0, pero el descuento es mayor a 0.0%:  
+            - Aplica el descuento al precio que se encuentra en lista_precios y toma el precio correspondiente a la listaPrecio {listaPrecio}.  
+            - Muestra ese precio tachado y el nuevo precio con el descuento aplicado.  
+
+        3. Si el precio_oferta y el descuento son 0.0, pero la variable EnCompraDE es mayor a 0 y Unidades es mayor a 0:  
+            - Menciona que hay una promoción especial al comprar cierta cantidad.  
+            - Usa un tono sutil, por ejemplo: "En compra de 'X' productos, recibirás 'Y' unidades gratis."  
+
+        Revisa también:  
+            - La variable limitadoA para indicar si la disponibilidad es limitada.  
+            - La variable fecha_fin para aclarar la vigencia de la promoción.  
+
+        Formato de respuesta, SIEMPRE:  
+        - Para cada producto que ofrezcas:
+            * Toma el valor de la variable 'clave' 
+            * Resalta el nombre poniendo su hipervinculo https://ctdev.ctonline.mx/buscar/productos?b=clave
+        - Presenta la información de manera clara
+        - Los detalles y precios puntualizados y estructurados 
+        - Espacios entre productos.         
+        - Evita explicaciones largas o innecesarias.  
+
+        Siempre aclara al final que la disponibilidad y los precios pueden cambiar.  
+
+        Contexto: {context}  
+        """
         )
-        return tpl
 
     async def answer(self, session_id: str, question: str, listaPrecio: str = None) -> AsyncGenerator[str, None]:
-        """Genera una respuesta usando historial recortado y guarda historial completo."""
         token_cost_process = TokenCostProcess()
         cost_handler = CostCalcAsyncHandler(
             self.model,
@@ -137,13 +186,13 @@ class LangchainAssistant:
         metadata = {}
 
         try:
-            # Recuperar historial completo
+            self.ensure_session(session_id)
+            
             full_history = self.get_session_history(session_id)
-
-            # Recortar usando trim_messages
+            
             trimmed_history = trim_messages(
                 full_history,
-                token_counter=len,  # reemplaza con tu propia función si quieres contar tokens
+                token_counter=lambda messages: sum(len(m.content.split()) for m in messages),
                 max_tokens=self.memory_window_size,
                 strategy="last",
                 start_on="human",
@@ -153,7 +202,7 @@ class LangchainAssistant:
 
             chain_input = {
                 "input": question,
-                "listaPrecio": listaPrecio or "",
+                "listaPrecio": listaPrecio,
                 "history": trimmed_history
             }
 
@@ -175,21 +224,61 @@ class LangchainAssistant:
             duration = time.perf_counter() - start_time
             metadata = self.make_metadata(token_cost_process, duration)
 
-            try:
-                self.add_message_to_full_history(session_id, "human", question)
+            if full_answer:
+                self.add_message(session_id, "human", question)
+                self.add_message(session_id, "assistant", full_answer, metadata)
 
-                if full_answer:
-                    self.add_message_to_full_history(
-                        session_id,
-                        "assistant",
-                        full_answer,
-                        metadata
-                    )
-            except Exception:
-                pass
-
-        except Exception:
+        except PyMongoError as e:
             pass
+        except Exception as e:
+            pass
+    
+    def add_message(self, session_id: str, message_type: str, content: str, metadata: dict = None):
+        message_id = str(uuid.uuid4())
+        timestamp = datetime.now(timezone.utc)
+
+        message_doc = {
+            "session_id": session_id,
+            "message_id": message_id,
+            "type": message_type,
+            "content": str(content),
+            "timestamp": timestamp,
+        }
+
+        if message_type == "assistant" and metadata:
+            message_doc["metadata"] = metadata
+        elif message_type == "assistant":
+            message_doc["metadata"] = {}
+
+        try:
+            
+            self.message_backup.insert_one(message_doc)
+
+            # Actualizar el resumen embebido en 'sessions'
+            short_msg = {
+                "type": message_type,
+                "content": str(content),
+                "timestamp": timestamp
+            }
+
+            self.sessions.update_one(
+                {"session_id": session_id},
+                {
+                    "$push": {
+                        "last_messages": {
+                            "$each": [short_msg],
+                            "$sort": {"timestamp": 1},
+                            "$slice": -50  # Cambia este número según lo que quieras conservar
+                        }
+                    }
+                }
+            )
+
+        except PyMongoError as e:
+            pass
+        except Exception as e:
+            pass
+
 
     def make_metadata(self, token_cost_process: TokenCostProcess, duration: float = None) -> dict:
         cost = token_cost_process.get_total_cost_for_model(self.model)
@@ -204,7 +293,8 @@ class LangchainAssistant:
             },
             "duration": {
                 "seconds": duration,
-                "tokens_per_second": token_cost_process.total_tokens / duration if duration > 0 else 0
-            }
+                "tokens_per_second": token_cost_process.total_tokens / duration if duration and duration > 0 else 0
+            },
+            "timestamp_generated": datetime.now(timezone.utc).isoformat()
         }
         return metadata

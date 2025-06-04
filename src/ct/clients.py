@@ -31,8 +31,8 @@ boundary: str = os.getenv('boundary')
 
 mongo_uri: str = os.getenv('MONGO_URI')
 mongo_db: str = os.getenv('MONGO_DB')
-mongo_collection_history: str = os.getenv('MONGO_COLLECTION_HISTORY')
-mongo_collection_backup: str = os.getenv('MONGO_COLLECTION_BACKUP')
+mongo_collection_sessions: str = os.getenv('MONGO_COLLECTION_SESSIONS')
+mongo_collection_message_backup: str = os.getenv('MONGO_COLLECTION_MESSAGE_BACKUP')
 mongo_collection_products: str = os.getenv('MONGO_COLLECTION_PRODUCTS')
 mongo_collection_sales: str = os.getenv('MONGO_COLLECTION_SALES')
 
