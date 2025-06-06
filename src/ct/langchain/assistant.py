@@ -24,15 +24,13 @@ class LangchainAssistant:
         self.retriever = retriever
 
         try:
-            self.client = MongoClient(mongo_uri)
-            self.db = self.client[mongo_db]
+            self.client = MongoClient(mongo_uri).get_default_database()
+            self.sessions = self.client[mongo_collection_sessions]
+            self.message_backup = self.client[mongo_collection_message_backup]
 
-            self.sessions = self.db[mongo_collection_sessions]
-            self.message_backup = self.db[mongo_collection_message_backup]
-
-            self.sessions.create_index("session_id", unique=True)
-            self.message_backup.create_index("session_id")
-            self.message_backup.create_index([("session_id", ASCENDING), ("timestamp", DESCENDING)])
+            #self.sessions.create_index("session_id", unique=False)
+            #self.message_backup.create_index("session_id")
+            #self.message_backup.create_index([("session_id", ASCENDING), ("timestamp", DESCENDING)])
 
             self.memory_window_size = 3000
             self.rag_chain = self.build_chain()
