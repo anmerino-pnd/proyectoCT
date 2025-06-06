@@ -246,7 +246,7 @@ class Extraction():
 
                   else:
                       if response.text.strip().startswith('<!DOCTYPE html>') or '<html' in response.text.lower():
-                          raise RuntimeError(f"[{clave}] HTML inesperado (posible redirección/Cloudflare)")
+                          raise RuntimeError(f"[{clave}] HTML inesperado (posible redirección de IP)")
                       else:
                           raise RuntimeError(f"[{clave}] Respuesta 200 sin JSON ni HTML. Content-Type: {content_type}")
 
