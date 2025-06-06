@@ -52,11 +52,25 @@ Para superar este obstáculo y permitir la comunicación segura entre el fronten
 
 Este enfoque de proxy en el backend PHP resuelve el problema del contenido mixto al asegurar que la comunicación entre el navegador (frontend) y la infraestructura del backend de la empresa siempre se realice a través de HTTPS. El desafío de integrar una fuente HTTP en un entorno HTTPS queda encapsulado en la comunicación de servidor a servidor.
 
-### 2.2 Desarrollo del widget frontend
+### 2.2 Gestión de Persistencia de Datos con MongoDB
+
+Una mejora significativa en la arquitectura del chatbot ha sido la migración de la gestión del historial de conversaciones desde archivos JSON locales a una base de datos NoSQL, específicamente MongoDB. Esta decisión se tomó para optimizar el almacenamiento, mejorar el rendimiento y facilitar el análisis de datos, especialmente considerando el volumen y la frecuencia de las interacciones de los usuarios.
+
+La implementación en MongoDB se estructura en dos colecciones principales:
+
+* **`sessions`:** Esta colección está diseñada para mantener los últimos `n` mensajes de cada sesión de usuario. Su objetivo es asegurar una recuperación de mensajes mínima y rápida, optimizando la experiencia del usuario final al evitar la carga de historiales extensos en cada interacción. Cada vez que se añade un nuevo mensaje, el más antiguo se desplaza si se supera el límite de mensajes configurado, manteniendo la colección ligera y eficiente para las operaciones del chatbot.
+
+* **`message_backup`:** A diferencia de `sessions`, esta colección actúa como un histórico completo de todos los mensajes generados. Su propósito principal es el análisis de datos y la alimentación de sistemas de reportes automatizados. El esquema de esta colección está pensado para simular una tabla SQL, lo que facilita la búsqueda y recuperación de información para análisis posteriores. Cada documento en esta colección incluye tanto la consulta del usuario como la respuesta del chatbot, junto con metadatos relevantes como *timestamps* y detalles de tokens utilizados.
+
+Esta estrategia de persistencia de datos en MongoDB ha permitido superar las limitaciones de los archivos JSON, que no eran escalables para una gran cantidad de usuarios, ofreciendo un camino más robusto y óptimo para almacenar la información de las conversaciones.
+
+![Schema MongoDB](./mongodb.png){width=90%}
+
+### 2.3 Desarrollo del widget frontend
 
 Se desarrolló un widget de chat personalizado e integrable mediante un simple script (`sdk.js`). Este widget se encarga de inyectar la interfaz de usuario (`html`) y cargar la lógica de la aplicación (`app.js`) y los estilos (`styles.css`) de forma dinámica en cualquier página web.
 
-### 2.3 Plan de monitoreo
+### 2.4 Plan de monitoreo
 
 Durante la fase de pruebas, se implementará un plan de monitoreo para evaluar el rendimiento y comportamiento del sistema. Las métricas clave a seguir incluirán:
 
@@ -66,7 +80,7 @@ Durante la fase de pruebas, se implementará un plan de monitoreo para evaluar e
 * **Frecuencia de uso del widget:** Número de aperturas del chat y cantidad de interacciones por usuario.
 * **Errores en la consola del navegador:** Monitoreo de errores de JavaScript o CSS reportados por los usuarios durante el uso del widget.
 
-### 2.4 Plan de mantenimiento
+### 2.5 Plan de mantenimiento
 
 Se establecerá un plan de mantenimiento periódico para asegurar la estabilidad y el buen funcionamiento del sistema desplegado:
 
@@ -75,11 +89,11 @@ Se establecerá un plan de mantenimiento periódico para asegurar la estabilidad
 * **Auditoría de calidad de datos y respuestas:** Realizar evaluaciones regulares de la calidad de los datos de origen y verificar la calidad de las respuestas generadas por el modelo con el tiempo.
 * **Refactorización y optimización:** A medida que se identifiquen áreas de mejora o cambien los requisitos, planificar tareas de refactorización de código para mejorar la modularidad, el rendimiento o la mantenibilidad.
 
-### 2.5 Experiencia de desarrollo
+### 2.6 Experiencia de desarrollo
 
 El proyecto ha permitido consolidar la experiencia en el ciclo completo de desarrollo de una aplicación basada en modelos de lenguaje, desde la comprensión y preparación de datos complejos, pasando por el prototipado con herramientas como Langchain, hasta el desarrollo de una API robusta con FastAPI y la implementación de una interfaz de usuario dinámica y reusable (widget frontend desarrollado en `JS`, `HTML` y `CSS`). La resolución de desafíos específicos como el manejo de diferentes estructuras de datos para las vector stores y la integración segura de una API a un entorno web real (HTTPS/contenido mixto, CORS, permisos de red) han sido aprendizajes clave con complicaciones y problemas que se pudieron corregir y solucionar. Se han seguido buenas prácticas de desarrollo, enfocándose en la modularidad para facilitar futuras expansiones (ej: integración de LangGraph) y el mantenimiento del código.
 
-### 2.6 Despliegue del chatbot en el sistema de desarrollo
+### 2.7 Despliegue del chatbot en el sistema de desarrollo
 
 El chatbot fue desplegado exitosamente en el entorno de pruebas de CT Online, habilitado específicamente para fines de desarrollo e integración continua. Este entorno permite validar en condiciones casi reales el comportamiento tanto del frontend (widget) como de la API conversacional.
 
