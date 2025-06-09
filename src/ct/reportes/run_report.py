@@ -13,10 +13,11 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords as nltk_stopwords
 from sklearn.feature_extraction.text import CountVectorizer
+# Assuming ct.clients correctly imports mongo_uri, mongo_db, mongo_collection_message_backup
 from ct.clients import mongo_uri, mongo_db, mongo_collection_message_backup
 
 
-# Descargar recursos de NLTK si no están presentes
+# Download NLTK resources if not present
 nltk_needed = ['wordnet', 'punkt', 'stopwords']
 for resource in nltk_needed:
     try:
@@ -27,9 +28,13 @@ for resource in nltk_needed:
         st.error(f"Error al descargar recurso de NLTK '{resource}': {e}")
 
 
-# Cargar modelo de Spacy
+# Load Spacy model
 @st.cache_resource
 def load_spacy_model():
+    """
+    Loads the Spanish Spacy model, trying 'es_core_news_lg' first, then 'es_core_news_md'.
+    Displays an error message if neither is found.
+    """
     try:
         return spacy.load("es_core_news_lg")
     except:
@@ -41,7 +46,7 @@ def load_spacy_model():
 
 nlp = load_spacy_model()
 
-# Combinar stopwords de NLTK, Spacy y personalizadas
+# Combine stopwords from NLTK, Spacy and custom list
 combined_stopwords = set()
 if nlp:
     stop_words_spacy = nlp.Defaults.stop_words
@@ -55,90 +60,87 @@ custom_stopwords = {"mx", "https", "dame", "hola", "quiero", "puedes", "gustarí
                     "diste", "fijar", "debería", "viene", "palabra"}
 combined_stopwords.update(custom_stopwords)
 
-# Marcar stopwords en el vocabulario de Spacy
+# Mark stopwords in Spacy's vocabulary
 if nlp:
     for word in combined_stopwords:
         nlp.vocab[word].is_stop = True
 
 st.title("Análisis de Historial de Conversaciones")
 
+# Connect to MongoDB and fetch data
 cliente = MongoClient(mongo_uri).get_default_database()
 coleccion = cliente[mongo_collection_message_backup]
 
-data = coleccion.find_one()
+# Fetch all documents from the collection
+data = list(coleccion.find({}))
 
 
 if data:
-    data.pop('_id', None)  
     @st.cache_data
-    def process_json(_raw_data):
+    def process_many_docs(_docs):
+        """
+        Processes a list of raw documents (from MongoDB) into a pandas DataFrame.
+        Extracts relevant fields and performs datetime conversions and word counting.
+        """
         rows = []
-        for conversation_id, msgs in _raw_data.items():
-            for i in msgs:
-                if isinstance(i, dict) and all(k in i for k in ['type', 'content', 'timestamp']) and isinstance(i['content'], str):
-                    row_data = {
-                        'conversation_id': conversation_id,
-                        'type': i['type'],
-                        'content': i['content'],
-                        'timestamp': i['timestamp']
-                    }
-
-                    if i.get('metadata'):
-                        metadata = i.get('metadata')
-                        if metadata.get('tokens'):
-                            row_data['input_tokens'] = metadata.get('tokens').get('input', 0)
-                            row_data['output_tokens'] = metadata.get('tokens').get('output', 0)
-                            row_data['total_tokens'] = metadata.get('tokens').get('total', 0)
-                            row_data['cost'] = float(metadata.get('tokens').get('estimated_cost', 0) or 0)
-
-                        if metadata.get('duration'):
-                            row_data['response_time'] = float(metadata.get('duration').get('seconds', 0) or 0)
-                            row_data['tokens_per_second'] = float(metadata.get('duration').get('tokens_per_second', 0) or 0)
-
-                        if metadata.get('cost_model'):
-                            row_data['model'] = metadata.get('cost_model')
-
-                    rows.append(row_data)
+        for doc in _docs:
+            row_data = {
+                'session_id': doc.get('session_id'),
+                'question': doc.get('question'), # Directly get 'question'
+                'answer': doc.get('answer'),     # Directly get 'answer'
+                'timestamp': doc.get('timestamp'),
+                'input_tokens': doc.get('input_tokens', 0),
+                'output_tokens': doc.get('output_tokens', 0),
+                'total_tokens': doc.get('total_tokens', 0),
+                'cost': doc.get('estimated_cost', 0.0), # 'estimated_cost' for cost
+                'response_time': doc.get('duration_seconds', 0.0), # 'duration_seconds' for response time
+                'tokens_per_second': doc.get('tokens_per_second', 0.0),
+                'model': doc.get('model_used') # 'model_used' for model
+            }
+            rows.append(row_data)
 
         df = pd.DataFrame(rows)
+        # Convert timestamp to datetime objects and set to UTC
         df['full_date'] = pd.to_datetime(df['timestamp'], utc=True, errors='coerce')
-        df.dropna(subset=['full_date'], inplace=True)
 
+        # Convert to America/Hermosillo timezone, fallback to UTC if error
         try:
             tz = pytz.timezone("America/Hermosillo")
             df['full_date'] = df['full_date'].dt.tz_convert(tz)
-        except pytz.UnknownTimeZoneError:
-            st.error("Error: Zona horaria 'America/Hermosillo' no reconocida.")
-            df['full_date'] = df['full_date'].dt.tz_convert('UTC')
-        except Exception as e:
-            st.error(f"Error al convertir la zona horaria: {e}")
+        except:
             df['full_date'] = df['full_date'].dt.tz_convert('UTC')
 
+        # Extract date, year, month, day, hour for easier filtering and grouping
         df['date'] = df['full_date'].dt.date
         df['year'] = df['full_date'].dt.year
         df['month'] = df['full_date'].dt.month
         df['day'] = df['full_date'].dt.day
         df['hour'] = df['full_date'].dt.hour
-
-        df['word_count'] = df['content'].str.split().str.len().fillna(0).astype(int)
+        
+        # Calculate word count for questions, filling NaN with 0
+        df['word_count_question'] = df['question'].astype(str).str.split().str.len().fillna(0).astype(int)
+        # Calculate word count for answers, filling NaN with 0
+        df['word_count_answer'] = df['answer'].astype(str).str.split().str.len().fillna(0).astype(int)
 
         return df
 
-
-    df = process_json(data)
+    
+    df = process_many_docs(data)
+    # Display the raw processed DataFrame for debugging or inspection (can be removed in production)
+    # st.write(df)
 
     if df.empty:
         st.warning("No se encontraron datos válidos para analizar después del procesamiento.")
         st.stop()
 
-    # Filtro de Tiempo Global en la barra lateral
+    # Global Time Filter in the sidebar
     st.sidebar.header("Filtro de Tiempo Global")
     time_filter_mode = st.sidebar.radio(
         "Selecciona la granularidad de los datos:",
         ["Análisis por año", "Análisis por mes"]
     )
 
-    # Selección de Año
+    # Year Selection
     all_years = sorted(df['year'].unique())
     default_year_index = all_years.index(df['year'].max()) if df['year'].max() in all_years else 0
     selected_year = st.sidebar.selectbox("Selecciona el Año", all_years, index=default_year_index)
@@ -147,7 +149,7 @@ if data:
 
     selected_month = None
     selected_month_name = None
-    # Selección de Mes si la granularidad es por Días
+    # Month Selection if granularity is by Month
     if time_filter_mode == "Análisis por mes":
         if not df_year_filtered.empty:
             month_names = {
@@ -164,14 +166,12 @@ if data:
             except ValueError:
                 default_month_index = 0
 
-
             selected_month_name = st.sidebar.selectbox(
                 "Selecciona el Mes",
                 available_months_names,
                 index=default_month_index
             )
             selected_month = {v: k for k, v in month_names.items()}.get(selected_month_name, 1)
-
 
             df_filtered = df_year_filtered[df_year_filtered['month'] == selected_month].copy()
         else:
@@ -180,6 +180,8 @@ if data:
     else:
          df_filtered = df_year_filtered.copy()
 
+    # Display the filtered DataFrame for debugging or inspection (can be removed in production)
+    # st.write(df_filtered)
 
     if df_filtered.empty:
         st.warning("No se encontraron datos para el período seleccionado con los filtros aplicados.")
@@ -193,9 +195,13 @@ if data:
     st.sidebar.markdown("[Análisis de respuestas del asistente](#analisis-de-respuestas-del-asistente)")
 
     def preprocess(corpus):
+        """
+        Preprocesses a corpus of text: tokenizes, lowercases, lemmatizes,
+        and removes stopwords and non-alphabetic tokens.
+        """
         lemmatizer = WordNetLemmatizer()
         result = []
-        for text in corpus.fillna(''):
+        for text in corpus.fillna(''): # Fill NaN with empty string to avoid errors
             if isinstance(text, str):
                 tokens = word_tokenize(text.lower())
                 filtered = [lemmatizer.lemmatize(w) for w in tokens if w not in combined_stopwords and w.isalpha()]
@@ -205,8 +211,12 @@ if data:
         return result
 
 
-    # Función para encontrar n-gramas más frecuentes
+    # Function to find most frequent n-grams
     def top_ngrams(corpus, n=1):
+        """
+        Calculates and returns the top N most frequent n-grams from a corpus.
+        Handles empty or all-empty corpus gracefully.
+        """
         try:
             if not corpus or all(text == '' for text in corpus):
                 return []
@@ -220,15 +230,17 @@ if data:
             freqs = [(word, sum_words[0, idx]) for word, idx in vec.vocabulary_.items()]
             return sorted(freqs, key=lambda x: x[1], reverse=True)[:12]
         except Exception as e:
+            st.error(f"Error al calcular n-gramas: {e}")
             return []
 
 
     st.header("Tópicos más frecuentes")
-    df_human_filtered = df_filtered[df_filtered['type'] == 'human'].copy()
+    # Filter for human questions (where 'question' column is not null and not empty)
+    df_human_filtered = df_filtered[df_filtered['question'].notna() & (df_filtered['question'] != '')].copy()
 
-    # Mostrar tópicos más frecuentes
-    if not df_human_filtered.empty and df_human_filtered['content'].notna().any():
-        corpus = preprocess(df_human_filtered['content'])
+    # Show most frequent topics
+    if not df_human_filtered.empty and df_human_filtered['question'].notna().any():
+        corpus = preprocess(df_human_filtered['question']) # Use 'question' column for human content
         if corpus and any(c != '' for c in corpus):
             for n in [1, 2]:
                 top = top_ngrams(corpus, n)
@@ -253,15 +265,16 @@ if data:
 
     st.header("Consultas en el tiempo")
 
-    # Mostrar métricas de consultas y conversaciones
-    promedio_consultas = df_human_filtered.shape[0] / df_human_filtered['conversation_id'].nunique()
+    # Show query and conversation metrics
+    # Use 'session_id' for unique conversations
+    promedio_consultas = df_human_filtered.shape[0] / df_human_filtered['session_id'].nunique() if df_human_filtered['session_id'].nunique() > 0 else 0
     col1, col2 = st.columns(2)
     with col1:
         st.metric(f"Total de consultas en el {'mes' if time_filter_mode == 'Análisis por mes' else 'Año'}", df_human_filtered.shape[0])
     with col2:
-        st.metric(f"Promedio de consultas por día en el {'mes' if time_filter_mode == 'Análisis por mes' else 'Año'}", round(promedio_consultas))
+        st.metric(f"Promedio de consultas por usuario en el {'mes' if time_filter_mode == 'Análisis por mes' else 'Año'}", round(promedio_consultas, 2)) # Round to 2 decimal places
 
-    # Preparar datos para el gráfico de consultas en el tiempo según la granularidad seleccionada
+    # Prepare data for time series plot based on selected granularity
     if time_filter_mode == "Análisis por mes":
         df_time = (
             df_human_filtered
@@ -273,7 +286,7 @@ if data:
         df_time['date'] = pd.to_datetime(df_time['date'])
         date_format = "%Y-%m-%d"
         title_suffix = f"a lo largo del mes"
-    else: # time_filter_mode == "Ver por Meses en un Año"
+    else: # time_filter_mode == "Análisis por año" (Ver por Meses en un Año)
         df_time = (
             df_human_filtered
             .groupby(df_human_filtered['full_date'].dt.to_period('M'))
@@ -285,7 +298,7 @@ if data:
         date_format = "%Y-%m"
         title_suffix = f"a lo largo del año"
 
-    # Mostrar gráfico de consultas en el tiempo
+    # Show time series plot of queries
     if not df_time.empty:
         mean = df_time['count'].mean()
         std = df_time['count'].std()
@@ -349,10 +362,10 @@ if data:
 
 
     st.header("Frecuencia por hora del día")
-    # Preparar datos para el gráfico de frecuencia por hora
-    df_hour = df_filtered[df_filtered['type'] == 'human'].groupby('hour').size().reset_index(name='count')
+    # Prepare data for hourly frequency plot (using human questions)
+    df_hour = df_filtered[df_filtered['question'].notna() & (df_filtered['question'] != '')].groupby('hour').size().reset_index(name='count')
 
-    # Mostrar gráfico de frecuencia por hora
+    # Show hourly frequency plot
     if not df_hour.empty:
         all_hours = pd.DataFrame({'hour': range(24)})
         df_hour = pd.merge(all_hours, df_hour, on='hour', how='left').fillna(0)
@@ -415,32 +428,34 @@ if data:
 
 
     st.header("Análisis de Respuestas del Asistente")
-    df_bot_filtered = df_filtered[df_filtered['type'] == 'assistant'].copy()
+    # Filter for assistant answers (where 'answer' column is not null and not empty)
+    df_bot_filtered = df_filtered[df_filtered['answer'].notna() & (df_filtered['answer'] != '')].copy()
 
 
     if not df_bot_filtered.empty:
         st.subheader("Longitud de respuestas")
 
-        df_bot_filtered['word_count'] = pd.to_numeric(df_bot_filtered['word_count'], errors='coerce').fillna(0)
+        # Use 'word_count_answer' for assistant response length
+        df_bot_filtered['word_count_answer'] = pd.to_numeric(df_bot_filtered['word_count_answer'], errors='coerce').fillna(0)
 
-        # Mostrar histograma de longitud de respuestas
-        if df_bot_filtered['word_count'].sum() > 0:
-            fig = px.histogram(df_bot_filtered, x='word_count', nbins=30,
+        # Show histogram of response length
+        if df_bot_filtered['word_count_answer'].sum() > 0:
+            fig = px.histogram(df_bot_filtered, x='word_count_answer', nbins=30,
                                 title=f"Distribución de longitud de respuestas {'en el mes' if time_filter_mode == 'Análisis por mes' else 'en el año'}",
                                 color_discrete_sequence=['royalblue'])
             fig.update_layout(xaxis_title="Número de Palabras", yaxis_title="Frecuencia")
             fig.update_traces(marker=dict(opacity=0.7))
 
-            avg_length = df_bot_filtered['word_count'].mean()
+            avg_length = df_bot_filtered['word_count_answer'].mean()
             if avg_length is not None and not np.isnan(avg_length):
                  fig.add_vline(x=avg_length, line_dash="dash", line_color="red", annotation_text=f"Promedio: {avg_length:.2f}", annotation_position="top right")
 
             st.plotly_chart(fig)
 
-            # Mostrar métricas de longitud de respuestas
-            avg_length = df_bot_filtered['word_count'].mean()
-            min_length = df_bot_filtered['word_count'].min()
-            max_length = df_bot_filtered['word_count'].max()
+            # Show response length metrics
+            avg_length = df_bot_filtered['word_count_answer'].mean()
+            min_length = df_bot_filtered['word_count_answer'].min()
+            max_length = df_bot_filtered['word_count_answer'].max()
 
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -453,14 +468,14 @@ if data:
              st.info("No hay datos de longitud de respuestas para mostrar en el período seleccionado.")
 
 
-        # Análisis de Tokens y Costos (sin selección de granularidad duplicada)
+        # Analysis of Tokens and Costs
         if 'total_tokens' in df_bot_filtered.columns and df_bot_filtered['total_tokens'].notna().any() and df_bot_filtered['total_tokens'].sum() > 0:
             st.subheader("Tokens y costos")
 
             total_tokens = df_bot_filtered['total_tokens'].sum()
             st.metric(f"Tokens totales en el {"mes" if time_filter_mode == "Análisis por mes" else "año"}", f"{round(total_tokens):,.0f}")
 
-            # Determinar granularidad basada en el filtro de tiempo global
+            # Determine granularity based on the global time filter
             if time_filter_mode == "Análisis por mes":
                 df_token_cost_time = (
                     df_bot_filtered
@@ -477,7 +492,7 @@ if data:
                 token_cost_title_suffix = f"por día en el mes de {selected_month_name}"
                 token_cost_granularity_label = "Diario"
 
-            else: 
+            else: # time_filter_mode == "Análisis por año"
                 df_bot_filtered['year_month'] = df_bot_filtered['full_date'].dt.strftime('%Y-%m')
 
                 df_token_cost_time = (
@@ -495,7 +510,7 @@ if data:
                 token_cost_granularity_label = "Mensual"
 
 
-            # Mostrar gráfico de Tokens en el tiempo
+            # Show Tokens over time plot
             if not df_token_cost_time.empty and df_token_cost_time['total_tokens'].sum() > 0:
                 mean_tokens = df_token_cost_time['total_tokens'].mean()
                 std_tokens = df_token_cost_time['total_tokens'].std()
@@ -557,7 +572,7 @@ if data:
 
                 st.plotly_chart(fig1, use_container_width=True)
 
-                # Mostrar métricas de Tokens
+                # Show Token metrics
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     st.metric(f"Promedio de tokens", f"{round(mean_tokens):,.0f}")
@@ -569,7 +584,7 @@ if data:
                  st.info(f"No hay suficientes datos de tokens para mostrar en el período seleccionado con granularidad '{token_cost_granularity_label}'.")
 
 
-            # Mostrar gráfico de Costo en el tiempo
+            # Show Cost over time plot
             if 'cost' in df_bot_filtered.columns and df_bot_filtered['cost'].notna().any() and df_bot_filtered['cost'].sum() > 0:
                 mean_cost = df_token_cost_time['cost'].mean()
                 std_cost = df_token_cost_time['cost'].std()
@@ -631,7 +646,7 @@ if data:
 
                 st.plotly_chart(fig2, use_container_width=True)
 
-                # Mostrar métricas de Costo
+                # Show Cost metrics
                 total_cost = df_bot_filtered['cost'].sum()
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -641,8 +656,9 @@ if data:
                 with col3:
                     st.metric(f"Costo máximo", f"${df_token_cost_time['cost'].max():.4f}")
 
-                # Mostrar distribución de costos por conversación
-                cost_by_conversation = df_bot_filtered.groupby('conversation_id')['cost'].sum().reset_index()
+                # Show cost distribution by conversation
+                # Use 'session_id' for grouping by user/session
+                cost_by_conversation = df_bot_filtered.groupby('session_id')['cost'].sum().reset_index()
 
                 if not cost_by_conversation.empty and cost_by_conversation['cost'].sum() > 0:
                      mean_cost_conv = cost_by_conversation['cost'].mean()
@@ -683,7 +699,7 @@ if data:
 
                      st.plotly_chart(fig, use_container_width=True)
 
-                     # Mostrar métricas de costo por conversación
+                     # Show cost by conversation metrics
                      col1, col2, col3 = st.columns(3)
                      with col1:
                          st.metric(f"Usuarios totales en el {"mes" if time_filter_mode == "Análisis por mes" else "año"}", f"{cost_by_conversation.shape[0]}")
@@ -699,14 +715,14 @@ if data:
                 st.info("Datos de costo no disponibles o cero para el período seleccionado.")
 
 
-        # Análisis de Tiempo de Respuesta
+        # Response Time Analysis
         if 'response_time' in df_bot_filtered.columns and df_bot_filtered['response_time'].notna().any() and df_bot_filtered['response_time'].sum() > 0:
             st.subheader("Tiempo de respuesta")
 
             df_bot_filtered['response_time'] = pd.to_numeric(df_bot_filtered['response_time'], errors='coerce').fillna(0)
             df_response_time_positive = df_bot_filtered[df_bot_filtered['response_time'] > 0].copy()
 
-            # Mostrar histograma de tiempo de respuesta
+            # Show response time histogram
             if not df_response_time_positive.empty:
 
                 fig = px.histogram(df_response_time_positive, x='response_time', nbins=50,
