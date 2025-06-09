@@ -13,7 +13,7 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords as nltk_stopwords
 from sklearn.feature_extraction.text import CountVectorizer
-from ct.clients import mongo_uri, mongo_db, mongo_collection_backup
+from ct.clients import mongo_uri, mongo_db, mongo_collection_message_backup
 
 
 # Descargar recursos de NLTK si no están presentes
@@ -62,9 +62,8 @@ if nlp:
 
 st.title("Análisis de Historial de Conversaciones")
 
-cliente = MongoClient(mongo_uri)
-db = cliente[mongo_db]
-coleccion = db[mongo_collection_backup]
+cliente = MongoClient(mongo_uri).get_default_database()
+coleccion = cliente[mongo_collection_message_backup]
 
 data = coleccion.find_one()
 
