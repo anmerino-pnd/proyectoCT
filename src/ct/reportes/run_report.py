@@ -643,7 +643,12 @@ if data:
 
             # Show Tokens over time plot
             if not df_token_cost_time.empty and df_token_cost_time['total_tokens'].sum() > 0:
-                mean_tokens = df_token_cost_time['total_tokens'].mean()
+                # Calculate metrics directly from df_bot_filtered for average per consultation
+                mean_tokens_consultation = df_bot_filtered['total_tokens'].mean()
+                min_tokens_consultation = df_bot_filtered['total_tokens'].min()
+                max_tokens_consultation = df_bot_filtered['total_tokens'].max()
+
+                mean_tokens = df_token_cost_time['total_tokens'].mean() # This is the average of the daily/monthly sums
                 std_tokens = df_token_cost_time['total_tokens'].std()
 
                 fig1 = go.Figure()
@@ -681,7 +686,7 @@ if data:
                         y=[mean_tokens] * len(df_token_cost_time),
                         mode='lines',
                         line=dict(color='red', dash='dash'),
-                        name=f'Promedio: {mean_tokens:,.0f}'
+                        name=f'Promedio (Agregado): {mean_tokens:,.0f}' # Clarify this average is from aggregated data
                     ))
 
                 fig1.update_layout(
@@ -703,21 +708,25 @@ if data:
 
                 st.plotly_chart(fig1, use_container_width=True)
 
-                # Show Token metrics
+                # Show Token metrics (now using consultation-level data)
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.metric(f"Promedio de tokens", f"{round(mean_tokens):,.0f}")
+                    st.metric(f"Promedio de tokens (por consulta)", f"{round(mean_tokens_consultation):,.0f}")
                 with col2:
-                    st.metric(f"Mínimo de tokens", f"{df_token_cost_time['total_tokens'].min():,.0f}")
+                    st.metric(f"Mínimo de tokens (por consulta)", f"{min_tokens_consultation:,.0f}")
                 with col3:
-                    st.metric(f"Máximo de tokens", f"{df_token_cost_time['total_tokens'].max():,.0f}")
+                    st.metric(f"Máximo de tokens (por consulta)", f"{max_tokens_consultation:,.0f}")
             else:
                  st.info(f"No hay suficientes datos de tokens para mostrar en el período seleccionado con granularidad '{token_cost_granularity_label}'.")
 
 
             # Show Cost over time plot
             if 'cost' in df_bot_filtered.columns and df_bot_filtered['cost'].notna().any() and df_bot_filtered['cost'].sum() > 0:
-                mean_cost = df_token_cost_time['cost'].mean()
+                # Calculate metrics directly from df_bot_filtered for average per consultation
+                mean_cost_consultation = df_bot_filtered['cost'].mean()
+                min_cost_consultation = df_bot_filtered['cost'].min()
+                max_cost_consultation = df_bot_filtered['cost'].max()
+                mean_cost = df_token_cost_time['cost'].mean() # This is the average of the daily/monthly sums
                 std_cost = df_token_cost_time['cost'].std()
 
                 fig2 = go.Figure()
@@ -755,7 +764,7 @@ if data:
                         y=[mean_cost] * len(df_token_cost_time),
                         mode='lines',
                         line=dict(color='red', dash='dash'),
-                        name=f'Promedio: ${mean_cost:.4f}'
+                        name=f'Promedio (Agregado): ${mean_cost:.4f}' # Clarify this average is from aggregated data
                     ))
 
                 fig2.update_layout(
@@ -777,15 +786,15 @@ if data:
 
                 st.plotly_chart(fig2, use_container_width=True)
 
-                # Show Cost metrics
+                # Show Cost metrics (now using consultation-level data)
                 total_cost = df_bot_filtered['cost'].sum()
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     st.metric(f"Costo total en el {"mes" if time_filter_mode == "Análisis por mes" else "año"}", f"${total_cost:.4f}")
                 with col2:
-                    st.metric(f"Costo promedio", f"${mean_cost:.4f}")
+                    st.metric(f"Costo promedio (por consulta)", f"${mean_cost_consultation:.4f}")
                 with col3:
-                    st.metric(f"Costo máximo", f"${df_token_cost_time['cost'].max():.4f}")
+                    st.metric(f"Costo máximo (por consulta)", f"${max_cost_consultation:.4f}")
 
                 # Show cost distribution by conversation
                 # Use 'session_id' for grouping by user/session
