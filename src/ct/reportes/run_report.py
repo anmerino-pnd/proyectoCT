@@ -13,11 +13,10 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords as nltk_stopwords
 from sklearn.feature_extraction.text import CountVectorizer
-from datetime import datetime, date
-import calendar # For getting month names and number of days in month
+from datetime import datetime
+import calendar 
 
-# Assuming ct.clients correctly imports mongo_uri, mongo_db, mongo_collection_message_backup
-from ct.clients import mongo_uri, mongo_db, mongo_collection_message_backup
+from ct.clients import mongo_uri, mongo_collection_message_backup
 
 
 # Download NLTK resources if not present
