@@ -498,7 +498,7 @@ if data:
                 df_token_cost_time = (
                     df_bot_filtered
                     .groupby('year_month')
-                    .agg({
+                        .agg({
                         'total_tokens': 'sum',
                         'cost': 'sum' if 'cost' in df_bot_filtered.columns else 0
                     })
@@ -512,7 +512,8 @@ if data:
 
             # Show Tokens over time plot
             if not df_token_cost_time.empty and df_token_cost_time['total_tokens'].sum() > 0:
-                mean_tokens = df_token_cost_time['total_tokens'].mean()
+                mean_tokens = df_token_cost_time['total_tokens'].sum() / df_token_cost_time['total_tokens'].mean()
+                st.write(df_token_cost_time)
                 std_tokens = df_token_cost_time['total_tokens'].std()
 
                 fig1 = go.Figure()
