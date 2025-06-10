@@ -13,6 +13,9 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords as nltk_stopwords
 from sklearn.feature_extraction.text import CountVectorizer
+from datetime import datetime, date
+import calendar # For getting month names and number of days in month
+
 # Assuming ct.clients correctly imports mongo_uri, mongo_db, mongo_collection_message_backup
 from ct.clients import mongo_uri, mongo_db, mongo_collection_message_backup
 
@@ -67,12 +70,182 @@ if nlp:
 
 st.title("Análisis de Historial de Conversaciones")
 
-# Connect to MongoDB and fetch data
-cliente = MongoClient(mongo_uri).get_default_database()
-coleccion = cliente[mongo_collection_message_backup]
+# --- MongoDB Connection and Data Fetching Logic (Optimized) ---
 
-# Fetch all documents from the collection
-data = list(coleccion.find({}))
+@st.cache_resource
+def get_mongo_collection():
+    """Establishes MongoDB connection and returns the collection."""
+    client = MongoClient(mongo_uri)
+    db = client.get_default_database()
+    return db[mongo_collection_message_backup]
+
+coleccion = get_mongo_collection()
+
+@st.cache_data
+def get_available_years_from_db(_coleccion):
+    """Fetches distinct years from the MongoDB collection using aggregation.
+       Assumes 'timestamp' field is an ISODate object in MongoDB."""
+    try:
+        pipeline = [
+            {"$project": {"year": {"$year": "$timestamp"}}},
+            {"$group": {"_id": "$year"}},
+            {"$sort": {"_id": 1}}
+        ]
+        years = [doc['_id'] for doc in _coleccion.aggregate(pipeline)]
+        return sorted(list(set(years))) # Ensure unique and sorted
+    except Exception as e:
+        st.error(f"Error al obtener años disponibles de la base de datos: {e}")
+        return []
+
+@st.cache_data
+def get_available_months_for_year_from_db(_coleccion, year):
+    """Fetches distinct months for a given year from MongoDB using aggregation.
+       Assumes 'timestamp' field is an ISODate object in MongoDB."""
+    try:
+        # Define Hermosillo timezone for accurate date range calculation
+        hermosillo_tz = pytz.timezone("America/Hermosillo")
+        
+        # Calculate start and end of the year in Hermosillo time, then convert to UTC
+        start_of_year_hermosillo = hermosillo_tz.localize(datetime(year, 1, 1, 0, 0, 0, 0))
+        end_of_year_hermosillo = hermosillo_tz.localize(datetime(year + 1, 1, 1, 0, 0, 0, 0))
+        
+        start_date_utc = start_of_year_hermosillo.astimezone(pytz.utc)
+        end_date_utc = end_of_year_hermosillo.astimezone(pytz.utc)
+
+        pipeline = [
+            {"$match": {"timestamp": {"$gte": start_date_utc, "$lt": end_date_utc}}},
+            {"$project": {"month": {"$month": "$timestamp"}}},
+            {"$group": {"_id": "$month"}},
+            {"$sort": {"_id": 1}}
+        ]
+        months = [doc['_id'] for doc in _coleccion.aggregate(pipeline)]
+        return sorted(list(set(months))) # Ensure unique and sorted
+    except Exception as e:
+        st.error(f"Error al obtener meses disponibles para el año {year} de la base de datos: {e}")
+        return []
+
+# --- Global Time Filter in the sidebar ---
+st.sidebar.header("Filtro de Tiempo Global")
+time_filter_mode = st.sidebar.radio(
+    "Selecciona la granularidad de los datos:",
+    ["Análisis por año", "Análisis por mes"]
+)
+
+available_years = get_available_years_from_db(coleccion)
+
+# Set default selected year to the latest year if available, otherwise fallback to current year
+if available_years:
+    default_year_index = available_years.index(max(available_years)) if max(available_years) in available_years else 0
+    selected_year = st.sidebar.selectbox("Selecciona el Año", available_years, index=default_year_index)
+else:
+    st.warning("No se encontraron años disponibles en la base de datos. Usando el año actual como predeterminado.")
+    selected_year = datetime.now().year # Fallback to current year
+    available_years = [selected_year] # To ensure year is in the list for initial display
+
+# Initialize query filter and month variables
+query_filter = {}
+selected_month = None
+selected_month_name = None
+
+# Define Hermosillo timezone
+hermosillo_tz = pytz.timezone("America/Hermosillo")
+
+if time_filter_mode == "Análisis por mes":
+    if selected_year:
+        available_months_nums = get_available_months_for_year_from_db(coleccion, selected_year)
+        month_names_map = {
+            1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+            5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+            9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+        }
+        
+        if available_months_nums:
+            available_months_names = [month_names_map[m] for m in available_months_nums]
+            
+            # Set default selected month to the latest month if available, otherwise current month
+            latest_month_num = max(available_months_nums) if available_months_nums else datetime.now().month
+            try:
+                default_month_index = available_months_nums.index(latest_month_num)
+            except ValueError:
+                default_month_index = 0
+            
+            selected_month_name = st.sidebar.selectbox(
+                "Selecciona el Mes",
+                available_months_names,
+                index=default_month_index
+            )
+            selected_month = {v: k for k, v in month_names_map.items()}.get(selected_month_name)
+        else:
+            st.warning(f"No hay meses disponibles para el año {selected_year} en la base de datos. Usando el mes actual como predeterminado.")
+            selected_month = datetime.now().month # Fallback to current month if no months found for selected year
+            selected_month_name = month_names_map.get(selected_month)
+    else: # This block handles the case where selected_year is None, which shouldn't happen with the current logic
+        selected_month = datetime.now().month
+        selected_month_name = calendar.month_name[selected_month]
+
+
+# Construct MongoDB query filter based on selections
+start_date_dt = None
+end_date_dt = None
+
+if selected_year:
+    if time_filter_mode == "Análisis por año":
+        # Start of the year in Hermosillo time
+        start_date_naive = datetime(selected_year, 1, 1, 0, 0, 0, 0)
+        start_date_hermosillo = hermosillo_tz.localize(start_date_naive)
+        start_date_utc = start_date_hermosillo.astimezone(pytz.utc)
+
+        # Start of the next year in Hermosillo time
+        end_date_naive = datetime(selected_year + 1, 1, 1, 0, 0, 0, 0)
+        end_date_hermosillo = hermosillo_tz.localize(end_date_naive)
+        end_date_utc = end_date_hermosillo.astimezone(pytz.utc)
+        
+        start_date_dt = start_date_utc
+        end_date_dt = end_date_utc
+
+    elif time_filter_mode == "Análisis por mes" and selected_month:
+        # Start of the month in Hermosillo time
+        start_date_naive = datetime(selected_year, selected_month, 1, 0, 0, 0, 0)
+        start_date_hermosillo = hermosillo_tz.localize(start_date_naive)
+        start_date_utc = start_date_hermosillo.astimezone(pytz.utc)
+
+        # Start of the next month in Hermosillo time
+        if selected_month == 12:
+            end_date_naive = datetime(selected_year + 1, 1, 1, 0, 0, 0, 0)
+        else:
+            end_date_naive = datetime(selected_year, selected_month + 1, 1, 0, 0, 0, 0)
+        
+        end_date_hermosillo = hermosillo_tz.localize(end_date_naive)
+        end_date_utc = end_date_hermosillo.astimezone(pytz.utc)
+
+        start_date_dt = start_date_utc
+        end_date_dt = end_date_utc
+    else:
+        st.error("No se pudo construir un filtro de fecha válido. Seleccione un año y/o mes.")
+        st.stop() # Stop execution if date filter is invalid
+
+    query_filter = {
+        'timestamp': {
+            '$gte': start_date_dt,
+            '$lt': end_date_dt
+        }
+    }
+else:
+    st.error("No se ha seleccionado un año válido. Deteniendo la ejecución.")
+    st.stop()
+
+
+# Fetch data from MongoDB using the constructed query filter
+@st.cache_data(ttl=3600) # Cache data for 1 hour
+def fetch_data_from_db(_coleccion, _query_filter, _start_date_utc, _end_date_utc):
+    """Fetches data from MongoDB based on the query filter."""
+    try:
+        return list(_coleccion.find(_query_filter))
+    except Exception as e:
+        st.error(f"Error al cargar datos de MongoDB: {e}")
+        return []
+
+data = fetch_data_from_db(coleccion, query_filter, start_date_dt, end_date_dt)
 
 
 if data:
@@ -101,13 +274,15 @@ if data:
 
         df = pd.DataFrame(rows)
         # Convert timestamp to datetime objects and set to UTC
+        # The timestamp from MongoDB will be ISODate, which pandas handles well
         df['full_date'] = pd.to_datetime(df['timestamp'], utc=True, errors='coerce')
 
         # Convert to America/Hermosillo timezone, fallback to UTC if error
         try:
             tz = pytz.timezone("America/Hermosillo")
             df['full_date'] = df['full_date'].dt.tz_convert(tz)
-        except:
+        except Exception as e:
+            st.warning(f"No se pudo convertir a la zona horaria 'America/Hermosillo', usando UTC. Error: {e}")
             df['full_date'] = df['full_date'].dt.tz_convert('UTC')
 
         # Extract date, year, month, day, hour for easier filtering and grouping
@@ -130,62 +305,18 @@ if data:
     # st.write(df)
 
     if df.empty:
-        st.warning("No se encontraron datos válidos para analizar después del procesamiento.")
+        st.warning("No se encontraron datos válidos para analizar después del procesamiento con los filtros seleccionados.")
         st.stop()
 
-    # Global Time Filter in the sidebar
-    st.sidebar.header("Filtro de Tiempo Global")
-    time_filter_mode = st.sidebar.radio(
-        "Selecciona la granularidad de los datos:",
-        ["Análisis por año", "Análisis por mes"]
-    )
+    # The df_filtered is no longer needed as the main df is already filtered by the MongoDB query
+    # based on the selected year/month.
+    # We still need to filter based on the 'selected_year' and 'selected_month'
+    # if the 'process_many_docs' is still returning all data.
+    # But since I'm changing the find() call, df will *be* df_filtered.
 
-    # Year Selection
-    all_years = sorted(df['year'].unique())
-    default_year_index = all_years.index(df['year'].max()) if df['year'].max() in all_years else 0
-    selected_year = st.sidebar.selectbox("Selecciona el Año", all_years, index=default_year_index)
-
-    df_year_filtered = df[df['year'] == selected_year].copy()
-
-    selected_month = None
-    selected_month_name = None
-    # Month Selection if granularity is by Month
-    if time_filter_mode == "Análisis por mes":
-        if not df_year_filtered.empty:
-            month_names = {
-                1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
-                5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
-                9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
-            }
-            available_months_nums = sorted(df_year_filtered['month'].unique())
-            available_months_names = [month_names[m] for m in available_months_nums]
-
-            latest_month_num = df_year_filtered['month'].max() if not df_year_filtered['month'].empty else 1
-            try:
-                default_month_index = available_months_nums.index(latest_month_num)
-            except ValueError:
-                default_month_index = 0
-
-            selected_month_name = st.sidebar.selectbox(
-                "Selecciona el Mes",
-                available_months_names,
-                index=default_month_index
-            )
-            selected_month = {v: k for k, v in month_names.items()}.get(selected_month_name, 1)
-
-            df_filtered = df_year_filtered[df_year_filtered['month'] == selected_month].copy()
-        else:
-             df_filtered = pd.DataFrame()
-             st.warning("No hay datos para el año seleccionado para filtrar por mes.")
-    else:
-         df_filtered = df_year_filtered.copy()
-
-    # Display the filtered DataFrame for debugging or inspection (can be removed in production)
-    # st.write(df_filtered)
-
-    if df_filtered.empty:
-        st.warning("No se encontraron datos para el período seleccionado con los filtros aplicados.")
-        st.stop()
+    # Make sure df_filtered is correctly assigned (it's now just `df` after fetching)
+    # The subsequent code uses df_filtered, so I'll just rename df to df_filtered for consistency
+    df_filtered = df
 
 
     st.sidebar.header("Tabla de Contenidos")
@@ -220,7 +351,7 @@ if data:
         try:
             if not corpus or all(text == '' for text in corpus):
                 return []
-            non_empty_corpus = [text for text in corpus if text != '']
+            non_empty_corpus = [text for text in corpus if text != '' and pd.notna(text)] # Added pd.notna(text)
             if not non_empty_corpus:
                  return []
 
@@ -512,8 +643,7 @@ if data:
 
             # Show Tokens over time plot
             if not df_token_cost_time.empty and df_token_cost_time['total_tokens'].sum() > 0:
-                mean_tokens = df_token_cost_time['total_tokens'].sum() / df_token_cost_time['total_tokens'].mean()
-                st.write(df_token_cost_time)
+                mean_tokens = df_token_cost_time['total_tokens'].mean()
                 std_tokens = df_token_cost_time['total_tokens'].std()
 
                 fig1 = go.Figure()
