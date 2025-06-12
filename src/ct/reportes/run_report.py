@@ -643,9 +643,6 @@ if data:
             # Show Tokens over time plot
             if not df_token_cost_time.empty and df_token_cost_time['total_tokens'].sum() > 0:
                 # Calculate metrics directly from df_bot_filtered for average per consultation
-                mean_tokens_consultation = df_bot_filtered['total_tokens'].mean()
-                min_tokens_consultation = df_bot_filtered['total_tokens'].min()
-                max_tokens_consultation = df_bot_filtered['total_tokens'].max()
 
                 mean_tokens = df_token_cost_time['total_tokens'].mean() # This is the average of the daily/monthly sums
                 std_tokens = df_token_cost_time['total_tokens'].std()
@@ -707,7 +704,10 @@ if data:
 
                 st.plotly_chart(fig1, use_container_width=True)
 
-                # Show Token metrics (now using consultation-level data)
+                mean_tokens_consultation = df_bot_filtered['total_tokens'].mean()
+                min_tokens_consultation = df_bot_filtered['total_tokens'].min()
+                max_tokens_consultation = df_bot_filtered['total_tokens'].max()
+
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     st.metric(f"Promedio de tokens (por consulta)", f"{round(mean_tokens_consultation):,.0f}")
