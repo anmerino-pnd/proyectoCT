@@ -528,7 +528,7 @@ if not df_human_questions.empty:
                 )
                 df_tokens['date'] = pd.to_datetime(df_tokens['date'])
                 tokens_date_format = "%Y-%m-%d"
-                tokens_cost_suffix = f"por día en el mes de {selected_month}"
+                tokens_cost_suffix = f"por día en el mes"
                 token_label = "Mensual"
             else:
                 df_bot_answers['year_month'] = df_bot_answers['full_date'].dt.strftime('%Y-%m')
@@ -547,7 +547,6 @@ if not df_human_questions.empty:
                 tokens_cost_suffix = f'en el año'
                 token_label = 'Mensual'
 
-            st.write(df_bot_answers)
             if not df_tokens.empty:
 
                 avg_tokens = df_tokens['total_tokens'].mean()
@@ -564,7 +563,7 @@ if not df_human_questions.empty:
                     ))
 
                 if std_tokens > 0:
-                    fig.add_trace(go.Scatter(
+                    fig1.add_trace(go.Scatter(
                         x=df_tokens['date'],
                         y=df_tokens['total_tokens'] + std_tokens,
                         mode = 'lines',
@@ -572,7 +571,7 @@ if not df_human_questions.empty:
                         showlegend=False
                     ))
 
-                    fig.add_trace(go.Scatter(
+                    fig1.add_trace(go.Scatter(
                         x=df_tokens['date'],
                         y=df_tokens['total_tokens'] - std_tokens,
                         mode='lines',
@@ -583,7 +582,7 @@ if not df_human_questions.empty:
                     ))
 
                 if avg_tokens is not None and not np.isnan(avg_tokens):
-                    fig.add_trace(go.Scatter(
+                    fig1.add_trace(go.Scatter(
                         x=df_tokens['date'],
                         y=[avg_tokens] * len(df_tokens),
                         mode='lines',
@@ -591,7 +590,7 @@ if not df_human_questions.empty:
                         line=dict(dash='dash', color='red')
                     ))
                 
-                fig.update_layout(
+                fig1.update_layout(
                     title= f'Tokens de respuestas {tokens_cost_suffix}',
                     xaxis_title='Fecha',
                     yaxis_title='Cantidad de Tokens',
@@ -610,7 +609,6 @@ if not df_human_questions.empty:
 
                 st.plotly_chart(fig1, use_container_width=True)
                 
-                avg_tokens = df_tokens['total_tokens'].mean()
                 min_tokens = df_tokens['total_tokens'].min()
                 max_tokens = df_tokens['total_tokens'].max()
 
@@ -621,5 +619,148 @@ if not df_human_questions.empty:
                     st.metric(f"Mínimo de tokens", f"{min_tokens:,.0f}")
                 with col3:
                     st.metric(f"Máximo de tokens", f"{max_tokens:,.0f}")
-            
 
+        if 'cost' in df_bot_answers.columns and df_bot_answers['cost'].sum() > 0:
+            
+            avg_cost = df_tokens['cost'].mean()
+            std_cost = df_tokens['cost'].std()
+
+            fig2 = go.Figure()
+
+            fig2.add_trace(go.Scatter(
+                x=df_tokens['date'],
+                y=df_tokens['cost'],
+                mode='lines+markers',
+                line=dict(color='#1f77b4'),
+                name='Costos'
+            ))
+
+            if std_cost > 0:
+                fig2.add_trace(go.Scatter(
+                x = df_tokens['date'],
+                y = df_tokens['cost'] + std_cost,
+                mode='lines',
+                line= dict(width=0),
+                showlegend=False
+                ))
+
+                fig2.add_trace(go.Scatter(
+                    x=df_tokens['date'],
+                    y=df_tokens['cost'] - std_cost,
+                    mode='lines',
+                    fill='tonexty',
+                    fillcolor='rgba(31, 119, 180, 0.1)',
+                    line= dict(width=0),
+                    showlegend=False
+                ))
+                
+            if avg_cost is not None and not np.isnan(avg_cost):
+                fig2.add_trace(go.Scatter(
+                    x = df_tokens['date'],
+                    y = [avg_cost] * len(df_tokens),
+                    mode='lines',
+                    name='Media',
+                    line=dict(dash='dash', color='red')
+                ))
+
+            fig2.update_layout(
+                title= f'Costos de respuesta {tokens_cost_suffix}',
+                xaxis_title='Fecha',
+                yaxis_title='Costo apróximado ($USD)',
+                xaxis=dict(
+                    tickformat=tokens_date_format,
+                    tickangle=0
+                ),
+                legend=dict(
+                    orientation='h',
+                    yanchor='bottom',
+                    y=1.02,
+                    xanchor='right',
+                    x=1
+                )
+            )
+
+            st.plotly_chart(fig2, use_container_width=True)
+
+            max_cost = df_tokens['cost'].max()
+            total_cost= df_tokens['cost'].sum()
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric(f"Costo total en el {"mes" if time_filter_mode == "Análisis por mes" else "año"}", f"${total_cost:.4f}")
+            with col2:
+                st.metric(f"Costo promedio", f"${avg_cost:.4f}")
+            with col3:
+                st.metric(f"Costo máximo", f"${max_cost:.4f}")
+
+            cost_by_conversation = df_bot_answers.groupby('session_id')['cost'].sum().reset_index()
+
+            if not cost_by_conversation.empty:
+                avg_cost_conv = cost_by_conversation['cost'].mean()
+
+                fig = go.Figure()
+
+                fig.add_trace(go.Histogram(
+                    x=cost_by_conversation['cost'],
+                    nbinsx=30,
+                    name='Frecuencia',
+                    marker=dict(color='#1f77b4', opacity= 0.7)
+                ))
+
+                hist_counts, hist_bins = np.histogram(cost_by_conversation['cost'].dropna(), bins=30)
+                max_hist_count= hist_counts.max() if len(hist_counts) > 0 else 0
+
+                if avg_cost_conv is not None and not np.isnan(avg_cost_conv):
+                    fig.add_vline(x=avg_cost_conv, line_dash='dash', line_color='red',
+                                  annotation_text=f"Promedio: ${avg_cost_conv:.4f}", annotation_position="top right")
+                
+                fig.update_layout(
+                    title=f'Distribución de costos por usuario',
+                    xaxis_title='Costo ($USD)',
+                    yaxis_title='Número de usuarios',
+                    bargap=0.1,
+                    legend=dict(
+                        orientation='h',
+                        yanchor='bottom',
+                        y=1.02,
+                        xanchor='right',
+                        x=1
+                    )
+                )
+
+                st.plotly_chart(fig, use_container_width=True)
+
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric(f"Usuarios totales en el {"mes" if time_filter_mode == "Análisis por mes" else "año"}", f"{cost_by_conversation.shape[0]}")
+                with col2: 
+                    st.metric("Costo promedio por usuario", f"${avg_cost_conv:.4f}")
+                with col3:
+                    st.metric("Costo máximo", f"${cost_by_conversation['cost'].max():.4f}")
+
+                if 'response_time' in df_bot_answers: 
+                    st.subheader('Tiempo de respuesta')
+
+                    df_bot_answers['response_time'] = pd.to_numeric(df_bot_answers['response_time'], errors='coerce').fillna(0)
+                    df_positive_time = df_bot_answers[df_bot_answers['response_time'] > 0].copy()
+
+                    if not df_positive_time.empty:
+                        fig = px.histogram(
+                            df_positive_time,
+                            x='response_time',
+                            nbins=50,
+                            title=f'Distribución de tiempos de respuesta',
+                            color_discrete_sequence=['royalblue']
+                        )
+                        fig.update_layout(xaxis_title="Tiempo (segundos)", yaxis_title="Frecuencia")
+                        fig.update_traces(marker=dict(opacity=0.6))
+
+                        avg_response_time = df_positive_time['response_time'].mean()
+                        if avg_response_time is not None and not np.isnan(avg_response_time):
+                            fig.add_vline(
+                                x=avg_response_time, line_dash="dash", 
+                                line_color="red", annotation_text=f"Promedio: {avg_response_time:.2f}s",
+                                annotation_position="top right"
+                            )
+
+                            st.plotly_chart(fig)
