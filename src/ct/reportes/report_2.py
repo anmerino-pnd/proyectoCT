@@ -422,7 +422,6 @@ if not df_human_questions.empty:
                 x=df_hourly['hour'],
                 y=df_hourly['count'] + std,
                 mode='lines',
-                name='STD',
                 line=dict(width=0),
                 showlegend=False
             ))
@@ -487,6 +486,7 @@ if not df_human_questions.empty:
             fig.update_traces(marker= dict(opacity=0.7))
 
             avg_words = df_bot_answers['word_count_answer'].mean()
+
             fig.add_vline(
                 x=avg_words,
                 line_width=2,
@@ -528,8 +528,98 @@ if not df_human_questions.empty:
                 )
                 df_tokens['date'] = pd.to_datetime(df_tokens['date'])
                 tokens_date_format = "%Y-%m-%d"
-                tokens_suffix = f"por día en el mes de {selected_month}"
+                tokens_cost_suffix = f"por día en el mes de {selected_month}"
                 token_label = "Mensual"
             else:
                 df_bot_answers['year_month'] = df_bot_answers['full_date'].dt.strftime('%Y-%m')
+
+                df_tokens = (
+                    df_bot_answers
+                    .groupby('year_month')
+                    .agg({
+                        'total_tokens' : 'sum',
+                        'cost' : 'sum'
+                    }).reset_index()
+                )
                 
+                df_tokens['date'] = pd.to_datetime(df_tokens['year_month'] + '-01')
+                tokens_date_format = '%Y-%m'
+                tokens_cost_suffix = f'en el año'
+                token_label = 'Mensual'
+
+            st.write(df_bot_answers)
+            if not df_tokens.empty:
+
+                avg_tokens = df_tokens['total_tokens'].mean()
+                std_tokens = df_tokens['total_tokens'].std()
+
+                fig1 = go.Figure()
+
+                fig1.add_trace(go.Scatter(
+                    x = df_tokens['date'],
+                    y = df_tokens['total_tokens'],
+                    mode = 'lines+markers',
+                    line=dict(color='#1f77b4'),
+                    name='Tokens'
+                    ))
+
+                if std_tokens > 0:
+                    fig.add_trace(go.Scatter(
+                        x=df_tokens['date'],
+                        y=df_tokens['total_tokens'] + std_tokens,
+                        mode = 'lines',
+                        line= dict(width=0),
+                        showlegend=False
+                    ))
+
+                    fig.add_trace(go.Scatter(
+                        x=df_tokens['date'],
+                        y=df_tokens['total_tokens'] - std_tokens,
+                        mode='lines',
+                        fill='tonexty',
+                        fillcolor='rgba(31, 119, 180, 0.1)',
+                        line=dict(width=0),
+                        showlegend=False
+                    ))
+
+                if avg_tokens is not None and not np.isnan(avg_tokens):
+                    fig.add_trace(go.Scatter(
+                        x=df_tokens['date'],
+                        y=[avg_tokens] * len(df_tokens),
+                        mode='lines',
+                        name='Media',
+                        line=dict(dash='dash', color='red')
+                    ))
+                
+                fig.update_layout(
+                    title= f'Tokens de respuestas {tokens_cost_suffix}',
+                    xaxis_title='Fecha',
+                    yaxis_title='Cantidad de Tokens',
+                    xaxis=dict(
+                        tickformat=tokens_date_format,
+                        tickangle=0
+                    ),
+                    legend=dict(
+                        orientation='h',
+                        yanchor='bottom',
+                        y=1.02,
+                        xanchor='right',
+                        x=1
+                    )
+                )
+
+                st.plotly_chart(fig1, use_container_width=True)
+                
+                avg_tokens = df_tokens['total_tokens'].mean()
+                min_tokens = df_tokens['total_tokens'].min()
+                max_tokens = df_tokens['total_tokens'].max()
+
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric(f"Promedio de tokens", f"{round(avg_tokens):,.0f}")
+                with col2:
+                    st.metric(f"Mínimo de tokens", f"{min_tokens:,.0f}")
+                with col3:
+                    st.metric(f"Máximo de tokens", f"{max_tokens:,.0f}")
+            
+
