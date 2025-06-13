@@ -238,6 +238,7 @@ class Extraction():
                               respuesta = json_response.get("respuesta", {})
                               if respuesta.get("status") == "success":
                                   specs[clave] = json_response
+                                  time.sleep(0.25)
                           else:
                               raise RuntimeError(f"[{clave}] JSON no tiene formato esperado: {json_response}")
 
