@@ -1,15 +1,14 @@
 import os
 import json
 import time
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator
 from datetime import datetime, timezone
-import uuid
 
 from ct.llm import LLM
 from ct.tokens import TokenCostProcess, CostCalcAsyncHandler
-from ct.clients import mongo_uri, mongo_db, mongo_collection_sessions, mongo_collection_message_backup
+from ct.clients import mongo_uri, mongo_collection_sessions, mongo_collection_message_backup
 
-from pymongo import MongoClient, ASCENDING, DESCENDING
+from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from langchain_core.messages import trim_messages
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
