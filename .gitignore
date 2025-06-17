@@ -7,4 +7,4 @@ datos/
 notebooks/
 src/proyectoct.egg-info/
 
-
+__pycache__/
