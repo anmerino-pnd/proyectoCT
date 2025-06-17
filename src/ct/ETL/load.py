@@ -13,7 +13,7 @@ class Load:
         self.clean_data = Transform()
         self.embeddings = OpenAIEmbeddings(api_key=api_key)
 
-        self.client = MongoClient(mongo_uri)
+        self.client = MongoClient("mongodb://localhost:27017")
         self.db = self.client[mongo_db]
         self.products_collection = self.db[mongo_collection_products]
         self.sales_collection = self.db[mongo_collection_sales]
