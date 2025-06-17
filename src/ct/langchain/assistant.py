@@ -142,7 +142,7 @@ class LangchainAssistant:
 
         Revisa también:  
             - La variable limitadoA para indicar si la disponibilidad es limitada.  
-            - La variable fecha_fin para aclarar la vigencia de la promoción.  
+            - La variable fecha_fin para aclarar la vigencia de la promoción, siempre aclara la vigencia.  
 
         Formato de respuesta, SIEMPRE:  
         - Para cada producto que ofrezcas:

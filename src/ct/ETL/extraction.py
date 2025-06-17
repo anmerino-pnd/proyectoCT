@@ -5,6 +5,7 @@ import mysql.connector
 from mysql.connector import errorcode
 from ct.clients import ip, port, user, pwd, database, url, tokenapi, tokenct, cookie, dominio, boundary
 
+from typing import List, Dict
 import cloudscraper 
 import json
 import time
@@ -220,54 +221,105 @@ class Extraction():
       cnx.close()
 
 
-  def get_specifications_cloudscraper(self, claves: list) -> dict:
-      specs = {}
-      for clave in claves:
-          try:
-              payload = {'claveProducto': clave}
-              response = scraper.post(url, data=payload)
-              if response.status_code == 200:
-                  content_type = response.headers.get('Content-Type', '').lower()
+  # def get_specifications_cloudscraper(self, claves: list) -> dict:
+  #     specs = {}
+  #     for clave in claves:
+  #         try:
+  #             payload = {'claveProducto': clave}
+  #             response = scraper.post(url, data=payload)
+  #             if response.status_code == 200:
+  #                 content_type = response.headers.get('Content-Type', '').lower()
 
-                  if 'application/json' in content_type:
-                      try:
-                          json_response = response.json()
+  #                 if 'application/json' in content_type:
+  #                     try:
+  #                         json_response = response.json()
 
-                          # Validar contenido lógico del JSON
-                          if isinstance(json_response, dict):
-                              respuesta = json_response.get("respuesta", {})
-                              if respuesta.get("status") == "success":
-                                  specs[clave] = json_response
-                                  time.sleep(0.25)
-                          else:
-                              raise RuntimeError(f"[{clave}] JSON no tiene formato esperado: {json_response}")
+  #                         # Validar contenido lógico del JSON
+  #                         if isinstance(json_response, dict):
+  #                             respuesta = json_response.get("respuesta", {})
+  #                             if respuesta.get("status") == "success":
+  #                                 specs[clave] = json_response
+  #                                 time.sleep(0.15)
+  #                         else:
+  #                             raise RuntimeError(f"[{clave}] JSON no tiene formato esperado: {json_response}")
 
-                      except (json.JSONDecodeError, ValueError) as e:
-                          raise RuntimeError(f"[{clave}] JSON inválido o estructura inesperada: {e}")
+  #                     except (json.JSONDecodeError, ValueError) as e:
+  #                         raise RuntimeError(f"[{clave}] JSON inválido o estructura inesperada: {e}")
 
-                  else:
-                      if response.text.strip().startswith('<!DOCTYPE html>') or '<html' in response.text.lower():
-                          raise RuntimeError(f"[{clave}] HTML inesperado (posible redirección de IP)")
-                      else:
-                          raise RuntimeError(f"[{clave}] Respuesta 200 sin JSON ni HTML. Content-Type: {content_type}")
+  #                 else:
+  #                     if response.text.strip().startswith('<!DOCTYPE html>') or '<html' in response.text.lower():
+  #                         raise RuntimeError(f"[{clave}] HTML inesperado (posible redirección de IP)")
+  #                     else:
+  #                         raise RuntimeError(f"[{clave}] Respuesta 200 sin JSON ni HTML. Content-Type: {content_type}")
 
-              elif response.status_code == 403:
-                  raise RuntimeError(f"[{clave}] Error 403 (Forbidden). Cloudscraper bloqueado.")
+  #             elif response.status_code == 403:
+  #                 raise RuntimeError(f"[{clave}] Error 403 (Forbidden). Cloudscraper bloqueado.")
 
-              else:
-                  raise RuntimeError(f"[{clave}] HTTP Error {response.status_code}")
+  #             else:
+  #                 raise RuntimeError(f"[{clave}] HTTP Error {response.status_code}")
 
-          except requests.exceptions.Timeout:
-              raise RuntimeError(f"[{clave}] Timeout con cloudscraper")
-          except requests.exceptions.RequestException as e:
-              raise RuntimeError(f"[{clave}] Error de red: {e}")
-          except cloudscraper.exceptions.CloudflareException as e:
-              raise RuntimeError(f"[{clave}] CloudflareException: {e}")
-          except Exception as e:
-              raise RuntimeError(f"[{clave}] Error inesperado: {e}")
+  #         except requests.exceptions.Timeout:
+  #             raise RuntimeError(f"[{clave}] Timeout con cloudscraper")
+  #         except requests.exceptions.RequestException as e:
+  #             raise RuntimeError(f"[{clave}] Error de red: {e}")
+  #         except cloudscraper.exceptions.CloudflareException as e:
+  #             raise RuntimeError(f"[{clave}] CloudflareException: {e}")
+  #         except Exception as e:
+  #             raise RuntimeError(f"[{clave}] Error inesperado: {e}")
 
-      return specs
+  #     return specs
 
+  def get_specifications_cloudscraper(self, claves: List[str], max_retries: int = 3, sleep_seconds: float = 0.15) -> Dict[str, dict]:
+    specs = {}
+    errors = {}
+    for clave in claves:
+       retries = 0
+       success = False
+
+       while retries < max_retries and not success:
+            try:
+                payload = {'claveProducto': clave}
+                response = scraper.post(url, data=payload, timeout=5)  # timeout importante
+                content_type = response.headers.get('Content-Type', '').lower()
+
+                if response.status_code == 200:
+                    if 'application/json' in content_type:
+                        json_response = response.json()
+
+                        if isinstance(json_response, dict):
+                            respuesta = json_response.get("respuesta", {})
+                            if respuesta.get("status") == "success":
+                                specs[clave] = json_response
+                                success = True
+                                time.sleep(sleep_seconds)
+                                break
+                            else:
+                                raise ValueError(f"Respuesta no exitosa para clave {clave}")
+                        else:
+                            raise ValueError("Estructura de JSON inválida")
+                    elif '<html' in response.text.lower():
+                        raise ValueError("Respuesta HTML inesperada (posible bloqueo)")
+                    else:
+                        raise ValueError("Respuesta desconocida sin JSON")
+                elif response.status_code == 403:
+                    raise RuntimeError("403 Forbidden: IP bloqueada")
+                else:
+                    raise RuntimeError(f"HTTP error {response.status_code}")
+
+            except (requests.exceptions.RequestException, json.JSONDecodeError, cloudscraper.exceptions.CloudflareException) as e:
+                retries += 1
+                wait_time = min(1.5, sleep_seconds * (2 ** retries))  # backoff controlado
+                time.sleep(wait_time)
+                if retries == max_retries:
+                    errors[clave] = str(e)
+            except Exception as e:
+                errors[clave] = str(e)
+                break
+
+    if errors:
+        print(f"⚠️ {len(errors)} claves fallaron al obtener ficha técnica.")
+
+    return specs
 
   def get_specifications(self, claves: list) -> dict:
     return self.get_specifications_cloudscraper(claves) 
