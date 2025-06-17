@@ -101,7 +101,8 @@ class Extraction():
         LEFT JOIN marcas m 
           ON pro.idMarca = m.idMarca
         WHERE pro.idProductos IN ({id})
-        GROUP BY pro.idProductos;"""
+        GROUP BY pro.idProductos
+        ;"""
      return query
 
   def get_products(self) -> pd.DataFrame:
