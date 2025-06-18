@@ -16,6 +16,10 @@ MODEL_COST_PER_1K_TOKENS = {
         "input": 0.00015,      # $0.150 por 1M → $0.00015 por 1K
         "output": 0.0006       # $0.600 por 1M → $0.0006 por 1K
     },
+    "gpt-4.1" : {
+        "input": 0.0020,      # $0.150 por 1M → $0.00015 por 1K
+        "output": 0.008
+    }
 }
 
 class TokenCostProcess:
@@ -56,7 +60,11 @@ class CostCalcAsyncHandler(AsyncCallbackHandler):
     def __init__(self, model: str, token_cost_process: TokenCostProcess):
         self.model = model
         self.token_cost_process = token_cost_process
-        self.encoding = tiktoken.encoding_for_model(model)
+        try:
+            self.encoding = tiktoken.encoding_for_model(model)
+        except KeyError:
+            self.encoding = tiktoken.get_encoding("cl100k_base")
+
 
     def on_llm_start(self, serialized: Dict[str, Any], prompts: List[str], **kwargs):
             if self.token_cost_process:

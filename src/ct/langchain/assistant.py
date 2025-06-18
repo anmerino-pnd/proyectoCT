@@ -27,10 +27,6 @@ class LangchainAssistant:
             self.sessions = self.client[mongo_collection_sessions]
             self.message_backup = self.client[mongo_collection_message_backup]
 
-            #self.sessions.create_index("session_id", unique=False)
-            #self.message_backup.create_index("session_id")
-            #self.message_backup.create_index([("session_id", ASCENDING), ("timestamp", DESCENDING)])
-
             self.memory_window_size = 3000
             self.rag_chain = self.build_chain()
 
