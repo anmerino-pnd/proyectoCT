@@ -1,0 +1,108 @@
+---
+title: "Documentación"
+format: 
+  html:
+    page-layout: article
+toc-title: "Tabla de Contenidos"
+toc: true
+toc-depth: 3
+---
+
+::: {style="text-align: justify"}
+## Manual de instalación y despliegue.
+
+### Configuraciones importantes
+
+* El proyecto está pensado para correr en un ambiente de Linux con Python 3.12.9 con acceso a Ollama (para correr modelos open-source como `gemma3:12b`) y conexión a MongoDB.
+* La aplicación se sirve con FastAPI en el puerto 8000.
+* El modelo de OpenAI solo se activa para queries "relevantes".
+
+### Requisitios del sistema
+
+* Python 3.12.9
+* Pip (versión más reciente)
+* UV (versión más reciente)
+* Ollama (instalado y corriendo en el servidor)
+* MongoDB (acesso remoto)
+
+### Dependencias principales del sistema
+
+* `langchain`
+* `tiktoken`
+* `ollama`
+* `pymongo`
+* `faiss-cpu`
+* `gunicorn`
+* Dependencias que se encuentren en `pyproject.toml`
+
+### Instalación del backend (API)
+
+1. Clona el repositorio:
+```bash
+git clone https://github.com/anmerino-pnd/proyectoCT
+cd proyectoCT
+```
+
+2. Crea un entorno virtual e instala dependencias:
+```bash
+uv venv
+source .venv\Scripts\activate
+uv pip install -e .
+```
+
+3. Asegurarse de estar corriendo Ollama en el ambiente:
+```bash
+ollama serve
+ollama list
+```
+
+4. Levanta el backend:
+```bash
+uvicorn ct.main:app --host 0.0.0.0 --port 8000
+```
+
+
+### Instalación del frontend (Widget)
+
+
+### Pruebas básicas tras el despliegue
+
+
+### Notas adicionales
+
+:::
+
+::: {style="text-align: justify"}
+## Documentación técnica del código (estructura, dependencias, etc.).
+
+### Estructura de carpetas y módulos
+
+
+### Dependencias clave
+
+
+### Modelos utilizados
+
+
+### Puntos de entrada
+
+
+:::
+
+::: {style="text-align: justify"}
+## Guía de entrenamiento y mejora 
+
+### ETL
+
+
+### Generación de la base de datos vectorial
+
+
+### Recomendaciones para futura mejora
+
+:::
+
+::: {style="text-align: justify"}
+## Diagrama de arquitectura
+
+:::

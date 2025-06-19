@@ -41,8 +41,14 @@ dependencies = [
 ]
 
 [project.scripts]
-proyectoct = "proyectoct:main"
+proyectoct = "ct.main:app"  # Ajusta esto si el entrypoint es otro
 
 [build-system]
 requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
