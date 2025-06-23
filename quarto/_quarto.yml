@@ -8,6 +8,7 @@ project:
     - preparacion.qmd
     - modelado.qmd
     - despliegue.qmd
+    - documentacion.qmd
 
 
 website:
@@ -27,6 +28,9 @@ website:
         text: Modelado y Evaluación
       - href: despliegue.qmd
         text: Despliegue
+      - href: documentacion.qmd
+        text: Documentación
+      
   back-to-top-navigation: true
       
 format:

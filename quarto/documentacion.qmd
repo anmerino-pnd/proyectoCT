@@ -13,62 +13,136 @@ toc-depth: 3
 
 ### Configuraciones importantes
 
-* El proyecto está pensado para correr en un ambiente de Linux con Python 3.12.9 con acceso a Ollama (para correr modelos open-source como `gemma3:12b`) y conexión a MongoDB.
-* La aplicación se sirve con FastAPI en el puerto 8000.
-* El modelo de OpenAI solo se activa para queries "relevantes".
+* El proyecto está diseñado para ser desplegado en entornos **Linux o Windows** con **Python 3.12.9**. Requiere acceso a **Ollama** (para la ejecución de modelos *open-source* como `gemma3:12b`), así como conectividad a una instancia de **MongoDB** y bases de datos **MySQL**.
+* La aplicación *backend* se expone a través de **FastAPI** en el puerto `8000`. Es crucial asegurar que este puerto esté abierto y accesible en el entorno de despliegue.
+* Archivo `.env` con variables cargadas
+* Todas las credenciales y configuraciones sensibles se gestionan mediante un archivo de variables de entorno (`.env`), garantizando la seguridad y facilidad de configuración.
 
 ### Requisitios del sistema
 
-* Python 3.12.9
-* Pip (versión más reciente)
-* UV (versión más reciente)
-* Ollama (instalado y corriendo en el servidor)
-* MongoDB (acesso remoto)
+* **Python**: Versión 3.12.9
+* **Pip**: Última versión
+* **UV**: Última versión (gestor de paquetes y entornos)
+* **Ollama**: Instalado y en ejecución en el servidor para el *hosting* de modelos *open-source*.
+* **MongoDB**: Acceso remoto configurado para las colecciones de historial, productos, ofertas y fichas técnicas.
+* **MySQL**: Acceso remoto configurado para la extracción de datos de productos y precios. 
 
 ### Dependencias principales del sistema
 
-* `langchain`
-* `tiktoken`
-* `ollama`
-* `pymongo`
-* `faiss-cpu`
-* `gunicorn`
-* Dependencias que se encuentren en `pyproject.toml`
+* `langchain`: Framework principal para la construcción de cadenas RAG y la orquestación del flujo del chatbot.
+* `tiktoken`: Utilizado para el conteo preciso de tokens en las consutlas y respuestas, fundamental para la estimación de costos.
+* `ollama`: Herramienta para servir modelos de lenguaje *open-source* localmente, como `gemma3:12b`, permitiendo flexibilidad en la elección del LLM.
+* `pymongo`: Driver Python para la interacción con MongoDB, utilizado para el almacenamiento y recuperación de sesiones de usuario, historial de mensajes, fichas técnicas, y datos de productos/ofertas.
+* `mysql-connector-python`: Conector para MySQL, empleado para la extracción de datos de producto, sus detalles y precios desde la base de datos relacional.
+* `faiss-cpu`: Biblioteca para la búsqueda eficiente de similitudes, crucial para la creación y consulta de la base de datos vectorial donde se almacenan los embeddings de productos.
+* `gunicorn`: Servidor WSGI utilizado para desplegar la aplicación FastAPI en producción, gestionando la concurrencia y el rendimiento.
+* **Otras dependencias**: Todas las demás librerías requeridas se detallan en el archivo `pyproject.toml`. La instalación de este archivo se detalla más adelante.
 
 ### Instalación del backend (API)
 
-1. Clona el repositorio:
+1. Clonar el repositorio:
 ```bash
 git clone https://github.com/anmerino-pnd/proyectoCT
 cd proyectoCT
 ```
 
-2. Crea un entorno virtual e instala dependencias:
+2. Crear un entorno virtual e instalar dependencias:
+   Se recomienda usar `uv` por su eficiencia.
 ```bash
 uv venv
-source .venv\Scripts\activate
+source .venv/bin/activate  # Para Linux/macOS
+# o `.venv\Scripts\activate` para Windows
 uv pip install -e .
 ```
 
 3. Asegurarse de estar corriendo Ollama en el ambiente:
+   Verifica que el servicio de Ollama esté activo y que el modelo `gemma3:12b` esté disponible.
 ```bash
 ollama serve
-ollama list
+ollama list # Para verificar que el modelo gemma3:12b esté descargado y listo
+ollama pull gemma3:12b # Correr esta línea en caso que el modelo no aparezca
+```
+4. Configurar variables de entorno:
+   Antes de levantar el *backend*, asegurarse de que el archivo `.env` en la raíz del proyecto contenga las siguientes variables con sus valores correctos. **Es fundamental no exponera esta información directamente en el código fuente**
+```python
+# Conexión a la base de datos SQL
+ip=
+port=
+user=
+pwd=
+db=
+
+# Clave de la API de OpenAI para correr sus modelos
+OPENAI_API_KEY=
+
+# Configuración para el servicio de fichas técnicas
+url= '' 
+Token-api=''
+Token-ct=''
+Content-Type=''
+Cookie=''
+
+dominio=""
+boundary=''
+
+# Conexión a MongoDB
+MONGO_URI = "mongodb://" # En la URI debe estar incrustrado el nombre de la DB
+MONGO_COLLECTION_SESSIONS = ""
+MONGO_COLLECTION_MESSAGE_BACKUP = ""
+MONGO_COLLECTION_PRODUCTS = ""
+MONGO_COLLECTION_SALES = ""         
+MONGO_COLLECTION_SPECIFICATIONS = ""
 ```
 
-4. Levanta el backend:
+5. Levantar el backend con Gunicorn:
+  Este comando inicia la API, especificando el número de *workers*, el *binding* de IP y puerto, y la configuración de SSL/TLS para HTTPS.
 ```bash
-uvicorn ct.main:app --host 0.0.0.0 --port 8000
+nohup gunicorn ct.main:app   --workers 4   --bind 0.0.0.0:8000   --certfile=static/ssl/cert.pem   --keyfile=static/ssl/key.pem   -k uvicorn.workers.UvicornWorker   --access-logfile -   --error-logfile - &
 ```
+  El uso de `nogup` y `&` asegura que el proceso continúe ejecutándose en segundo plano incluso si la sesión SSH se cierra.
 
+6. Regenerar el certificado SSL (si expira o es necesario):
+  Si el certificado SSL autofirmado ha expirado o necesitas uno nuevo:
+```bash
+openssl req -x509 -newkey rsa:2048 -nodes -keyout ssl/key.pem -out ssl/cert.pem -days 365
+```
+  Asegurarse de que los archivos `cert.pem` y `key.pem` estén en la ruta `ssl` dentro de tu proyecto.
 
 ### Instalación del frontend (Widget)
 
+1. **Cargar archivos del widget**: Los archivos del *frontend* (principalmente `sdk.js` y cualquier recurso gráfico como `chat.png`) deben ser cargados en el servidor donde reside el *frontend* de la página.
 
-### Pruebas básicas tras el despliegue
+2. **Incrustar el widget en el HTML**: Ejemplo de cómo se puede añadir el widget en la página web donde se desea que aparezca el chatbot.
+
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Prueba del Widget</title>
+</head>
+<body>
+  <script 
+    src="sdk.js" 
+    data-user-id="test" 
+    data-user-key="2" 
+    data-api-base="https://ctdev.ctonline.mx/chatbot" 
+    data-chat-icon-url="chat.png" 
+    type="text/javascript">
+  </script>
+</body>
+</html>
+```
+**Notas importantes para el `data-api-base`:**
+
+* Si la API corre en HTTP y el *frontend* en HTTPS, se enfrentarán problemas de "contenido mixto". La solución propuesta fue usar un archivo PHP (*backend* del sitio web) como intermediario, el cual es crucial aquí. La API debe apuntar a este PHP y el PHP a su *frontend* donde se encuentra el widget.
+* La `data-api-base` es el dominio donde es accesible la API mediante PHP.
 
 
 ### Notas adicionales
+
+* **Problemas de caché**: Es común que los navegadores almacenen versiones antiguas de archivos JS/CSS. Si la interfaz del *widget* no funciona correctamente después de una actualización, instruye a los usuarios a limpiar la caché de su navegador o a realizar un "hard refresh" (Ctrl+F5). Implementar una estrategia de *versioning* para los archivos del *widget* (ej.js?v=1.2.3) puede mitigar esto a futuro.
+* **Rotación de IP para fichas técnicas**: El sistema está diseñado para manejar el bloqueo de IP del servicio de fichas técnicas. Se recomienda monitorear los logs de la extracción (`extraction.py`) para identificar errores 403, lo que indicaría la necesidad de actualizar la IP en el servicio externo.
 
 :::
 
@@ -77,32 +151,135 @@ uvicorn ct.main:app --host 0.0.0.0 --port 8000
 
 ### Estructura de carpetas y módulos
 
+El proyecto sigue una estructura modular para facilitar la gestión y el mantenimiento. Los módulos principales bajo `ct.langchain` y `ct.ETL` son:
 
-### Dependencias clave
+* **ct/langchain/embedder.py**: Encargado de la creación y gestión de los *embeddings* de texto, transformando el contenido en representaciones numérica que pueden ser utilizadas en la base de datos vectorial. Utiliza `OpenAIEmbeddings`.
+* **ct/langchain/vectorstore.py**: Implementa la lógica para la creación, carga y consulta de la base de datos vectorial (FAISS). Gestiona el *retriever* que busca la información más relevante con respecto a la consulta del usuario.
+* **ct/langchain/assistant.py**: Contiene la lógica central del chatbot, incluyendo la gestión del historial de sesiones (a través de MongoDB), la creación de las cadenas RAG con memoria conversacional (`create_history_aware_retriever`, `create_stuff_documents_chain`) y la interacción con el LLM de OpenAI. También manejja el guardado del historial de respaldo y métricas de costos.
+* **ct/langchain/rag.py**: Orquesta el flujo completo de una consulta de usuario. Incluye la clasificación de la consulta (relevante, irrelevante, inapropiada) utilizando un modelo Ollama (`gemma3:12b`) y dirige la consulta al flujo adecuado (respuesta RAG con OpenAI, respuesta cortés, o advertencia de baneo).
+* **ct/chat.py**: Define los *endpoints* de la API para el chat, la recuperación de historial y la eliminación de historial. Interactúa con la clase `LangchainRAG` para procesar las solicitudes.
+* **ct/main.py**: Archivo principal de la aplicación FastAPI. Configura la aplicación, habilita CORS para permitir solicitudes desde diferentes orígenes, y registra los *endpoints* definidos en `ct.chat`.
+* **ct/ETL/extraction.py**: Módulo de la capa de Extracción. Responsable de conectarse a la base de datos MySQL para extraer información de productos y promociones, y de interactuar con el servicio externo para obtener fichas técnicas. Implementa lógicas de reintento y manejo de errores (ej. bloqueo de I, timeouts, etc.).
+* **ct/ETL/transform.py**: Módulo de la capa de Transformación. Se encarga de limpiar, unificar y normalizar los datos extraídos. Combina datos de MySQL y fichas técnicas, y los prepara en un formato consistente para su carga en MongoDB. También persiste las fichas técnicas en una colección dedicada en MongoDB para evitar extracciones redundantes.
+* **ct/ETL/load.py**: Módulo de la capa de Carga. Maneja la inserción de los datos transformados en las colecciones de MongoDB (`products`, `sales`, `specifications`). Además, es responsable de cargar estos datos desde MongoDB y construir la base de datos vectorial FAISS con *embeddings* de OpenAI, gestionando el procesamiento por lotes para optimizar la memoria y los límites de tasa.
 
+### Modelos LLM utilizados
 
-### Modelos utilizados
+El sistema utiliza una combinación estratégica de modelos de lenguaje para optimizar la funcionalidad y los costos:
 
+* **Clasificación de consultas y respuestas iniciales (Ollama - `gemma3:12b`)**:
+  * **Función**: Este modelo *open-source*, cargado localmente a través de Ollama, es el primer punto de contacto. Su función principal es clasificar las consultas de los usuarios como *relevantes* (productos que se ofrecen en la empresa), *irrelevantes* (cualquier producto o tema fuera del ámbito de negocio), o *inapropiado* (lenguaje ofensivo).
+  * **Ventaja**: Permite una gestión eficiente de consultas no relacionadas con el negocio sin incurrir en costos de API's comerciales, y es ideal para respuestas de "baneo" o corteses.
 
-### Puntos de entrada
+* **Generación de respuestas relevantes (OpenAI - `gpt-4o`)**:
+  * **Función**: Este modelo avanzado de OpenAI es el encargado de generar las respuestas detalladas y contextualizadas para las consultas clasificadas como *relevantes*. Trabaja en conjunto con la cadena RAG para integrar la información recuperada de la base de datos vectorial.
+  * **Ventaja**: Ofrece alta calidad y precisión en las respuestas, especialmente en el manejo de precios, promociones complejas y detalles de productos, lo que fue validad en pruebas comparativas.
+  * **Nota**:Se ha estado testeado el nuevo modelo `gpt-4.1` y ha dado buenos resultados. Posiblemente haya una actualización del modelo utilizado por OpenAI.
 
+### Puntos de entrada y funciones clave
+
+* `LangchainRAG.run(query, session_id, listaPrecio)`: Esta es la función principal que orquesta el flujo completo de una consulta de usuario. Recibe la consulta, el ID de sesión y la lista de precios del cliente, clasifica la consulta y delega la tarea al asistente de LangChain (`assistant.answer`) o alos modelos Ollama según la clasificación.
+* `assistant.answer()`: Encargado de responder a las consultas relevantes. Utiliza una cadena RAG con memoria de ventana (`trim_messages`, `MessagesPlaceholder`) para mantener el contexto de la conversación. Incorpora el `listaPrecio` para asegurar que los precios mostrados sean los correctos para el cliente. También gestiona la persistencia de los mensajes en MongoDB y la recopilación de métricas de costo y duración.
+* `vectorstore.create_index()`: Función vital para la construcción inicial de la base de datos vectorial FAISS a partir de los documentos de producos y ofertas. Persiste el índice localmente en la ruta especificada (`PRODUCTS_VECTOR_PATH`, `SALES_PRODUCTS_VECTOR_PATH`).
+* `load.py::products_vs()` y `load.py::sales_products_vs()`: Funciones en el módulo de carga que manejan la creación o actualización incremental del *vector store* para productos y ofertas, respectivamente. Implementan un procesamiento por lotes (`batch_size = 250`) para optimizar el uso de memoria y cumplir con los límites de tasa de OpenAI.
+* `transform.py::clean_products()` y `transform.py::clean_sales()`: Funciones que orquestan la limpieza y transformación de los datos de productos y ventas, incluyendo la integración de fichas técnicas, y que persisten las fichas técnicas en la colección de `specifications` en MongoDB.
 
 :::
 
 ::: {style="text-align: justify"}
 ## Guía de entrenamiento y mejora 
 
-### ETL
+La mejora continua del chatbot se basa en un ciclo ETL robusto y monitoreo constante del rendimiento.
+
+**Flujo de Datos (ETL)**
+
+La información que alimenta la base de conocimientos del chatbot sigue un proceso ETL (Extracción, Transformación, Carga) bien definido.
+
+* Extracción:
+  * Los datos de productos base (ID, nombre, categoría, marca, tipo, modelo, descripciones, palabras clave, precios por lista de precio) se obtienen directamente de una **base de datos MySQL**.
+  * La información detallada de las fichas técnicas se extrae de un **servicio externo** a través de solicitudes HTTP/HTTPS, que devuelve los datos en formato XML. Se ha implementado un mecanismo de reintentos y manejo de errores (ej. 403 Forbidden por cambio de IP) para extracción.
+
+* Transformación:
+  * Esta etapa es crucial para preparar los datos para la vectorización y el consumo por el LLM. Incluye:
+    * Limpieza y normalización: Eliminación de valores nulos o inconsistentes, estandarización de formatos.
+    * Unificación de contenido: Concatenación de campos textuales como `descripcion`. `descripcion_corta` y `palabrasClave` en un campo `detalles` para enriquecer el contexto del *embedding*.
+    * Integración de fichas técnicas: Los datos de las fichas técnicas XML son parseados y estructurados, combinándose con la información de productos. Las fichas técnicas transformadas se persisten en una colección dedicada en MongoDB (`specifications`) para optimizar futuras extracciones y reusabilidad.
+    * Manejo de promociones: Procesamiento de datos de promociones (`precio_oferta`, `descuento`, `EnCompraDE`, `Unidades`, `fecha_fin`, `limitadoA`) para asegurar que el chatbot pueda aplicar la lógica de promociones correctamente.
+
+* Carga:
+  * Los datos limpios y transformados se cargan en **tres colecciones principales en MongoDB**:
+    * `products`: Almacena la información principal de los productos.
+    * `sales`: Contiene los detalles de las promociones y ofertas vigentes.
+    * `specifications`: Respalda las fichas técnicas transformadas de los productos.
+  * Posteriormente, estos datos se recuperan de MongoDB y se convierten en objetos `Document` de LangChain, que son el formato estándar para la ingestión en bases de datos vectoriales. Se añaden metadatos relevantes como `clave` y `_id` de MongoDB a cada `Document`.
 
 
 ### Generación de la base de datos vectorial
 
+La base de datos vectorial es el corazón del sistema RAG:
+
+* Proceso de creación:
+  * El archivo `load.py` contiene la lógica principal. La función `load_products()` obtiene los documentos de productos desde MongoDB.
+  * La función `vector_store()` crea un índice FAISS local utilizando `OpenAIEmbeddings` para generar las representaciones vectoriales de los documentos.
+  * las colecciones de productos y ofertas se procesan y vectorizan en **lotes (`batch_size = 250` para productos, `200` para ofertas)**. Esta estrategia es crucial para manejar grandes volúmenes de datos sin agotar la memoria del sistema ni exceder los límites de tasa (rate limits) de la API de OpenAI.
+* Inclusión de ofertas:
+  * Las ofertas (`sales`) se añaden *incrementalmente* sobre el *vector store* de productos ya existente utilizando `vector_store.add_documents(sales)`. Esto evita la necesidad de re-vectorizar todo el catálogo.
+  * Una copia del índice final, que combina productos y ofertas, se guarda en `SALES_PRODUCTS_VECTOR_PATH`.
 
 ### Recomendaciones para futura mejora
+
+1. Embeddings locales (Ollama): 
+  Para reducir los costos asociados con los *embeddings* de OpenAI y disminuir la dependencia de servicios externos, se recomienda realizar pruebas con los modelos de *embeddings* disponibles a través de Ollama (u otras librerías de *embeddings* locales).
+2. Indexado incremental: 
+  Actualmente, la actualización de la base vectorial puede implicar procesar grandes lotes. Para un mantenimiento más eficiente, especialmente si solo cambian algunos productos o sus precios/promociones, se podría implementar una función de actualización a nivel de producto.
+3. Monitoreo avanzado de rendimiento:
+  Aunque ya se registran métricas de costo y duración, se puede profundizar en el monitoreo.
+4. Optimización del manejo de promociones complejas:
+  Las promociones tipo "en compra X lleva Y" aún presenta desafíos. Podría ser necesario enriquecer el contexto del *embedding* para estos productos específicos, reglas más explícitas dentro del LLM o creación de plantillas de *prompts* más específicos para estas promociones.
+5. Actualmente se registra el error de IP bloqueada. Sería útil automatizar una notificación. 
 
 :::
 
 ::: {style="text-align: justify"}
 ## Diagrama de arquitectura
+
+El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, mostrando los componentes principales y el flujo de datos desde la interacción del usuario hasta la generación de respuestas y el almacenamiento del historial. Se ha actualizado para reflejar la implementación de MongoDB y los diferentes flujos.
+
+### Componentes clave:
+* **Interfaz de usuario (widget del chatbot)**: El componente frontal incrustado en la página web de CT Internacional, permitiendo la interacción directa del usuario.
+* **Servicio intermediario PHP**: Actúa como un puente seguro entre el *frontend* (HTTPS) y la API del chatbot (HTTPS pero con certificado autofirmado, o sea, no seguro) para resolver problemas de *contenido mixto*. Si el *backend* ya está en en HTTPS con un certificado SSL seguro, este componente puede ser obviado.
+* **API del chatbot (FastAPI)**: El servicio *backend* principal que procesa las consultas de los usuarios, orquesta la recuperación de información y se comunica con los modelos de lenguaje.
+* **Base de datos de productos y promociones (MySQL)**: Almacena la información transaccional y de precios de los productos y promociones de CT Internacional. Es la fuente original de los datos.
+* **Servicio de fichas técnicas**: Fuente de datos para la información detallada y semi-estructurada (XML) de los productos.
+* **Módulo ETL**: Proceso automatizado que:
+  * Extrae datos de MySQL y el servicio de fichas técnicas.
+  * Limpia, unifica, y transforma los datos, persistiendo las fichas técnicas en MongoDB.
+  * Carga los datos limpios en colecciones de MongoDB (`products`, `sales`, `specifications`).
+* **Base de datos NoSQL (MongoDB)**: Almacena los datos limpios de productos, ofetas y fichas técnicas, así como el historial de las interacciones de los usuarios (`sessions`, `message_backup`).
+  * `sessions`: Mantiene los últimos *n* mensajes de cada usuario para recuperación rápida y una experiencia de usuario fluida.
+  * `message_backup`: Almacena un historial completo de todas las consultas y respuestas con métricas detalladas para fines de análisis y reportes.
+* **Modelo de embeddings**: Componente encargado de transformar tanto las consultas de los usuarios como la información de los productos en representaciones vectoriales numéricas (usando OpenAI Embeddings).
+* **Base de datos vectorial (FAISS)**: Almacena las representaciones vectoriales de la información de productos y ofertas, permitiendo búsquedas de similitud eficientes. Se actualiza con datos del ETL.
+* **Clasificador de consultas (Ollama - `gemma3:12b`)**: Componente central que, para consultas relevantes, coordina la búsqueda de información en la base de datos vectorial y contextualiza esta información con la consulta del usuario.
+* **LLM**: El motor principal del chatbot para consultas relevantes, responsable de generar respuestas coherentes y detalladas en base a la consulta contextualizada por el RAG.
+* **Sistema de reportes automatizados**: Procesa los datos del `message_backup` en MongoDB para generar *insights* sobre el uso del chatbot, intereses de los clientes, costos y rendimiento.
+
+### Flujo de interacción principal:
+1. El **usuario** interactúa con el **widget del chatbot** en la página web.
+2. La consulta se envía a la **API del chatbot** (**potencialmente vía el servicio intermediario PHP**)
+3. La **API** primero pasa consulta al **clasificador de consultas**.
+4. Si la consulta es *relevante*:
+  * Pasa por el **modelo de embeddings** y luego al **módulo RAG** para buscar en la **base de datos vectorial**.
+  * La información recuperada se contextualiza y se envía al **LLM** para generar la **respuesta al usuario**.
+5. Si la consulta es *irrelevante* o *inapropiada*, el **clasificador** genera una respuesta adecuada (cortés o de advertencia) directamente al **usuario**.
+6. Todas las interacciones (consultas y respustas) se registran en las colecciones `sessions` y `message_backup` en **MongoDB**.
+7. El **sistema de reportes automatizados** accede a `message_backup` para generar análisis de datos.
+
+### Flujo de datos
+1. El **módulo ETL** extrae datos de **MySQL** y el **servicio de fichas técnicas**.
+2. Los datos se transforman y se cargan en **MongoDB** (colecciones `products`, `sales`, `specifications`).
+3. Los datos de `products` y `sales` en **MongoDB** son utilizados por el **módulo ETL** para construir y actualizar la **base de datos vectorial**
+
+![Arquitectura del sistema](./arquitectura.jpg){width=90%}
 
 :::

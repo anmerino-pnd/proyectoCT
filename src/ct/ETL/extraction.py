@@ -42,7 +42,7 @@ class Extraction():
       ON pro.idProductos = e.idProductos
     JOIN precio pre 
       ON pro.idProductos = pre.idProducto
-    WHERE e.cantidad > 0
+    WHERE e.cantidad > 10
     AND pro.idProductos > 0
     ;
     """
@@ -144,49 +144,51 @@ class Extraction():
 
   def current_sales_query(self) -> str:
       query = f"""
-        SELECT
-            pro.descripcion_corta_icecat AS nombre,  
-            pros.producto as clave,  
-            cat.nombre AS categoria,
-            m.nombre  AS marca,
-            pro.tipo, 
-            pro.modelo, 
-            pro.descripcion, 
-            pro.descripcion_corta,
-            pro.palabrasClave,
-            pros.importe as precio_oferta,
-            pros.porcentaje as descuento,
-            pros.EnCompraDE,
-            pros.Unidades, 
-            pros.limitadoA, 
-            pros.ProductosGratis,
-            pros.fecha_inicio,
-            pros.fecha_fin,
-            JSON_UNQUOTE(
-            JSON_ARRAYAGG(
-                DISTINCT JSON_OBJECT(
-              'listaPrecio', pre.listaPrecio,
-              'precio', pre.precio
-                )
+      SELECT 
+          pros.idProducto,
+          pro.descripcion_corta_icecat AS nombre,  
+          pros.producto,  
+          cat.nombre AS categoria,
+          m.nombre  AS marca,
+          pro.tipo, 
+          pro.modelo, 
+          pro.descripcion, 
+          pro.descripcion_corta,
+          pro.palabrasClave,
+          pros.importe AS precio_oferta,
+          pros.porcentaje AS descuento,
+          pros.EnCompraDE,
+          pros.Unidades, 
+          pros.limitadoA, 
+          pros.ProductosGratis,
+          pros.fecha_inicio,
+          pros.fecha_fin,
+          JSON_UNQUOTE(
+        JSON_ARRAYAGG(
+            DISTINCT JSON_OBJECT(
+          'listaPrecio', pre.listaPrecio,
+          'precio', pre.precio
             )
-              ) AS lista_precios,
-            pre.idMoneda AS moneda
-        FROM promociones pros
-        INNER JOIN productos pro  
-          ON pro.idProductos = pros.idProducto
-        LEFT JOIN (
-            SELECT DISTINCT idProducto, listaPrecio, precio, idMoneda
-            FROM precio
-        ) pre 
-          ON pros.idProducto = pre.idProducto 
-        LEFT JOIN categorias cat 
-          ON pro.idCategoria = cat.idCategoria
-        LEFT JOIN marcas m 
-          ON pro.idMarca = m.idMarca
-        WHERE pros.fecha_fin >= CURRENT_DATE
-        AND pro.descripcion_corta_icecat != ''
-        GROUP BY pros.idProducto
-        ORDER BY pros.importe ASC
+        )
+          ) AS lista_precios,
+          pre.idMoneda AS moneda
+      FROM promociones pros
+      INNER JOIN productos pro  
+        ON pro.idProductos = pros.idProducto
+      LEFT JOIN (
+          SELECT DISTINCT idProducto, listaPrecio, precio, idMoneda
+          FROM precio
+      ) pre 
+        ON pros.idProducto = pre.idProducto 
+      LEFT JOIN categorias cat 
+        ON pro.idCategoria = cat.idCategoria
+      LEFT JOIN marcas m 
+        ON pro.idMarca = m.idMarca
+      WHERE pros.fecha_fin >= CURRENT_DATE
+      AND pro.descripcion_corta_icecat != '' 
+      GROUP BY pros.idProducto
+      HAVING lista_precios IS NOT NULL AND moneda IS NOT NULL
+      ORDER BY pros.importe ASC
         ;"""
       return query 
 
@@ -220,55 +222,6 @@ class Extraction():
     finally:
       cursor.close()
       cnx.close()
-
-
-  # def get_specifications_cloudscraper(self, claves: list) -> dict:
-  #     specs = {}
-  #     for clave in claves:
-  #         try:
-  #             payload = {'claveProducto': clave}
-  #             response = scraper.post(url, data=payload)
-  #             if response.status_code == 200:
-  #                 content_type = response.headers.get('Content-Type', '').lower()
-
-  #                 if 'application/json' in content_type:
-  #                     try:
-  #                         json_response = response.json()
-
-  #                         # Validar contenido lógico del JSON
-  #                         if isinstance(json_response, dict):
-  #                             respuesta = json_response.get("respuesta", {})
-  #                             if respuesta.get("status") == "success":
-  #                                 specs[clave] = json_response
-  #                                 time.sleep(0.15)
-  #                         else:
-  #                             raise RuntimeError(f"[{clave}] JSON no tiene formato esperado: {json_response}")
-
-  #                     except (json.JSONDecodeError, ValueError) as e:
-  #                         raise RuntimeError(f"[{clave}] JSON inválido o estructura inesperada: {e}")
-
-  #                 else:
-  #                     if response.text.strip().startswith('<!DOCTYPE html>') or '<html' in response.text.lower():
-  #                         raise RuntimeError(f"[{clave}] HTML inesperado (posible redirección de IP)")
-  #                     else:
-  #                         raise RuntimeError(f"[{clave}] Respuesta 200 sin JSON ni HTML. Content-Type: {content_type}")
-
-  #             elif response.status_code == 403:
-  #                 raise RuntimeError(f"[{clave}] Error 403 (Forbidden). Cloudscraper bloqueado.")
-
-  #             else:
-  #                 raise RuntimeError(f"[{clave}] HTTP Error {response.status_code}")
-
-  #         except requests.exceptions.Timeout:
-  #             raise RuntimeError(f"[{clave}] Timeout con cloudscraper")
-  #         except requests.exceptions.RequestException as e:
-  #             raise RuntimeError(f"[{clave}] Error de red: {e}")
-  #         except cloudscraper.exceptions.CloudflareException as e:
-  #             raise RuntimeError(f"[{clave}] CloudflareException: {e}")
-  #         except Exception as e:
-  #             raise RuntimeError(f"[{clave}] Error inesperado: {e}")
-
-  #     return specs
 
   def get_specifications_cloudscraper(self, claves: List[str], max_retries: int = 3, sleep_seconds: float = 0.15) -> Dict[str, dict]:
     specs = {}
