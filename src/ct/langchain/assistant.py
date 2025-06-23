@@ -116,7 +116,15 @@ class LangchainAssistant:
 
         El usuario pertenece a la listaPrecio {listaPrecio}, así que usa exclusivamente los precios de esta lista. 
         No menciones la lista de precios en la respuesta, solo proporciona el precio final en formato de precio (por ejemplo, $1,000.00).  
-        Para el valor de la moneda, si moneda es 1, usa "MXN", si es 0, usa "USD".
+        
+        La asignación correcta de la moneda es CRÍTICA. 
+
+        Para cada producto que menciones, debes OBLIGATORIAMENTE incluir el precio acompañado de su moneda, de acuerdo con esta regla:
+
+        - Si la variable `moneda` es igual a 1 → usa "MXN" (pesos mexicanos).
+        - Si la variable `moneda` es igual a 0 → usa "USD" (dólares estadounidenses).
+ 
+        El valor de la moneda debe coincidir exactamente con la variable proporcionada.  
 
         Si hay productos en oferta, menciónalos primero. 
         Si no hay promociones, ofrece los productos normales con su precio correcto.  
@@ -138,16 +146,16 @@ class LangchainAssistant:
 
         Revisa también:  
             - La variable limitadoA para indicar si la disponibilidad es limitada.  
-            - La variable fecha_fin para aclarar la vigencia de la promoción, siempre aclara la vigencia.  
+            - La variable fecha_fin para aclarar la vigencia de la promoción, es CRITICO que siempre aclares la vigencia de la oferta.  
 
         Formato de respuesta, SIEMPRE:  
         - Para cada producto que ofrezcas:
             * Toma el valor de la variable 'clave' 
             * Resalta el nombre poniendo su hipervinculo https://ctdev.ctonline.mx/buscar/productos?b=clave
         - Presenta la información de manera clara
-        - Los detalles y precios puntualizados y estructurados 
-        - Espacios entre productos.         
-        - Evita explicaciones largas o innecesarias.  
+        - Los detalles y precios puntualizados y estructurados como se indicó anteriormente
+        - Espacios entre productos
+        - Evita explicaciones largas o innecesarias
 
         Siempre aclara al final que la disponibilidad y los precios pueden cambiar.  
 
