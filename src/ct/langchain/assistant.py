@@ -4,7 +4,8 @@ import time
 from typing import AsyncGenerator
 from datetime import datetime, timezone
 
-from ct.llm import LLM
+from langchain_openai import ChatOpenAI
+from ct.clients import openai_api_key as api
 from ct.tokens import TokenCostProcess, CostCalcAsyncHandler
 from ct.clients import mongo_uri, mongo_collection_sessions, mongo_collection_message_backup
 
@@ -18,8 +19,13 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, Syst
 
 class LangchainAssistant:
     def __init__(self, retriever):
-        llm_instance = LLM()
-        self.llm, self.model = llm_instance.OpenAI()
+        self.model = "gpt-4.1"
+        self.llm = ChatOpenAI(
+            openai_api_key=api,
+            model_name=self.model,
+            temperature= 0.0,
+            streaming=True,
+        )
         self.retriever = retriever
 
         try:

@@ -47,6 +47,7 @@ cd proyectoCT
 ```
 
 2. Crear un entorno virtual e instalar dependencias:
+
    Se recomienda usar `uv` por su eficiencia.
 ```bash
 uv venv
@@ -56,6 +57,7 @@ uv pip install -e .
 ```
 
 3. Asegurarse de estar corriendo Ollama en el ambiente:
+
    Verifica que el servicio de Ollama esté activo y que el modelo `gemma3:12b` esté disponible.
 ```bash
 ollama serve
@@ -63,7 +65,9 @@ ollama list # Para verificar que el modelo gemma3:12b esté descargado y listo
 ollama pull gemma3:12b # Correr esta línea en caso que el modelo no aparezca
 ```
 4. Configurar variables de entorno:
-   Antes de levantar el *backend*, asegurarse de que el archivo `.env` en la raíz del proyecto contenga las siguientes variables con sus valores correctos. **Es fundamental no exponera esta información directamente en el código fuente**
+
+   Antes de levantar el *backend*, asegurarse de que el archivo `.env` en la raíz del proyecto contenga las siguientes variables con sus valores correctos. 
+   
 ```python
 # Conexión a la base de datos SQL
 ip=
@@ -95,6 +99,7 @@ MONGO_COLLECTION_SPECIFICATIONS = ""
 ```
 
 5. Levantar el backend con Gunicorn:
+
   Este comando inicia la API, especificando el número de *workers*, el *binding* de IP y puerto, y la configuración de SSL/TLS para HTTPS.
 ```bash
 nohup gunicorn ct.main:app   --workers 4   --bind 0.0.0.0:8000   --certfile=static/ssl/cert.pem   --keyfile=static/ssl/key.pem   -k uvicorn.workers.UvicornWorker   --access-logfile -   --error-logfile - &
@@ -102,6 +107,7 @@ nohup gunicorn ct.main:app   --workers 4   --bind 0.0.0.0:8000   --certfile=stat
   El uso de `nogup` y `&` asegura que el proceso continúe ejecutándose en segundo plano incluso si la sesión SSH se cierra.
 
 6. Regenerar el certificado SSL (si expira o es necesario):
+
   Si el certificado SSL autofirmado ha expirado o necesitas uno nuevo:
 ```bash
 openssl req -x509 -newkey rsa:2048 -nodes -keyout ssl/key.pem -out ssl/cert.pem -days 365
@@ -174,7 +180,7 @@ El sistema utiliza una combinación estratégica de modelos de lenguaje para opt
 * **Generación de respuestas relevantes (OpenAI - `gpt-4o`)**:
   * **Función**: Este modelo avanzado de OpenAI es el encargado de generar las respuestas detalladas y contextualizadas para las consultas clasificadas como *relevantes*. Trabaja en conjunto con la cadena RAG para integrar la información recuperada de la base de datos vectorial.
   * **Ventaja**: Ofrece alta calidad y precisión en las respuestas, especialmente en el manejo de precios, promociones complejas y detalles de productos, lo que fue validad en pruebas comparativas.
-  * **Nota**:Se ha estado testeado el nuevo modelo `gpt-4.1` y ha dado buenos resultados. Posiblemente haya una actualización del modelo utilizado por OpenAI.
+  * **Nota**: Se ha estado testeado el nuevo modelo `gpt-4.1` y ha dado buenos resultados. Posiblemente haya una actualización del modelo utilizado por OpenAI.
 
 ### Puntos de entrada y funciones clave
 
@@ -197,7 +203,7 @@ La información que alimenta la base de conocimientos del chatbot sigue un proce
 
 * Extracción:
   * Los datos de productos base (ID, nombre, categoría, marca, tipo, modelo, descripciones, palabras clave, precios por lista de precio) se obtienen directamente de una **base de datos MySQL**.
-  * La información detallada de las fichas técnicas se extrae de un **servicio externo** a través de solicitudes HTTP/HTTPS, que devuelve los datos en formato XML. Se ha implementado un mecanismo de reintentos y manejo de errores (ej. 403 Forbidden por cambio de IP) para extracción.
+  * La información detallada de las fichas técnicas se extrae de un **servicio externo** a través de solicitudes HTTP/HTTPS, que devuelven los datos en formato XML. Se ha implementado un mecanismo de reintentos y manejo de errores (ej. 403 Forbidden por cambio de IP) para extracción.
 
 * Transformación:
   * Esta etapa es crucial para preparar los datos para la vectorización y el consumo por el LLM. Incluye:
@@ -228,15 +234,21 @@ La base de datos vectorial es el corazón del sistema RAG:
 
 ### Recomendaciones para futura mejora
 
-1. Embeddings locales (Ollama): 
+1. **Embeddings locales (Ollama)**: 
+
   Para reducir los costos asociados con los *embeddings* de OpenAI y disminuir la dependencia de servicios externos, se recomienda realizar pruebas con los modelos de *embeddings* disponibles a través de Ollama (u otras librerías de *embeddings* locales).
-2. Indexado incremental: 
+
+2. **Indexado incremental**: 
+
   Actualmente, la actualización de la base vectorial puede implicar procesar grandes lotes. Para un mantenimiento más eficiente, especialmente si solo cambian algunos productos o sus precios/promociones, se podría implementar una función de actualización a nivel de producto.
-3. Monitoreo avanzado de rendimiento:
+
+3. **Monitoreo avanzado de rendimiento**:
+
   Aunque ya se registran métricas de costo y duración, se puede profundizar en el monitoreo.
-4. Optimización del manejo de promociones complejas:
+  
+4. **Optimización del manejo de promociones complejas**:
+
   Las promociones tipo "en compra X lleva Y" aún presenta desafíos. Podría ser necesario enriquecer el contexto del *embedding* para estos productos específicos, reglas más explícitas dentro del LLM o creación de plantillas de *prompts* más específicos para estas promociones.
-5. Actualmente se registra el error de IP bloqueada. Sería útil automatizar una notificación. 
 
 :::
 
@@ -272,7 +284,7 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
   * Pasa por el **modelo de embeddings** y luego al **módulo RAG** para buscar en la **base de datos vectorial**.
   * La información recuperada se contextualiza y se envía al **LLM** para generar la **respuesta al usuario**.
 5. Si la consulta es *irrelevante* o *inapropiada*, el **clasificador** genera una respuesta adecuada (cortés o de advertencia) directamente al **usuario**.
-6. Todas las interacciones (consultas y respustas) se registran en las colecciones `sessions` y `message_backup` en **MongoDB**.
+6. Todas las interacciones (consultas y respuestas) se registran en las colecciones `sessions` y `message_backup` en **MongoDB**.
 7. El **sistema de reportes automatizados** accede a `message_backup` para generar análisis de datos.
 
 ### Flujo de datos

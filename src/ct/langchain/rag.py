@@ -1,7 +1,7 @@
 from ct.langchain.vectorstore import LangchainVectorStore
 from ct.langchain.embedder import LangchainEmbedder
 from ct.langchain.assistant import LangchainAssistant
-from typing import Tuple, AsyncGenerator
+from typing import AsyncGenerator
 import ollama
 
 class LangchainRAG:
