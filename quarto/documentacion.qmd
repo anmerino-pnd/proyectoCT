@@ -58,8 +58,9 @@ uv pip install -e .
 
 3. Asegurarse de estar corriendo Ollama en el ambiente:
 
-   Verifica que el servicio de Ollama esté activo y que el modelo `gemma3:12b` esté disponible.
+   Verifica que el servicio de Ollama esté instalado y activo, y que el modelo `gemma3:12b` esté disponible.
 ```bash
+curl -fsSL https://ollama.com/install.sh | sh # Para instalar Ollama
 ollama serve
 ollama list # Para verificar que el modelo gemma3:12b esté descargado y listo
 ollama pull gemma3:12b # Correr esta línea en caso que el modelo no aparezca
