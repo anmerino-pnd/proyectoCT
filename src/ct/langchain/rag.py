@@ -1,14 +1,15 @@
-from ct.langchain.vectorstore import LangchainVectorStore
-from ct.langchain.embedder import LangchainEmbedder
+from ct.clients import openai_api_key
+from langchain_openai import OpenAIEmbeddings
 from ct.langchain.assistant import LangchainAssistant
+from ct.langchain.vectorstore import LangchainVectorStore
 from typing import AsyncGenerator
 import ollama
 
 class LangchainRAG:
     def __init__(self, index_path: str = None):
-        self.embedder = LangchainEmbedder()  # Asegúrate que retorna un objeto Embeddings
+        self.embedder = OpenAIEmbeddings(openai_api_key=openai_api_key)
         self.vectorstore = LangchainVectorStore(self.embedder, index_path)
-        self.model= "gemma3:12b"
+        self.model= "gemma3:4b"
         
         # Verifica que el retriever se haya creado
         if not hasattr(self.vectorstore, 'retriever'):
@@ -38,41 +39,29 @@ class LangchainRAG:
     ).response
 
     def polite_answer(self, query: str) -> str:
-        return ollama.generate(
-        model= self.model,
-        system="""
-        Eres un asistente cordial de una empresa especializada exclusivamente en productos de tecnología y cómputo, como laptops, impresoras, teléfonos, accesorios, redes, software, partes electrónicas, etc.
-
-        Tu tarea es responder amablemente al usuario cuando su consulta no está relacionada con ese tipo de productos.
-
-        Indícale con cortesía que no manejamos ese tipo de artículos, y que puede volver a intentarlo preguntando por productos tecnológicos.
-
-        No uses lenguaje sarcástico ni autoritario. Sé breve, claro y profesional.
         """
+        Devuelve una respuesta prediseñada cuando la consulta es irrelevante.
+        No utiliza un modelo de lenguaje, lo cual es más rápido y confiable.
+        """
+        return (
+            "Gracias por tu mensaje. Nuestra empresa se especializa exclusivamente en productos de tecnología y cómputo, "
+            "como laptops, impresoras, accesorios, redes, software y partes electrónicas.\n\n"
+            "Tu consulta no parece estar relacionada con este tipo de productos. "
+            "Por favor, intenta con una nueva pregunta enfocada en productos tecnológicos. "
+            "Estaremos encantados de ayudarte. 😊"
+        )
 
-            ,
-        prompt=f"El usuario preguntó: {query}",
-        options={'temperature' : 0},
-        stream=True
-    )
-    
     def ban_answer(self, query: str) -> str:
-        return ollama.generate(
-        model= self.model,
-        system="""
-        Has detectado un mensaje clasificado como 'inapropiado' por su contenido ofensivo, sexual, violento o irrespetuoso. 
-        Tu deber es responder de forma clara y firme, sin sarcasmo ni tono amistoso. No intentes suavizar el mensaje ni educar con sugerencias.
-        Tu único objetivo es establecer límites.
-
-        Dile al usuario directamente que ese tipo de lenguaje no está permitido en esta plataforma. Adviértele que, si insiste en ese comportamiento, se le bloqueará el acceso.
-
-        No sugieras reformulaciones ni alternativas. No des explicaciones.
         """
-        ,
-        prompt=f"El usuario preguntó: {query}",
-        options={'temperature' : 0},
-        stream=True
-    )
+        Devuelve una respuesta prediseñada cuando la consulta es clasificada como inapropiada.
+        No utiliza un modelo de lenguaje para garantizar rapidez y control de tono.
+        """
+        return (
+            "Hemos detectado que tu mensaje contiene lenguaje o contenido inapropiado. "
+            "Te pedimos mantener un lenguaje respetuoso y adecuado.\n\n"
+            "Si continúas con este tipo de mensajes, podríamos restringir tu acceso al servicio. "
+            "Por favor, formula tus preguntas de manera cordial para que podamos ayudarte con gusto."
+        )
 
     async def run(self, query: str, session_id: str = None, listaPrecio : str = None) -> AsyncGenerator[str, None]:
         """Ejecuta una consulta RAG y muestra los chunks de respuesta en tiempo real."""
@@ -80,20 +69,15 @@ class LangchainRAG:
             session_id = "default_session"
 
         label = self.classify_query(query).strip().lower()
-        yield label
+        yield f"Etiqueta de la consulta: {label}\n"
 
         if label == "relevante":
-            print('OpenAI')
             async for chunk in self.assistant.answer(session_id, query, listaPrecio):
                 yield chunk
         elif label == "irrelevante":
-            print('Ollama')
-            for chunk in self.polite_answer(query):
-                yield chunk.response
+            yield self.polite_answer(query)
         elif label == "inapropiado":
-            print('Ollama')
-            for chunk in self.ban_answer(query):
-                yield chunk.response
+            yield self.ban_answer(query)
 
 
         

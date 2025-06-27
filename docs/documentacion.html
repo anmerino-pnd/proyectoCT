@@ -266,10 +266,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ol start="2" type="1">
 <li><p>Crear un entorno virtual e instalar dependencias:</p>
 <p>Se recomienda usar <code>uv</code> por su eficiencia.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> venv</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .venv/bin/activate  <span class="co"># Para Linux/macOS</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># o `.venv\Scripts\activate` para Windows</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> pip install <span class="at">-e</span> .</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></li>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install uv <span class="co"># En caso de no estar instalado</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> venv</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .venv/bin/activate  <span class="co"># Para Linux/macOS</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># o `.venv\Scripts\activate` para Windows</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> pip install <span class="at">-e</span> .</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></li>
 <li><p>Asegurarse de estar corriendo Ollama en el ambiente:</p>
 <p>Verifica que el servicio de Ollama esté instalado y activo, y que el modelo <code>gemma3:12b</code> esté disponible.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> https://ollama.com/install.sh <span class="kw">|</span> <span class="fu">sh</span> <span class="co"># Para instalar Ollama</span></span>
@@ -360,17 +361,374 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="documentación-técnica-del-código-estructura-dependencias-etc..">Documentación técnica del código (estructura, dependencias, etc.).</h2>
 <section id="estructura-de-carpetas-y-módulos" class="level3">
 <h3 class="anchored" data-anchor-id="estructura-de-carpetas-y-módulos">Estructura de carpetas y módulos</h3>
-<p>El proyecto sigue una estructura modular para facilitar la gestión y el mantenimiento. Los módulos principales bajo <code>ct.langchain</code> y <code>ct.ETL</code> son:</p>
+<p>El proyecto sigue una estructura modular para facilitar la gestión y el mantenimiento. A continuación, se detalla el propósito de los módulos principales y algunas de sus funciones clave:</p>
+<p><strong>ct/langchain/vectorstore.py</strong></p>
 <ul>
-<li><strong>ct/langchain/embedder.py</strong>: Encargado de la creación y gestión de los <em>embeddings</em> de texto, transformando el contenido en representaciones numérica que pueden ser utilizadas en la base de datos vectorial. Utiliza <code>OpenAIEmbeddings</code>.</li>
-<li><strong>ct/langchain/vectorstore.py</strong>: Implementa la lógica para la creación, carga y consulta de la base de datos vectorial (FAISS). Gestiona el <em>retriever</em> que busca la información más relevante con respecto a la consulta del usuario.</li>
-<li><strong>ct/langchain/assistant.py</strong>: Contiene la lógica central del chatbot, incluyendo la gestión del historial de sesiones (a través de MongoDB), la creación de las cadenas RAG con memoria conversacional (<code>create_history_aware_retriever</code>, <code>create_stuff_documents_chain</code>) y la interacción con el LLM de OpenAI. También manejja el guardado del historial de respaldo y métricas de costos.</li>
-<li><strong>ct/langchain/rag.py</strong>: Orquesta el flujo completo de una consulta de usuario. Incluye la clasificación de la consulta (relevante, irrelevante, inapropiada) utilizando un modelo Ollama (<code>gemma3:12b</code>) y dirige la consulta al flujo adecuado (respuesta RAG con OpenAI, respuesta cortés, o advertencia de baneo).</li>
-<li><strong>ct/chat.py</strong>: Define los <em>endpoints</em> de la API para el chat, la recuperación de historial y la eliminación de historial. Interactúa con la clase <code>LangchainRAG</code> para procesar las solicitudes.</li>
-<li><strong>ct/main.py</strong>: Archivo principal de la aplicación FastAPI. Configura la aplicación, habilita CORS para permitir solicitudes desde diferentes orígenes, y registra los <em>endpoints</em> definidos en <code>ct.chat</code>.</li>
-<li><strong>ct/ETL/extraction.py</strong>: Módulo de la capa de Extracción. Responsable de conectarse a la base de datos MySQL para extraer información de productos y promociones, y de interactuar con el servicio externo para obtener fichas técnicas. Implementa lógicas de reintento y manejo de errores (ej. bloqueo de I, timeouts, etc.).</li>
-<li><strong>ct/ETL/transform.py</strong>: Módulo de la capa de Transformación. Se encarga de limpiar, unificar y normalizar los datos extraídos. Combina datos de MySQL y fichas técnicas, y los prepara en un formato consistente para su carga en MongoDB. También persiste las fichas técnicas en una colección dedicada en MongoDB para evitar extracciones redundantes.</li>
-<li><strong>ct/ETL/load.py</strong>: Módulo de la capa de Carga. Maneja la inserción de los datos transformados en las colecciones de MongoDB (<code>products</code>, <code>sales</code>, <code>specifications</code>). Además, es responsable de cargar estos datos desde MongoDB y construir la base de datos vectorial FAISS con <em>embeddings</em> de OpenAI, gestionando el procesamiento por lotes para optimizar la memoria y los límites de tasa.</li>
+<li>Este módulo implementa la lógica para la creación, carga y consulta de la base de datos vectorial FAISS. Gestiona el retriever que busca los documentos más relevantes.</li>
+<li><strong>Clases y funciones clave</strong>:
+<ul>
+<li><code>class LangchainVectorStore</code>:
+<ul>
+<li><code>__init__(embedder, index_path: str = None)</code>: Inicializa el <em>vector store</em>.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>embedder</code>: Una instancia de la clase <em>embedder</em> utilizada para generar los <em>embeddings</em> (ej., <code>OpenAIEmbeddings(openai_api_key=openai_api_key)</code>).</li>
+<li><code>index_path</code> (<code>str</code>): Ruta al directorio donde se guardará o cargará en el índice FAISS.</li>
+</ul></li>
+<li><strong>Comportarmiento</strong>: Si <code>index_path</code> existe, carga el índice preexistente. Configura un <code>retriever</code> con <code>k=10</code> (top 10 documentos) y <code>score_threshold=0.8</code> para la búsqueda.</li>
+</ul></li>
+<li><code>_load_index()</code>: Carga un índice FAISS existente desde disco.
+<ul>
+<li><strong>Parámetros</strong>: Ninguno (usa <code>self.index_path</code>).</li>
+<li><strong>Comportamiento</strong>: Carga el índice y configura <code>self.retriever</code> búsquedas. Es una función interna.</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+<p><strong>ct/langchain/assistant.py</strong></p>
+<ul>
+<li>Contiene la lógica central del chatbot, incluyendo la gestión del historial de sesiones (a través de MongoDB), la creación de las cadenas RAG con memoria conversacional y la interacción con el LLM de OpenAI.</li>
+<li><strong>Clases y funciones clave</strong>:
+<ul>
+<li><code>class LangchainAssistant</code>:
+<ul>
+<li><code>__init__(retriever)</code>: Inicializa el asistente del chatbot.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>retriever</code>: Una instancia de un <strong>retriever</strong> (ej., <code>vectorstore.retriever</code>) que proporciona documentos relevantes.</li>
+</ul></li>
+<li><strong>Comportamiento</strong>: Configura el LLM (OpenAI), las conexiones a MongoDB para <code>sessions</code> y <code>message_backup</code>, define el tamaño de la ventana de memoria (<code>memory_window_size</code>), y construye la cadena RAG principal (<code>rag_chain</code>).</li>
+</ul></li>
+<li><code>get_session_history(session_id: str) -&gt; List[BaseMessage]</code>: Recupera el historial de chat de una sesión específica desde MongoDB.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>session_id (str)</code>: El identificador único de la sesión del usuario.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>List[BaseMessage]</code>: Una lista de objetos <code>HumanMessage</code> y <code>AIMessage</code> que representan la conversación previa.</li>
+</ul></li>
+<li><code>clear_session_history(session_id: str)</code>: Elimina el historial de mensajes de una sesión específica en MongoDB.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>session_id (str)</code>: El identificador único de la sesión a borrar.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>bool: True</code> si la operación fue exitosa, <code>False</code> en caso contrario.</li>
+</ul></li>
+<li><code>ensure_session(session: str)</code>: Asegura que exista una entrada para la <code>session_id</code> en la colección <code>sessions</code> de MongoDB, o la crea si no existe.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>session_id (str)</code>: El identificador de la sesión.</li>
+</ul></li>
+<li><strong>Comportamiento</strong>: Actualiza la última actividad de la sesión o inserta una nueva sesión.</li>
+</ul></li>
+<li><code>build_chain()</code>: Construye la cadena RAG que incorpora el historial de chat.
+<ul>
+<li><strong>Parámetros</strong>: Ninguno.</li>
+<li><strong>Retorna</strong>: Una instancia de <code>langchain.chains.create_retrieval_chain</code> configurada para manejar el historial y la recuperación de documentos.</li>
+</ul></li>
+<li><code>answer</code>:</li>
+</ul>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>answer(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+Responde a una consulta del usuario, transmitiendo la respuesta en tiempo real.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>session_id (str)</code>: ID de la sesión del usuario.</li>
+<li><code>question (str)</code>: La pregunta del usuario.</li>
+<li><code>listaPrecio (str)</code>: El nivel de lista de precios asociado al usuario, usado en el <em>prompt</em> del LLM.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>AsyncGenerator[str, None]</code>: Un generador asíncrono que cede fragmentos (<code>chunks</code>) de la respuesta a medida que se generan.</li>
+<li><strong>Comportamiento</strong>: Recupera el historial, lo trunca si es muy largo, ejecuta la cadena RAG, recopila métricas de tokens/costo/duración y persiste el mensaje en <code>sessions</code> y <code>message_backup</code>.</li>
+<li><code>add_message</code></li>
+</ul>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>add_message(</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a> message_type: <span class="bu">str</span>, </span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a> content: <span class="bu">str</span>, </span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+Agrega un mensaje a la colección <code>sessions</code> para mantener un historial de ventana.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>session_id (str)</code>: ID de la sesión.</li>
+<li><code>message_type (str)</code>: <em>human</em> o <em>assistant</em>.</li>
+<li><code>content (str)</code>: Contenido del mensaje.</li>
+<li><code>metadata (dict)</code>: Metadatos adicionales (usado para mensajes del asistente).</li>
+</ul></li>
+<li><strong>Comportamiento</strong>: Inserta el mensaje y trunca la colección <code>last_messages</code> a un tamaño fijo (actualmente 50 mensajes) para optimizar el rendimiento.</li>
+<li><code>add_message_backup</code></li>
+</ul>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>add_message_backup(</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a> full_answer: <span class="bu">str</span>, </span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+Guarda un respaldo completo de cada interacción (pregunta y respuesta) junto con métricas detalladas en la colección <code>message_backup</code>.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>session_id (str)</code>: ID de la sesión.</li>
+<li><code>message_type (str)</code>: <em>human</em> o <em>assistant</em>.</li>
+<li><code>content (str)</code>: Contenido del mensaje.</li>
+<li><code>metadata (dict)</code>: Metadatos adicionales (usado para mensajes del asistente).</li>
+</ul></li>
+<li><strong>Comportamiento</strong>: Inserta un nuevo documento en <code>message_backup</code> con toda la información relevante para análisis posterior.</li>
+</ul></li>
+</ul></li>
+</ul>
+<p><strong>ct/langchain/rag.py</strong></p>
+<ul>
+<li>Orquesta el flujo completo de una consulta de usuario, incluyendo la clasificación de la intención y la delegación a los modelos adecuados.</li>
+<li><strong>Clases y funciones claves</strong>:
+<ul>
+<li><code>class LangchainRAG</code>:
+<ul>
+<li><code>__init__(index_path: str = None)</code>: Inicializa el orquestador RAG.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>index_path (str)</code>: Ruta al índice FAISS.</li>
+</ul></li>
+<li><strong>Comportamiento</strong>: Inicializa el <em>embedder</em>, el <em>vector store</em> (cargando el índice si existe), y el asistente de LangChain. Configura el modelo Ollama (<code>gemma3:1b</code>) para la clasificación.</li>
+</ul></li>
+<li><code>classify_query(query: str) -&gt; str</code>: Clasifica la consulta del usuario.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>query (str)</code>: La consulta del usuario.</li>
+</ul></li>
+<li><strong>Retorna</strong>: Un <code>str</code> con una de las clasificaciones <em>relevante</em>, <em>irrelevante</em>, o <em>inapropiado</em>.</li>
+<li><strong>Comportamiento</strong>: Utiliza un modelo Ollama (<code>gemma3:1b</code>) con un <em>system prompt</em> específico para realizar la clasificación.</li>
+</ul></li>
+<li><code>polite_answer(query: str) -&gt; AsyncGenerator[str, None]</code>: Genera una respuesta cortés para consultas irrelevantes.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>query (str)</code>: La consulta del usuario.</li>
+<li><strong>Retorna</strong>: <code>AsyncGenerator[str, None]</code>: Cede fragmentos de una respuesta amigable indicando que la consulta está fuera de tema.</li>
+<li><strong>Comportamiento</strong>: Usa el modelo Ollama (<code>gemma3:1b</code>) con un <em>system prompt</em> que lo instruye a ser cortés y redirigir al usuario a temas tecnológicos.</li>
+</ul></li>
+</ul></li>
+<li><code>ban_answer(query: str) -&gt; AsyncGenerator[str, None]</code>: Genera una respuesta firme para consultas inapropiadas.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>query (str)</code>: La consulta original del usuario.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>AsyncGenerator[str, None]</code>: Cede fragmentos de una respuesta que prohíbe el lenguaje inapropiado y advierte de un posible bloqueo.</li>
+<li><strong>Comportamiento</strong>: Usa el modelo Ollama (<code>gemma3:1b</code>) con un <em>system prompt</em> que exige una respuesta directa y sin concensiones.</li>
+</ul></li>
+<li><code>run</code></li>
+</ul>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>run(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a> query: <span class="bu">str</span>, </span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>, </span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+Ejecuta el flujo completo de la consulta del usuario.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>query (str)</code>: La consulta del usuario.</li>
+<li><code>session_id (str)</code>: ID de la sesión.</li>
+<li><code>listaPrecio (str)</code>: Nivel de lista de precios.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>AsyncGenerator[str, None]</code>: Cede fragmentos de la respuesta final del chatbot.</li>
+<li><strong>Comportamiento</strong>: Primero clasifica la consulta. Dependiendo de la clasificación, llama a <code>assistant.answer</code> (para relevante), <code>polite_answer</code> (para irrelevante) o <code>ban_answer</code> (para inapropiado).</li>
+</ul></li>
+</ul></li>
+</ul>
+<p><strong>ct/chat.py</strong></p>
+<ul>
+<li>Define los <em>endpoints</em> de la API para la interacción del chat y la gestión del historial de sesiones.</li>
+<li><strong>Funciones clave</strong>:
+<ul>
+<li><code>get_chat_history(user_id: str)</code>: Recupera el historial de chat de un usuario específico.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>user_id (str)</code>: El ID del usuario cuyo historial se desea recuperar.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>List[Dict[str, str]]</code>: Una lista de diccionarios, donde cada diccionario representa un mensaje con <em>role</em> (<em>user</em> o <em>bot</em>) y <em>content</em>.</li>
+<li><strong>Comportamiento</strong>: Llama a <code>assistant.get_session_history()</code> y formatea la respuesta.</li>
+</ul></li>
+<li><code>async_chat_generator(request: QueryRequest) -&gt; AsyncGenerator[str, None]</code>: Un generador asíncrono que envuelve la función <code>run</code> de la clase <code>LangchainRAG</code> para permitir el <em>streaming</em> de respuestas.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>request (QueryRequest)</code>: Un objeto que contiene <code>user_query</code>, <code>user_id</code>, y <code>listaPrecio</code>.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>AsyncGenerator[str, None]</code>: Cede los fragmentos de respuesta directamente desde el <code>rag.run(query: str, session_id: str, listaPrecio: str)</code>.</li>
+</ul></li>
+<li><code>async_chat_endpoint(request: QueryRequest)</code>: El <em>endpoint</em> HTTP POST para recibir nuevas consultas de chat y devolver respuestas en <em>streaming</em>.
+<ul>
+<li><strong>Parámetros</strong>
+<ul>
+<li><code>request (QueryRequest)</code>: Objeto de solicitud Pydantic con la consulta del usuario, ID de usuario y lista de precios.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>StreamingResponse</code>: Una respuesta HTTP que permite al cliente recibir los fragmentos de la respuesta en tiempo real.</li>
+</ul></li>
+<li><code>delete_chat_history_endpoint(user_id: str)</code>: El <em>endpoint</em> HTTP DELETE para eliminar el historial de chat de un usuario.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>user_id (str)</code>: El ID del usuario cuyo historial se va a eliminar.</li>
+</ul></li>
+<li><strong>Retorna</strong>: Un <code>str</code> que indica “success” si la eliminación fue exitosa.</li>
+<li><strong>Comportamiento</strong>: Llama a <code>assistant.clear_session_history()</code> y maneja excepciones.</li>
+</ul></li>
+</ul></li>
+</ul>
+<p><strong>ct/main.py</strong></p>
+<ul>
+<li>Es el archivo principal de la aplicación FastAPI. Configura la aplicación, habilita CORS y registra los <em>endpoints</em> definidos en <code>ct.chat</code>.</li>
+<li><strong>Funciones clave</strong>:
+<ul>
+<li><code>app = FastAPI</code>: Inicializa la aplicación FastAPI.</li>
+<li><code>app.add_middleware(CORSMiddleware, ...)</code>: Configura el middleware de CORS para permitir solicitudes desde cualquier origen, métodos y cabeceras, lo cual es crucial para la integración del <em>widget</em> en diferentes dominios.</li>
+<li><code>@app.get("/history/{user_id}")</code>: Decorador que mapea la ruta GET <code>/history/{user_id}</code> a la función <code>handle_history</code>.</li>
+<li><code>handle_history(user_id: str)</code>: Llama a <code>get_chat_history</code> de <code>ct.chat</code> para obtener y retornar el historial.</li>
+<li><code>@app.post("/chat")</code>: Decorador que mapea la ruta POST <code>/chat</code> a la función <code>handle_chat</code>.</li>
+<li><code>handle_chat(request: QueryRequest)</code>: Llama a <code>async_chat_endpoint</code> de <code>ct.chat</code> para manejar la solicitud de chat y el <em>streaming</em> de la respuesta.</li>
+<li><code>@app.delete("/history/{user_id}")</code>: Decorador que mapea la ruta DELETE <code>/history/{user_id}</code> a la función <code>handle_delete_history</code>.</li>
+<li><code>handle_delete_history(user_id: str)</code>: Llama a <code>delete_chat_history_endpoint</code> de <code>ct.chat</code> para borrar el historial de un usuario.</li>
+<li><code>if __name__ == "__main__":</code>: Bloque de ejecución principal para correr la aplicación con Uvicorn en desarrollo. En producción con Gunicorn.</li>
+</ul></li>
+</ul>
+<p><strong>ct/ETL/extraction.py</strong>:</p>
+<ul>
+<li>Módulo de la capa de Extracción. Responsable de conectarse a la base de datos MySQL para extraer información de productos y promociones, y de interactuar con el servicio externo para obtener fichas técnicas.</li>
+<li><strong>Clases y funciones clave</strong>:
+<ul>
+<li><code>class Extraction</code>:
+<ul>
+<li><code>__init__()</code>: Inicializa la clase con los parámetros de conexión a MySQL y configura un <code>cloudscraper</code> para la extracción de fichas técnicas.
+<ul>
+<li><strong>Parámetros</strong>: Ninguno explícito, lee de <code>ct.clients</code>.</li>
+<li><strong>Comportamiento</strong>: Establece <code>scraper</code> con <em>headers</em> personalizados para los tokens de la API y <em>cookies</em>.</li>
+</ul></li>
+<li><code>ids_query() -&gt; str</code>: Retorna la consulta SQL para obtener IDs de productos válidos (con existencias y precios).</li>
+<li><code>get_valid_ids() -&gt; list</code>: Ejecuta la consulta <code>ids_query</code> y retorna una lista de IDs de productos válidos.
+<ul>
+<li><strong>Retorna</strong>: <code>list</code>: Lista de IDs de productos.</li>
+<li><strong>Comportamiento</strong>: Se conecta a MySQL, ejecuta la consulta y maneja errores de conexión.</li>
+</ul></li>
+<li><code>product_query(id) -&gt; str</code>: Retorna la consulta SQL para obtener detalles de un producto específico por ID. Incluye detalles de precios por lista, categoría, marca, etc.</li>
+<li><code>get_products() -&gt; pd.DataFrame</code>: Extrae la información de todos los productos válidos desde MySQL.
+<ul>
+<li><strong>Retorna</strong>: <code>pd.DataFrame</code>: Un DataFrame de Pandas con la información de los productos.</li>
+<li><strong>Comportamientos</strong>: Itera sobre los IDs válidos, ejecuta <code>product_query</code> para cada uno y consolida los resultados en un DataFrame.</li>
+</ul></li>
+<li><code>current_sales_query() -&gt; str</code>: Retorna la consulta SQL para obtener las promociones vigentes.</li>
+<li><code>get_current_sales() -&gt; pd.DataFrame</code>: Extrae las promociones vigentes desde MySQL.
+<ul>
+<li><strong>Retorna</strong>: <code>pd.DataFrame</code>: Un DataFrame de Pandas con la información de las promociones.</li>
+</ul></li>
+<li><code>get_specifications_cloudscraper</code>:</li>
+</ul>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>get_specifications_cloudscraper(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    claves: List[<span class="bu">str</span>],</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    max_retries: <span class="bu">int</span> <span class="op">=</span> <span class="dv">3</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    sleep_seconds: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.15</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Dict[<span class="bu">str</span>, <span class="bu">dict</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+Intenta obtener las fichas técnicas para una lista de claves de productos desde un servicio externo, utilizando <code>cloudscraper</code> para manejar posibles protecciones como Cloudflare.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>claves (List[str])</code>: Lista de claves de productos.</li>
+<li><code>max_retries (int)</code>: Número máximo de reintentos por cada clave.</li>
+<li><code>sleep_seconds (float)</code>: Tiempo inicial de espera entre reintentos (con <em>backoff</em> exponencial).</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>Dict[str, dict]</code>: Un diccionario donde la clave es la <code>claveProducto</code> y el valor es la ficha técnica en formato JSON.</li>
+<li><strong>Comportamiento</strong>: Realiza solicitudes POST al <code>url</code> del servicio de fichas técnicas. Implementa lógica de reintentos con <em>backoff</em> controlado y maneja diversos errores HTTP (ej., 403 Forbidden) y errores de JSON/red.</li>
+</ul></li>
+</ul></li>
+</ul>
+<p><strong>ct/ETL/transform.py</strong></p>
+<ul>
+<li>Módulo de la capa de Transformación. Se encarga de limpiar, unificar y normalizar los datos extraídos, y de persistir las fichas técnicas en MongoDB.</li>
+<li><strong>Clases y funciones claves</strong>:
+<ul>
+<li><code>class Transform</code>:
+<ul>
+<li><code>__init__()</code>: Inicializa la clase <code>Transform</code>, creando una instancia de <code>Extraction</code> y configurando la conexión a la colección de especificaciones de producto.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>specifications (dict)</code>: El diccionario que contiene los datos de la ficha técnica de un producto.</li>
+</ul></li>
+<li><strong>Retorna</strong>: Un diccionario estructurado con <code>fichaTecnica</code> (pares nombre-valor de características) y <code>resumen</code> (descripciones cortas y largas).</li>
+<li><strong>Comportamiento</strong>: Navega a través de la estructura anidada de <code>ProductFeature</code> y <code>SummaryDescription</code> para extraer la información.</li>
+</ul></li>
+<li><code>transform_specifications(specs: dict) -&gt; dict</code>: Transforma múltiples especificaciones brutas (obtenidas del servicio externo) en un formato limpio.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>specs (dict)</code>: Diccionario de fichas técnicas brutas, donde la clave es la <code>claveProducto</code>.</li>
+</ul></li>
+<li><strong>Retorna</strong>: Diccionario con fichas técnicas transformadas y limpias, listas para ser usadas o guardadas.</li>
+</ul></li>
+<li><code>transform_products() -&gt; pd.DataFrame</code>: Transforma los datos brutos de productos obtenidos de MySQL en un DataFrame limpio y estandarizado.
+<ul>
+<li><strong>Retorna</strong>: Un DataFrame con columnas relevantes, <code>detalles</code> concatenados y <code>detalles_precio</code> parseado de JSON.</li>
+</ul></li>
+<li><code>clean_products() -&gt; dict</code>: Limpia los datos de productos y los enriquece con las fichas técnicas. Primero busca en MongoDB y si no encuentra, las extrae y las guarda.
+<ul>
+<li><strong>Retorna</strong>: Un diccionario de productos limpios y enriquecidos, listos para la carga final.</li>
+<li><strong>Comportamiento</strong>: Identifica las claves de productos para las que faltan fichas técnicas en MongoDB, las extrae usando <code>self.data.get_specifications</code>, las transforma y las guarda en la colección <code>specifications</code>. Finalmente, combina las fichas técnicas existentes y nuevas con los datos de productos.</li>
+</ul></li>
+<li><code>transform_sales() -&gt; pd.DataFrame</code>: Transforma los datos brutos de promociones (ventas) en un DataFrame limpio.
+<ul>
+<li><strong>Retorna</strong>: Un DataFrame con información de promociones, fechas formateadas y descuentos con símbolo de porcentaje.</li>
+</ul></li>
+<li><code>clean_sales() -&gt; dict</code>: Limpia los datos de promociones y los enriquece con fichas técnicas de manera similar a <code>clean_products()</code>.
+<ul>
+<li><strong>Retorna</strong>: Un diccionario de promociones limpias y enriquecidas con fichas técnicas.</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+<p><strong>ct/ETL/load.py</strong></p>
+<ul>
+<li>Módulo de la capa de Carga. Maneja la inserción de los datos transformados en las colecciones de MongoDB y la construcción de la base de datos vectorial.</li>
+<li><strong>Clases y funciones clave</strong>:
+<ul>
+<li><code>class Load</code>:
+<ul>
+<li><code>__init__()</code>: Inicializa la clase <code>Load</code>, creando una instancia de <code>Transform</code> y configurando las conexiones a las colecciones de MongoDB (<code>products</code>, <code>sales</code>, <code>specifications</code>) y el <em>embedder</em> de OpenAI.</li>
+<li><code>build_content(product: dict, product_features: list) -&gt; str</code>: Contruye el contenido textual de un documento a partir de un diccionario de producto y una lista de características.
+<ul>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>product (dict)</code>: Un diccionario con los datos de un producto.</li>
+<li><code>product_features (list)</code>: Lista de claves de características a incluir en el contenido.</li>
+</ul></li>
+<li><strong>Retorna</strong>: Una cadena de texto concatenada que resume el producto, adecuada para la vectorización.</li>
+</ul></li>
+<li><code>mongo_products()</code>: Carga las promociones limpias (procesadas por <code>Transform</code>) en la colección <code>products</code> de MongoDB, realizando <em>upserts</em>.</li>
+<li><code>mongo_sales()</code>: Carga las promociones limpias (procesadas por <code>Transform</code>) en la colección <code>sales</code> de MongoDB, realizando <em>upserts</em>.</li>
+<li><code>load_products() -&gt; List[Document]</code>: Carga los productos desde la colección <code>products</code> de MongoDB y los convierte en objetos <code>langchain.schema.Document</code>.
+<ul>
+<li><strong>Retorna</strong>: Una instancia del índice FAISS.</li>
+</ul></li>
+<li><code>products_vs()</code>: Crea o actualiza el <em>vector store</em> para productos.
+<ul>
+<li><strong>Comportamiento</strong>: Carga los productos desde MongoDB, los vectoriza en lotes (<code>batch_size = 250</code>) para optimizar el uso de memoria, y guarda el índice FAISS localmente en <code>PRODUCTS_VECTOR_PATH</code>.</li>
+</ul></li>
+<li><code>sales_products_vs()</code>: Crea o actualiza el <em>vector store</em> para ventas/ofertas.
+<ul>
+<li><strong>Comportamiento</strong>: Carga las ofertas desde MongoDB. Luego, carga el <em>vector store</em> de productos existente desde <code>PRODUCTS_VECTOR_PATH</code> y añade las ofertas a este índice (también en lotes), guardando el índice combinado en <code>SALES_PRODUCTS_VECTOR_PATH</code>.</li>
+</ul></li>
+</ul></li>
+</ul></li>
 </ul>
 </section>
 <section id="modelos-llm-utilizados" class="level3">
@@ -392,12 +750,62 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="puntos-de-entrada-y-funciones-clave" class="level3">
 <h3 class="anchored" data-anchor-id="puntos-de-entrada-y-funciones-clave">Puntos de entrada y funciones clave</h3>
+<p>Estos son los principales puntos de inicio para interactuar con las funcionalidades del chatbot:</p>
 <ul>
-<li><code>LangchainRAG.run(query, session_id, listaPrecio)</code>: Esta es la función principal que orquesta el flujo completo de una consulta de usuario. Recibe la consulta, el ID de sesión y la lista de precios del cliente, clasifica la consulta y delega la tarea al asistente de LangChain (<code>assistant.answer</code>) o alos modelos Ollama según la clasificación.</li>
-<li><code>assistant.answer()</code>: Encargado de responder a las consultas relevantes. Utiliza una cadena RAG con memoria de ventana (<code>trim_messages</code>, <code>MessagesPlaceholder</code>) para mantener el contexto de la conversación. Incorpora el <code>listaPrecio</code> para asegurar que los precios mostrados sean los correctos para el cliente. También gestiona la persistencia de los mensajes en MongoDB y la recopilación de métricas de costo y duración.</li>
-<li><code>vectorstore.create_index()</code>: Función vital para la construcción inicial de la base de datos vectorial FAISS a partir de los documentos de producos y ofertas. Persiste el índice localmente en la ruta especificada (<code>PRODUCTS_VECTOR_PATH</code>, <code>SALES_PRODUCTS_VECTOR_PATH</code>).</li>
-<li><code>load.py::products_vs()</code> y <code>load.py::sales_products_vs()</code>: Funciones en el módulo de carga que manejan la creación o actualización incremental del <em>vector store</em> para productos y ofertas, respectivamente. Implementan un procesamiento por lotes (<code>batch_size = 250</code>) para optimizar el uso de memoria y cumplir con los límites de tasa de OpenAI.</li>
-<li><code>transform.py::clean_products()</code> y <code>transform.py::clean_sales()</code>: Funciones que orquestan la limpieza y transformación de los datos de productos y ventas, incluyendo la integración de fichas técnicas, y que persisten las fichas técnicas en la colección de <code>specifications</code> en MongoDB.</li>
+<li><code>LangchainRAG.run</code>:</li>
+</ul>
+<div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>LangchainRAG.run(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  query: <span class="bu">str</span>, </span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  session_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>, </span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]:</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ul>
+<li>Es la función principal que orquesta el glujocompleto de una consulta de usuario.</li>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>query (str)</code>: La pregunta o entrada del usuario.</li>
+<li><code>session_id (str)</code>: Un identificador único para la sesión del usuario, utilizado para mantener el historial correspondiente.</li>
+<li><code>listaPrecio (str)</code>: El nivel o clave de precio específico del cliente, que se pasa al LLM para asegurar la precisión de los precios.</li>
+</ul></li>
+<li><strong>Comportamiento</strong>:
+<ol type="1">
+<li>Clasifica la <code>query</code> (usando <code>rag.classify_query</code>).</li>
+<li>Basado en la clasificación (<em>relevante</em>, <em>irrelevante</em>, <em>inapropiado</em>), delega la generación de la respuesta al método apropiado (<code>assistant.answer</code>, <code>rag.polite_answer</code>, <code>rag.ban_answer</code>).</li>
+<li>Cede fragmentos de la respuesta en tiempo real.</li>
+</ol></li>
+<li><code>assistant.answer</code>:</li>
+</ul>
+<div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>assistant.answer(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ul>
+<li>Responde a consultas relevantes de productos, utilizando la cadena RAG con memoria.</li>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>session_id (str)</code>: ID de la sesión para recuperar/actualizar el historial.</li>
+<li><code>question (str)</code>: La pregunta original del usuario.</li>
+<li><code>listaPrecio (str)</code>: El nivel de precios del cliente.</li>
+</ul></li>
+<li><strong>Comportamiento</strong>:
+<ol type="1">
+<li>Asegura la existencia de la sesión en MongoDB (<code>ensure_session</code>).</li>
+<li>Recupera el historial de la sesión (<code>get_session_history</code>) y lo trunca a la ventana de memoria definida (<code>memory_window_size</code>).</li>
+<li>Ejecuta la cadena RAG (<code>rag_chain</code>), que involucra la recuperación de documentos (<code>retriever</code>) y la generación de respuesta por el LLM.</li>
+<li>Transmite la respuesta en fragmentos (<code>yield_chunk_content</code>).</li>
+<li>Registra la interacción completa (pregunta, respuesta, métricas) en MongoDB (<code>add_message</code> y <code>add_message_backup</code>).</li>
+</ol></li>
+<li><code>load.py::products_vs()</code> y <code>load.py::sales_products_vs()</code>:
+<ul>
+<li>Funciones clave para la creación y actualización incremental de las bases de datos vectoriales de productos y ofertas, respectivamente. Orquestan el proceso de carga de documentos desde MongoDB y su vectorización en FAISS.</li>
+<li><strong>Parámetros</strong>: Ninguno.</li>
+<li><strong>Comportamiento</strong>:
+<ol type="1">
+<li><code>products_vs()</code>: Carga todos los productos de la colección <code>products</code> de MongoDB, los vectoriza en lotes para optimizar la memoria y guarda el índice FAISS resultante en <code>PRODUCTS_VECTOR_PATH</code>.</li>
+<li><code>sales_products_vs()</code>: Carga las ofertas de la colección <code>sales</code> de MongoDB. Luego, carga el índice de productos existente (desde <code>PRODUCTS_VECTOR_PATH</code>) y añade las ofertas a este mismo índice, también en lotes. Finalmente, guarda el índice combinado (productos + ofertas) en <code>SALES_PRODUCTS_VECTOR_PATH</code>. Esta estrategia asegura que las ofertas se integren sin necesidad de re-vectorizar todo el catálogo de productos.</li>
+</ol></li>
+</ul></li>
 </ul>
 </section>
 </section>
