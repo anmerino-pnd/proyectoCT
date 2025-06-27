@@ -187,7 +187,7 @@ ul.task-list li input[type="checkbox"] {
 <section id="datos-adquiridos" class="level3">
 <h3 class="anchored" data-anchor-id="datos-adquiridos">0.1.2 Datos adquiridos</h3>
 <p>El conjunto de datos contiene un total de 6,528 productos únicos. Aunque para la exploración hemos estado usando un subconjunto más pequeño de los datos. La información extraída de SQL incluye las siguientes columnas:</p>
-<div id="97fc962c" class="cell" data-execution_count="1">
+<div id="6e49c20a" class="cell" data-execution_count="1">
 <div class="cell-output cell-output-display" data-execution_count="1">
 <pre><code>Index(['idProductos', 'nombre', 'clave', 'categoria', 'marca', 'tipo',
        'modelo', 'descripcion', 'descripcion_corta', 'palabrasClave',
@@ -294,7 +294,7 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="variedad-de-productos">0.3.1 Variedad de productos</h3>
 <p>Para comenzar, examinaremos la distribución de categorías dentro del catálogo, identificando cuáles son las más representativas entre un total de 247 categorías distintas.</p>
 <p>El siguiente análisis nos permitirá visualizar las 10 categorías más frecuentes, lo que nos dará una mejor comprensión de la composición del inventario.</p>
-<div id="15b888d3" class="cell" data-execution_count="2">
+<div id="7ea35f3d" class="cell" data-execution_count="2">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -305,7 +305,7 @@ ul.task-list li input[type="checkbox"] {
 </div>
 <p>Vemos que los tóners destacan como la categoría predominante, seguidos por las aplicaciones de seguridad, aunque en este último caso, la diferencia con el resto de las categorías es menos marcada en comparación con la primera.</p>
 <p>Del mismo modo, exploraremos la distribución de marcas en los productos y visualizaremos las 10 más comunes dentro de un total de 195 marcas registradas.</p>
-<div id="ac980828" class="cell" data-execution_count="3">
+<div id="85e7aa02" class="cell" data-execution_count="3">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -326,7 +326,7 @@ ul.task-list li input[type="checkbox"] {
 <li>Descripción corta</li>
 <li>Palabras clave asociadas Este análisis nos ayudará a identificar patrones en la longitud de las descripciones y su posible impacto en la categorización y búsqueda de los productos.</li>
 </ul>
-<div id="2b87170f" class="cell" data-execution_count="4">
+<div id="a8bb7245" class="cell" data-execution_count="4">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -344,7 +344,7 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="datos-faltantes">0.4.1 Datos faltantes</h3>
 <p>Observando el comportamiento de las distribuciones de la gráfica pasada, observamos que debe haber presencia de varios datos nulos, además de una distribución algo rara para la variable de descripción ya que el promedio indica que es 1, algo que no se esperaría en una variable de este estilo.</p>
 <p>Si observamos la información de los datos:</p>
-<div id="0ee94524" class="cell" data-execution_count="5">
+<div id="4d8eee62" class="cell" data-execution_count="5">
 <div class="cell-output cell-output-stdout">
 <pre><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
 RangeIndex: 6526 entries, 0 to 6525
@@ -367,7 +367,7 @@ memory usage: 561.0+ KB</code></pre>
 </div>
 </div>
 <p>Aquí vemos que la razón por la cual la distribución de descripción corta empezaba en 0, era porque alrededor del 89% son datos nulos. Sin embargo vemos que la descripción no tiene datos nulos, pero aún así sigue siendo curioso que la cantidad de palabras en promedio sea 1. Para esto analizaremos esta columna, observando sus valores.</p>
-<div id="b34f7a0e" class="cell" data-execution_count="6">
+<div id="77e2ab2d" class="cell" data-execution_count="6">
 <div class="cell-output cell-output-display" data-execution_count="6">
 <pre><code>descripcion
 0                                                                                                                   4983
