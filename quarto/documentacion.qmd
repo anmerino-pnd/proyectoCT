@@ -9,16 +9,16 @@ toc-depth: 3
 ---
 
 ::: {style="text-align: justify"}
-## Manual de instalación y despliegue.
+## 1 Manual de instalación y despliegue.
 
-### Configuraciones importantes
+### 1.1 Configuraciones importantes
 
 * El proyecto está diseñado para ser desplegado en entornos **Linux o Windows** con **Python 3.12.9**. Requiere acceso a **Ollama** (para la ejecución de modelos *open-source* como `gemma3:12b`), así como conectividad a una instancia de **MongoDB** y bases de datos **MySQL**.
 * La aplicación *backend* se expone a través de **FastAPI** en el puerto `8000`. Es crucial asegurar que este puerto esté abierto y accesible en el entorno de despliegue.
 * Archivo `.env` con variables cargadas
 * Todas las credenciales y configuraciones sensibles se gestionan mediante un archivo de variables de entorno (`.env`), garantizando la seguridad y facilidad de configuración.
 
-### Requisitios del sistema
+### 1.2 Requisitios del sistema
 
 * **Python**: Versión 3.12.9
 * **Pip**: Última versión
@@ -27,7 +27,7 @@ toc-depth: 3
 * **MongoDB**: Acceso remoto configurado para las colecciones de historial, productos, ofertas y fichas técnicas.
 * **MySQL**: Acceso remoto configurado para la extracción de datos de productos y precios. 
 
-### Dependencias principales del sistema
+### 1.3 Dependencias principales del sistema
 
 * `langchain`: Framework principal para la construcción de cadenas RAG y la orquestación del flujo del chatbot.
 * `tiktoken`: Utilizado para el conteo preciso de tokens en las consutlas y respuestas, fundamental para la estimación de costos.
@@ -38,7 +38,7 @@ toc-depth: 3
 * `gunicorn`: Servidor WSGI utilizado para desplegar la aplicación FastAPI en producción, gestionando la concurrencia y el rendimiento.
 * **Otras dependencias**: Todas las demás librerías requeridas se detallan en el archivo `pyproject.toml`. La instalación de este archivo se detalla más adelante.
 
-### Instalación del backend (API)
+### 1.4 Instalación del backend (API)
 
 1. Clonar el repositorio:
 ```bash
@@ -116,7 +116,7 @@ openssl req -x509 -newkey rsa:2048 -nodes -keyout ssl/key.pem -out ssl/cert.pem�
 ```
   Asegurarse de que los archivos `cert.pem` y `key.pem` estén en la ruta `ssl` dentro de tu proyecto.
 
-### Instalación del frontend (Widget)
+### 1.5 Instalación del frontend (Widget)
 
 1. **Cargar archivos del widget**: Los archivos del *frontend* (principalmente `sdk.js` y cualquier recurso gráfico como `chat.png`) deben ser cargados en el servidor donde reside el *frontend* de la página.
 
@@ -147,7 +147,7 @@ openssl req -x509 -newkey rsa:2048 -nodes -keyout ssl/key.pem -out ssl/cert.pem�
 * La `data-api-base` es el dominio donde es accesible la API mediante PHP.
 
 
-### Notas adicionales
+### 1.6 Notas adicionales
 
 * **Problemas de caché**: Es común que los navegadores almacenen versiones antiguas de archivos JS/CSS. Si la interfaz del *widget* no funciona correctamente después de una actualización, instruye a los usuarios a limpiar la caché de su navegador o a realizar un "hard refresh" (Ctrl+F5). Implementar una estrategia de *versioning* para los archivos del *widget* (ej.js?v=1.2.3) puede mitigar esto a futuro.
 * **Rotación de IP para fichas técnicas**: El sistema está diseñado para manejar el bloqueo de IP del servicio de fichas técnicas. Se recomienda monitorear los logs de la extracción (`extraction.py`) para identificar errores 403, lo que indicaría la necesidad de actualizar la IP en el servicio externo.
@@ -155,9 +155,9 @@ openssl req -x509 -newkey rsa:2048 -nodes -keyout ssl/key.pem -out ssl/cert.pem�
 :::
 
 ::: {style="text-align: justify"}
-## Documentación técnica del código (estructura, dependencias, etc.).
+## 2 Documentación técnica del código
 
-### Estructura de carpetas y módulos
+### 2.1 Estructura de carpetas y módulos
 
 El proyecto sigue una estructura modular para facilitar la gestión y el mantenimiento. A continuación, se detalla el propósito de los módulos principales y algunas de sus funciones clave:
 
@@ -413,20 +413,20 @@ El proyecto sigue una estructura modular para facilitar la gestión y el manteni
       * **Comportamiento**: Carga las ofertas desde MongoDB. Luego, carga el *vector store* de productos existente desde `PRODUCTS_VECTOR_PATH` y añade las ofertas a este índice (también en lotes), guardando el índice combinado en `SALES_PRODUCTS_VECTOR_PATH`.
 
 
-### Modelos LLM utilizados
+### 2.2 Modelos LLM utilizados
 
 El sistema utiliza una combinación estratégica de modelos de lenguaje para optimizar la funcionalidad y los costos:
 
-* **Clasificación de consultas y respuestas iniciales (Ollama - `gemma3:12b`)**:
+* **Clasificación de consultas y respuestas iniciales (Ollama - `gemma3:4b`)**:
   * **Función**: Este modelo *open-source*, cargado localmente a través de Ollama, es el primer punto de contacto. Su función principal es clasificar las consultas de los usuarios como *relevantes* (productos que se ofrecen en la empresa), *irrelevantes* (cualquier producto o tema fuera del ámbito de negocio), o *inapropiado* (lenguaje ofensivo).
   * **Ventaja**: Permite una gestión eficiente de consultas no relacionadas con el negocio sin incurrir en costos de API's comerciales, y es ideal para respuestas de "baneo" o corteses.
 
 * **Generación de respuestas relevantes (OpenAI - `gpt-4o`)**:
   * **Función**: Este modelo avanzado de OpenAI es el encargado de generar las respuestas detalladas y contextualizadas para las consultas clasificadas como *relevantes*. Trabaja en conjunto con la cadena RAG para integrar la información recuperada de la base de datos vectorial.
   * **Ventaja**: Ofrece alta calidad y precisión en las respuestas, especialmente en el manejo de precios, promociones complejas y detalles de productos, lo que fue validad en pruebas comparativas.
-  * **Nota**: Se ha estado testeado el nuevo modelo `gpt-4.1` y ha dado buenos resultados. Posiblemente haya una actualización del modelo utilizado por OpenAI.
+  * **Nota**: Se ha estado testeando el nuevo modelo `gpt-4.1` y ha dado buenos resultados. Posiblemente haya una actualización del modelo utilizado por OpenAI.
 
-### Puntos de entrada y funciones clave
+### 2.3 Puntos de entrada y funciones clave
 
 Estos son los principales puntos de inicio para interactuar con las funcionalidades del chatbot:
 
@@ -482,7 +482,7 @@ assistant.answer(
 :::
 
 ::: {style="text-align: justify"}
-## Guía de entrenamiento y mejora 
+## 3 Guía de entrenamiento y mejora 
 
 La mejora continua del chatbot se basa en un ciclo ETL robusto y monitoreo constante del rendimiento.
 
@@ -509,7 +509,7 @@ La información que alimenta la base de conocimientos del chatbot sigue un proce
   * Posteriormente, estos datos se recuperan de MongoDB y se convierten en objetos `Document` de LangChain, que son el formato estándar para la ingestión en bases de datos vectoriales. Se añaden metadatos relevantes como `clave` y `_id` de MongoDB a cada `Document`.
 
 
-### Generación de la base de datos vectorial
+### 3.1 Generación de la base de datos vectorial
 
 La base de datos vectorial es el corazón del sistema RAG:
 
@@ -521,7 +521,7 @@ La base de datos vectorial es el corazón del sistema RAG:
   * Las ofertas (`sales`) se añaden *incrementalmente* sobre el *vector store* de productos ya existente utilizando `vector_store.add_documents(sales)`. Esto evita la necesidad de re-vectorizar todo el catálogo.
   * Una copia del índice final, que combina productos y ofertas, se guarda en `SALES_PRODUCTS_VECTOR_PATH`.
 
-### Recomendaciones para futura mejora
+### 3.2 Recomendaciones para futura mejora
 
 1. **Embeddings locales (Ollama)**: 
 
@@ -542,11 +542,11 @@ La base de datos vectorial es el corazón del sistema RAG:
 :::
 
 ::: {style="text-align: justify"}
-## Diagrama de arquitectura
+## 4 Diagrama de arquitectura
 
 El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, mostrando los componentes principales y el flujo de datos desde la interacción del usuario hasta la generación de respuestas y el almacenamiento del historial. Se ha actualizado para reflejar la implementación de MongoDB y los diferentes flujos.
 
-### Componentes clave:
+### 4.1 Componentes clave:
 * **Interfaz de usuario (widget del chatbot)**: El componente frontal incrustado en la página web de CT Internacional, permitiendo la interacción directa del usuario.
 * **Servicio intermediario PHP**: Actúa como un puente seguro entre el *frontend* (HTTPS) y la API del chatbot (HTTPS pero con certificado autofirmado, o sea, no seguro) para resolver problemas de *contenido mixto*. Si el *backend* ya está en en HTTPS con un certificado SSL seguro, este componente puede ser obviado.
 * **API del chatbot (FastAPI)**: El servicio *backend* principal que procesa las consultas de los usuarios, orquesta la recuperación de información y se comunica con los modelos de lenguaje.
@@ -565,7 +565,7 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
 * **LLM**: El motor principal del chatbot para consultas relevantes, responsable de generar respuestas coherentes y detalladas en base a la consulta contextualizada por el RAG.
 * **Sistema de reportes automatizados**: Procesa los datos del `message_backup` en MongoDB para generar *insights* sobre el uso del chatbot, intereses de los clientes, costos y rendimiento.
 
-### Flujo de interacción principal:
+### 4.2 Flujo de interacción principal:
 1. El **usuario** interactúa con el **widget del chatbot** en la página web.
 2. La consulta se envía a la **API del chatbot** (**potencialmente vía el servicio intermediario PHP**)
 3. La **API** primero pasa consulta al **clasificador de consultas**.
@@ -576,7 +576,7 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
 6. Todas las interacciones (consultas y respuestas) se registran en las colecciones `sessions` y `message_backup` en **MongoDB**.
 7. El **sistema de reportes automatizados** accede a `message_backup` para generar análisis de datos.
 
-### Flujo de datos
+### 4.3 Flujo de datos
 1. El **módulo ETL** extrae datos de **MySQL** y el **servicio de fichas técnicas**.
 2. Los datos se transforman y se cargan en **MongoDB** (colecciones `products`, `sales`, `specifications`).
 3. Los datos de `products` y `sales` en **MongoDB** son utilizados por el **módulo ETL** para construir y actualizar la **base de datos vectorial**

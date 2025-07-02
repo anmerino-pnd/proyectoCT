@@ -49,6 +49,9 @@ class CTAIWidget {
                         <button class="send-button" id="ctai-send-button" aria-label="Enviar mensaje"></button>
                     </div>
                 </div>
+                <div class="chat-warning" style="padding: 1px 4px; font-size: 11px; text-align: center;">
+                    Este chatbot puede cometer errores. Compruebe la información importante con un asesor.
+                </div>
             </div>
         `;
         if (typeof marked === "undefined") {
