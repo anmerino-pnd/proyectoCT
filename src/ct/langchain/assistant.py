@@ -33,7 +33,7 @@ class LangchainAssistant:
             self.sessions = self.client[mongo_collection_sessions]
             self.message_backup = self.client[mongo_collection_message_backup]
 
-            self.memory_window_size = 3000
+            self.memory_window_size = 3000 
             self.rag_chain = self.build_chain()
 
         except PyMongoError as e:
@@ -71,18 +71,18 @@ class LangchainAssistant:
         except Exception as e:
             return False
 
-    def ensure_session(self, session_id: str):
-        try:
-            self.sessions.update_one(
-                {"session_id": session_id},
-                {"$setOnInsert": {"created_at": datetime.now(timezone.utc)},
-                 "$set": {"last_activity": datetime.now(timezone.utc)}},
-                upsert=True
-            )
-        except PyMongoError as e:
-            pass
-        except Exception as e:
-            pass
+    def ensure_session(self, session_id: str) -> dict:
+        now = datetime.now(timezone.utc)
+        self.sessions.update_one(
+            {"session_id": session_id},
+            {
+                "$setOnInsert": {"created_at": now},
+                "$set": {"last_activity": now}
+            },
+            upsert=True
+        )
+        # 👉 retornar directamente la sesión actualizada
+        return self.sessions.find_one({"session_id": session_id}) or {}
 
     def build_chain(self):
         history_aware_retriever = create_history_aware_retriever(self.llm, self.retriever, self.QPromptTemplate())
@@ -133,6 +133,7 @@ class LangchainAssistant:
         El valor de la moneda debe coincidir exactamente con la variable proporcionada.  
 
         Si hay productos en oferta, menciónalos primero. 
+        Si no está el producto que busca el usuario, ofrece productos similares
         Si no hay promociones, ofrece los productos normales con su precio correcto.  
         Si el usuario pregunta por un producto específico, verifica si está en promoción y notifícalo.  
 
@@ -160,7 +161,7 @@ class LangchainAssistant:
             * Resalta el nombre poniendo su hipervinculo https://ctdev.ctonline.mx/buscar/productos?b=clave
         - Presenta la información de manera clara
         - Los detalles y precios puntualizados y estructurados como se indicó anteriormente
-        - Espacios entre productos
+        - Espacios entre productos 
         - Evita explicaciones largas o innecesarias
 
         Siempre aclara al final que la disponibilidad y los precios pueden cambiar.  
@@ -181,7 +182,6 @@ class LangchainAssistant:
         metadata = {}
 
         try:
-            self.ensure_session(session_id)
             
             full_history = self.get_session_history(session_id)
             
