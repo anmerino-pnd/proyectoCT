@@ -88,6 +88,8 @@ class LangchainRAG:
 
             self.update_inappropriate_session(session_id, tries, banned_until)
             yield msg
+        else:
+            yield "Lo siento, no entendí tu mensaje. ¿Podrías reformularlo?"
 
     def check_if_banned(self, session: dict) -> Optional[str]:
         """Verifica si el usuario está actualmente baneado."""
