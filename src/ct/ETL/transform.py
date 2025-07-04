@@ -83,7 +83,10 @@ class Transform:
         
         columns = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
                    'modelo', 'detalles', 'detalles_precio', 'moneda']
-        return products[columns]
+        data_products = products[columns].copy()
+        for col in data_products.columns:
+            data_products[col] = data_products[col].astype(str)
+        return data_products
     
     def clean_products(self) -> dict:
         """
@@ -91,11 +94,8 @@ class Transform:
         o extrayéndolas si no existen.
         """
         products = self.transform_products()
-        if products.empty:
-            return []
         
         claves = products['clave'].unique().tolist()
-        
         # Claves para las que necesitamos buscar fichas técnicas (no en BD)
         claves_a_buscar = []
         fichas_tecnicas_existentes = {}
