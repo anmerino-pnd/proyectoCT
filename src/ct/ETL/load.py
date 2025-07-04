@@ -1,5 +1,4 @@
-import time
-from pymongo import MongoClient
+from pymongo import MongoClient, UpdateOne
 from langchain.schema import Document
 from ct.ETL.transform import Transform  # Asegúrate de que la ruta sea correcta
 from langchain_openai import OpenAIEmbeddings
@@ -31,33 +30,57 @@ class Load:
  
     def mongo_products(self):
         """
-        Carga y limpia los datos de productos y los guarda en MongoDB.
+        Carga y limpia los datos de productos y los guarda en MongoDB usando bulk_write.
         """
         products = self.clean_data.clean_products()
+        print(products)
+        operations = []
         for product in products:
             clave = product.get("clave")
-            if clave:
-                self.products_collection.update_one(
-                    {"clave": clave},           # filtro: busca por clave
-                    {"$set": product},          # operación: actualiza todo el documento con los nuevos valores
-                    upsert=True                 # si no existe, lo inserta
+            if not clave:
+                continue
+
+            operations.append(
+                UpdateOne(
+                    {"clave": clave},
+                    {"$set": product},
+                    upsert=True
                 )
-        print("Productos cargados/actualizados en MongoDB.")
+            )
+
+        if operations:
+            result = self.products_collection.bulk_write(operations)
+            print(f"Productos cargados: {result.upserted_count} nuevos, {result.modified_count} actualizados.")
+        else:
+            print("No se encontraron productos con clave.")
+
 
     def mongo_sales(self):
         """
-        Carga y limpia los datos de ventas (ofertas) y los guarda en MongoDB.
+        Carga y limpia los datos de ventas (ofertas) y los guarda en MongoDB usando bulk_write.
         """
         sales = self.clean_data.clean_sales()
+
+        operations = []
         for sale in sales:
             clave = sale.get("clave")
-            if clave:
-                self.sales_collection.update_one(
+            if not clave:
+                continue
+
+            operations.append(
+                UpdateOne(
                     {"clave": clave},
                     {"$set": sale},
                     upsert=True
                 )
-        print("Ofertas cargadas/actualizadas en MongoDB.")
+            )
+
+        if operations:
+            result = self.sales_collection.bulk_write(operations)
+            print(f"Ofertas cargadas: {result.upserted_count} nuevos, {result.modified_count} actualizados.")
+        else:
+            print("No se encontraron ofertas con clave.")
+
 
     def load_products(self):
         """

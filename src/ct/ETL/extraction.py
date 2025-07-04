@@ -147,7 +147,7 @@ class Extraction():
       SELECT 
           pros.idProducto,
           pro.descripcion_corta_icecat AS nombre,  
-          pros.producto,  
+          pros.producto AS clave,  
           cat.nombre AS categoria,
           m.nombre  AS marca,
           pro.tipo, 

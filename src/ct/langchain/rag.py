@@ -120,54 +120,54 @@ class LangchainRAG:
 
     def evaluate_inappropriate_behavior(self, session: dict, query: str) -> tuple[str, int, Optional[datetime]]:
         now = datetime.now(timezone.utc)
+        last = session.get("last_inappropriate")
         tries = session.get("inappropriate_tries", 0) + 1
-        banned_until = None
 
-        # Si ya tiene castigo activo y sigue vigente
-        if tries >= 5:
-            banned_until = session.get("banned_until")
-            banned_until = banned_until.replace(tzinfo=timezone.utc)
-            if banned_until > now:
-                tiempo_restante = banned_until - now
-                horas = int(tiempo_restante.total_seconds() // 3600)
-                minutos = int((tiempo_restante.total_seconds() % 3600) // 60)
-                msg = (
-                    f"Tu acceso sigue restringido por conducta inapropiada.\n\n"
-                    f"Podrás volver a usar el asistente en aproximadamente {horas} horas y {minutos} minutos."
-                )
-                return msg, tries, banned_until
-            
-            # Si ya cumplió el castigo, lo perdonamos pero dejamos el intento acumulado
-            elif banned_until < now:
-                self.assistant.sessions.update_one(
-                    {"session_id": session.get("session_id")},
-                    {
-                        "$unset": {"banned_until": ""},
-                        "$set": {
-                            "inappropriate_tries": 1,
-                            "last_inappropriate": now
-                        }
-                    }
-                )
-                return self.ban_answer(query), 1, None
+        # Si ha pasado más de 1 hora y el baneo anterior era menor a 1 hora, perdonamos
+        banned_until = session.get("banned_until")
+        if last:
+            if last.tzinfo is None:
+                last = last.replace(tzinfo=timezone.utc)
+            if (now - last).total_seconds() > 3600:
+                if banned_until:
+                    if banned_until.tzinfo is None:
+                        banned_until = banned_until.replace(tzinfo=timezone.utc)
+                    duration = (banned_until - last).total_seconds()
+                    if duration < 3600:
+                        tries = 1  # reinicia la cuenta
 
-        # Castigos escalonados
-        if tries == 1:
+        # Escalamiento progresivo
+        escalado = {
+            1: None,
+            2: timedelta(minutes=1),
+            3: timedelta(minutes=3),
+            4: timedelta(minutes=10),
+            5: timedelta(hours=1),
+            6: timedelta(days=1),
+            7: timedelta(days=7)
+        }
+
+        sancion = escalado.get(tries, timedelta(days=7))  # Máximo castigo es 7 días
+        banned_until = now + sancion if sancion else None
+
+        # Mensajes personalizados
+        if sancion is None:
             msg = self.ban_answer(query)
-        elif tries == 2:
-            banned_until = now + timedelta(minutes=10)
-            msg = "Se ha restringido temporalmente tu acceso por 10 minutos debido a lenguaje inapropiado."
-        elif tries == 3:
-            banned_until = now + timedelta(hours=8)
-            msg = "Has reincidido en comportamiento inapropiado. Tu acceso ha sido bloqueado por 8 horas."
-        elif tries == 4:
-            banned_until = now + timedelta(days=8)
-            msg = "Has excedido el número permitido de conductas inapropiadas. Tu acceso ha sido bloqueado por 8 días."
+        elif sancion.total_seconds() < 3600:
+            minutos = int(sancion.total_seconds() // 60)
+            msg = f"Se ha restringido temporalmente tu acceso por {minutos} minutos debido a lenguaje inapropiado."
+        elif sancion.total_seconds() < 86400:
+            horas = int(sancion.total_seconds() // 3600)
+            msg = f"Tu acceso ha sido bloqueado por {horas} hora debido a múltiples incidentes."
+        elif sancion.total_seconds() < 604800:
+            msg = "Tu acceso ha sido bloqueado por 1 día debido a repetidas conductas inapropiadas."
         else:
-            msg = self.ban_answer(query)
+            msg = "Tu acceso ha sido bloqueado por 7 días debido a reiteradas violaciones."
 
         return msg, tries, banned_until
-    
+
+
+        
     def update_inappropriate_session(self, session_id: str, tries: int, banned_until: Optional[datetime]):
         update_fields = {
             "inappropriate_tries": tries,
