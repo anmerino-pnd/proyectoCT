@@ -128,13 +128,19 @@ class LangchainRAG:
         if last:
             if last.tzinfo is None:
                 last = last.replace(tzinfo=timezone.utc)
+
             if (now - last).total_seconds() > 3600:
+                # Si hubo baneo previo y fue menor a 1 hora
                 if banned_until:
                     if banned_until.tzinfo is None:
                         banned_until = banned_until.replace(tzinfo=timezone.utc)
                     duration = (banned_until - last).total_seconds()
                     if duration < 3600:
-                        tries = 1  # reinicia la cuenta
+                        tries = 1  # perdona
+                else:
+                    # No hubo baneo (solo advertencia), también perdona
+                    tries = 1
+
 
         # Escalamiento progresivo
         escalado = {
