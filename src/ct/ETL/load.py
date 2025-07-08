@@ -138,7 +138,7 @@ class Load:
             print("No hay productos para crear el vector store.")
             return
 
-        batch_size = 250
+        batch_size = 150
         total_docs = len(products)
         
         # Inicializar el vector store con el primer lote
@@ -165,7 +165,7 @@ class Load:
             print("No hay ventas para crear el vector store.")
             return
 
-        batch_size = 200
+        batch_size = 150
         total_docs = len(sales)
         
         # Cargar el vector store de productos existente para añadir las ventas
