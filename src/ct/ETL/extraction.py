@@ -71,39 +71,47 @@ class Extraction():
       else:
           print(err)
     finally:
-      cursor.close()
-      cnx.close()
+      if 'cursor' in locals() and cursor is not None:
+          cursor.close()
+      if 'cnx' in locals() and cnx is not None:
+          cnx.close()
 
   def product_query(self, id):
-     query = f"""
-        SELECT 
-            pro.descripcion_corta_icecat AS nombre,  
-            clave,  
-            cat.nombre AS categoria,
-            m.nombre  AS marca,
-            pro.tipo, 
-            pro.modelo, 
-            pro.descripcion, 
-            pro.descripcion_corta,
-            pro.palabrasClave,
-            JSON_ARRAYAGG(
-                JSON_OBJECT(
-                    'listaPrecio', pre.listaPrecio,
-                    'precio', pre.precio
-                )
-            ) AS detalles_precio,
-            pre.idMoneda AS moneda
-        FROM productos pro
-        LEFT JOIN precio pre 
-          ON pro.idProductos = pre.idProducto 
-        LEFT JOIN categorias cat 
-          ON pro.idCategoria = cat.idCategoria
-        LEFT JOIN marcas m 
-          ON pro.idMarca = m.idMarca
-        WHERE pro.idProductos IN ({id})
-        GROUP BY pro.idProductos
-        ;"""
-     return query
+      query = f"""
+      SELECT 
+          pro.descripcion_corta_icecat AS nombre,  
+          clave,  
+          cat.nombre AS categoria,
+          m.nombre  AS marca,
+          pro.tipo, 
+          pro.modelo, 
+          pro.descripcion, 
+          pro.descripcion_corta,
+          pro.palabrasClave,
+          CONCAT(
+              '[', 
+              GROUP_CONCAT(
+                  CONCAT('{{',
+                      '"listaPrecio":"', pre.listaPrecio, '",',
+                      '"precio":"', pre.precio, '"',
+                  '}}')
+                  SEPARATOR ','
+              ), 
+              ']'
+          ) AS detalles_sucursales,
+          pre.idMoneda AS moneda
+      FROM productos pro
+      LEFT JOIN precio pre 
+        ON pro.idProductos = pre.idProducto 
+      LEFT JOIN categorias cat 
+        ON pro.idCategoria = cat.idCategoria
+      LEFT JOIN marcas m 
+        ON pro.idMarca = m.idMarca
+      WHERE pro.idProductos IN ({id})
+      GROUP BY pro.idProductos;
+      """
+      return query
+
 
   def get_products(self) -> pd.DataFrame:
     try:
@@ -139,56 +147,50 @@ class Extraction():
           print(err)
       return None
     finally:
-      cursor.close()
-      cnx.close()
+      if 'cursor' in locals() and cursor is not None:
+          cursor.close()
+      if 'cnx' in locals() and cnx is not None:
+          cnx.close()
 
   def current_sales_query(self) -> str:
+      # Modificado para no usar JSON_ARRAYAGG y traer listaPrecio y precio en filas separadas
       query = f"""
-      SELECT 
-          pros.idProducto,
-          pro.descripcion_corta_icecat AS nombre,  
-          pros.producto AS clave,  
-          cat.nombre AS categoria,
-          m.nombre  AS marca,
-          pro.tipo, 
-          pro.modelo, 
-          pro.descripcion, 
-          pro.descripcion_corta,
-          pro.palabrasClave,
-          pros.importe AS precio_oferta,
-          pros.porcentaje AS descuento,
-          pros.EnCompraDE,
-          pros.Unidades, 
-          pros.limitadoA, 
-          pros.ProductosGratis,
-          pros.fecha_inicio,
-          pros.fecha_fin,
-          JSON_UNQUOTE(
-        JSON_ARRAYAGG(
-            DISTINCT JSON_OBJECT(
-          'listaPrecio', pre.listaPrecio,
-          'precio', pre.precio
-            )
-        )
-          ) AS lista_precios,
-          pre.idMoneda AS moneda
-      FROM promociones pros
-      INNER JOIN productos pro  
-        ON pro.idProductos = pros.idProducto
-      LEFT JOIN (
-          SELECT DISTINCT idProducto, listaPrecio, precio, idMoneda
-          FROM precio
-      ) pre 
-        ON pros.idProducto = pre.idProducto 
-      LEFT JOIN categorias cat 
-        ON pro.idCategoria = cat.idCategoria
-      LEFT JOIN marcas m 
-        ON pro.idMarca = m.idMarca
-      WHERE pros.fecha_fin >= CURRENT_DATE
-      AND pro.descripcion_corta_icecat != '' 
-      GROUP BY pros.idProducto
-      HAVING lista_precios IS NOT NULL AND moneda IS NOT NULL
-      ORDER BY pros.importe ASC
+  SELECT 
+      pros.idProducto,
+      pro.descripcion_corta_icecat AS nombre,  
+      pros.producto AS clave,  
+      cat.nombre AS categoria,
+      m.nombre AS marca,
+      pro.tipo, 
+      pro.modelo, 
+      pro.descripcion, 
+      pro.descripcion_corta,
+      pro.palabrasClave,
+      pros.importe AS precio_oferta,
+      pros.porcentaje AS descuento,
+      pros.EnCompraDE,
+      pros.Unidades, 
+      pros.limitadoA, 
+      pros.ProductosGratis,
+      pros.fecha_inicio,
+      pros.fecha_fin,
+      pre.listaPrecio,
+      pre.precio,
+      pre.idMoneda AS moneda
+  FROM promociones pros
+  INNER JOIN productos pro  
+    ON pro.idProductos = pros.idProducto
+  LEFT JOIN precio pre 
+    ON pros.idProducto = pre.idProducto
+  LEFT JOIN categorias cat 
+    ON pro.idCategoria = cat.idCategoria
+  LEFT JOIN marcas m 
+    ON pro.idMarca = m.idMarca
+  WHERE pros.fecha_fin >= CURRENT_DATE
+    AND pro.descripcion_corta_icecat != ''
+    AND pre.precio IS NOT NULL
+    AND pre.listaPrecio IS NOT NULL
+  ORDER BY pros.importe ASC, pre.listaPrecio;
         ;"""
       return query 
 
@@ -220,8 +222,10 @@ class Extraction():
           print(err)
       return None
     finally:
-      cursor.close()
-      cnx.close()
+      if 'cursor' in locals() and cursor is not None:
+          cursor.close()
+      if 'cnx' in locals() and cnx is not None:
+          cnx.close()
 
   def get_specifications_cloudscraper(self, claves: List[str], max_retries: int = 3, sleep_seconds: float = 0.15) -> Dict[str, dict]:
     specs = {}

@@ -69,6 +69,7 @@ class Transform:
     def transform_products(self) -> pd.DataFrame:
         """
         Transforma los datos brutos de productos en un DataFrame limpio.
+        Se ajusta para el cambio de nombre de columna de 'detalles_precio' a 'detalles_sucursales'.
         """
         products : pd.DataFrame = self.data.get_products()
         if products.empty:
@@ -79,13 +80,18 @@ class Transform:
         products['palabrasClave'] = products['palabrasClave'].fillna('').astype(str).replace('0', '')
         products['detalles'] = products['descripcion'] + ' ' + products['descripcion_corta'] + ' ' + products['palabrasClave']
         products['detalles'] = products['detalles'].str.strip()
-        products["detalles_precio"] = products["detalles_precio"].apply(json.loads)
+        # Cambio aquí: de 'detalles_precio' a 'detalles_sucursales'
+        # Se asume que 'detalles_sucursales' sigue siendo una cadena JSON válida que se puede parsear
+        products["detalles_sucursales"] = products["detalles_sucursales"].apply(json.loads) 
         
+        # Se incluyen 'detalles_sucursales' en las columnas finales
         columns = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
-                   'modelo', 'detalles', 'detalles_precio', 'moneda']
+                   'modelo', 'detalles', 'detalles_sucursales'] # Moneda no está en product_query, se quitó
         data_products = products[columns].copy()
         for col in data_products.columns:
-            data_products[col] = data_products[col].astype(str)
+            # Asegurarse de no convertir la lista de diccionarios de detalles_sucursales a string aquí
+            if col != 'detalles_sucursales':
+                data_products[col] = data_products[col].astype(str)
         return data_products
     
     def clean_products(self) -> dict:
@@ -141,25 +147,72 @@ class Transform:
 
     def transform_sales(self) -> pd.DataFrame:
         """
-        Transforma los datos brutos de ventas (ofertas) en un DataFrame limpio.
+        Transforma los datos brutos de ventas (ofertas) en un DataFrame limpio y consolida
+        los detalles de precios por lista para cada oferta única, asegurando que 'precios_por_lista'
+        contenga entradas distintas y que 'moneda' se maneje como una columna de la oferta principal.
         """
-        sales :pd.DataFrame = self.data.get_current_sales()
-        if sales.empty:
-            return pd.DataFrame() # Retorna un DataFrame vacío si no hay ventas
+        sales_raw: pd.DataFrame = self.data.get_current_sales()
+        if sales_raw.empty:
+            return pd.DataFrame()
 
-        sales['descripcion'] = sales['descripcion'].fillna('').astype(str).replace('0', '')
-        sales['descripcion_corta'] = sales['descripcion_corta'].fillna('').astype(str).replace('0', '')
-        sales['palabrasClave'] = sales['palabrasClave'].fillna('').astype(str).replace('0', '')
-        sales['detalles'] = sales['descripcion'] + ' ' + sales['descripcion_corta'] + ' ' + sales['palabrasClave']
-        sales['detalles'] = sales['detalles'].str.strip()
+        # Limpieza de columnas de texto
+        sales_raw['descripcion'] = sales_raw['descripcion'].fillna('').astype(str).replace('0', '')
+        sales_raw['descripcion_corta'] = sales_raw['descripcion_corta'].fillna('').astype(str).replace('0', '')
+        sales_raw['palabrasClave'] = sales_raw['palabrasClave'].fillna('').astype(str).replace('0', '')
+        sales_raw['detalles'] = sales_raw['descripcion'] + ' ' + sales_raw['descripcion_corta'] + ' ' + sales_raw['palabrasClave']
+        sales_raw['detalles'] = sales_raw['detalles'].str.strip()
+
+        # Columnas para identificar una oferta única (incluyendo 'moneda' aquí)
+        offer_id_cols = [
+            'idProducto', 'nombre', 'clave', 'categoria', 'marca', 'tipo',
+            'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
+            'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin', 'moneda' # 'moneda' se mueve aquí
+        ]
+
+        # Agrupar por offer_id_cols y agregar los detalles de lista de precios,
+        # asegurando que sean distintos y sin incluir 'moneda' en esta lista anidada.
+        grouped_sales = sales_raw.groupby(offer_id_cols).apply(
+            lambda x: {
+                "detalles_sucursales": list(
+                    {
+                        (str(lp), str(p)) # Ahora solo tuplas de 2 elementos (listaPrecio, precio)
+                        for lp, p in zip(x['listaPrecio'], x['precio'])
+                    }
+                )
+            }
+        ).reset_index()
+
+        # Convertir las tuplas de nuevo a diccionarios para 'detalles_sucursales'
+        sales_transformed = grouped_sales.rename(columns={0: 'detalles_sucursales'})
+        sales_transformed['detalles_sucursales'] = sales_transformed['detalles_sucursales'].apply(
+            lambda d: [
+                {"listaPrecio": lp, "precio": p}
+                for lp, p in d["detalles_sucursales"]
+            ]
+        )
+
+
+        # Convertir columnas relevantes a tipo string para consistencia
+        for col in sales_transformed.columns:
+            if col not in ['detalles_sucursales']: # No convertir la lista de diccionarios a string aquí
+                sales_transformed[col] = sales_transformed[col].astype(str)
+
+        # Convertir 'descuento' a cadena de porcentaje
+        sales_transformed['descuento'] = sales_transformed['descuento'].apply(lambda x: f"{x}%" if x.replace('.', '', 1).isdigit() else x)
         
-        columns = ['nombre', 'clave', 'categoria', 'marca', 'tipo', 
-                   'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
-                   'Unidades', 'limitadoA', 'fecha_inicio', 'fecha_fin', 'lista_precios', 'moneda']
-        data_sales = sales[columns].copy()
-        for col in data_sales.columns:
-            data_sales[col] = data_sales[col].astype(str)
-        data_sales['descuento'] = data_sales['descuento'].apply(lambda x: f"{x}%" if x.replace('.', '', 1).isdigit() else x)
+        # Asegurarse de que todas las columnas originales (excepto listaPrecio, precio, moneda)
+        # estén presentes y en el orden deseado.
+        final_columns = [
+            'idProducto', 'nombre', 'clave', 'categoria', 'marca', 'tipo',
+            'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
+            'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin',
+            'moneda', # 'moneda' ahora está aquí como columna principal
+            'detalles_sucursales' # La nueva columna consolidada
+        ]
+        
+        existing_cols = [col for col in final_columns if col in sales_transformed.columns]
+        data_sales = sales_transformed[existing_cols].copy()
+
         return data_sales
         
     def clean_sales(self) -> dict:
