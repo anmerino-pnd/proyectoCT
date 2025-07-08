@@ -2,7 +2,6 @@ import json
 import pprint
 import pandas as pd
 from ct.ETL.extraction import Extraction
-# Asegúrate de importar MongoClient y la configuración de MongoDB para acceder a la nueva colección
 from pymongo import MongoClient
 from ct.clients import mongo_uri, mongo_db, mongo_collection_specifications # Asume que tienes esta configuración
 
@@ -10,7 +9,6 @@ from ct.clients import mongo_uri, mongo_db, mongo_collection_specifications # As
 class Transform:
     def __init__(self):
         self.data = Extraction()
-        # Inicializa la conexión a MongoDB para la colección de especificaciones
         self.client = MongoClient("mongodb://localhost:27017")
         self.db = self.client[mongo_db]
         self.specifications_collection = self.db[mongo_collection_specifications]
@@ -72,25 +70,19 @@ class Transform:
         Se ajusta para el cambio de nombre de columna de 'detalles_precio' a 'detalles_sucursales'.
         """
         products : pd.DataFrame = self.data.get_products()
-        if products.empty:
-            return pd.DataFrame() # Retorna un DataFrame vacío si no hay productos
         
         products['descripcion'] = products['descripcion'].fillna('').astype(str).replace('0', '')
         products['descripcion_corta'] = products['descripcion_corta'].fillna('').astype(str).replace('0', '')
         products['palabrasClave'] = products['palabrasClave'].fillna('').astype(str).replace('0', '')
         products['detalles'] = products['descripcion'] + ' ' + products['descripcion_corta'] + ' ' + products['palabrasClave']
         products['detalles'] = products['detalles'].str.strip()
-        # Cambio aquí: de 'detalles_precio' a 'detalles_sucursales'
-        # Se asume que 'detalles_sucursales' sigue siendo una cadena JSON válida que se puede parsear
-        products["detalles_sucursales"] = products["detalles_sucursales"].apply(json.loads) 
+        products["lista_precio"] = products["lista_precio"].apply(json.loads) 
         
-        # Se incluyen 'detalles_sucursales' en las columnas finales
         columns = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
-                   'modelo', 'detalles', 'detalles_sucursales'] # Moneda no está en product_query, se quitó
+                   'modelo', 'detalles', 'lista_precio', 'moneda'] 
         data_products = products[columns].copy()
         for col in data_products.columns:
-            # Asegurarse de no convertir la lista de diccionarios de detalles_sucursales a string aquí
-            if col != 'detalles_sucursales':
+            if col != 'lista_precio':
                 data_products[col] = data_products[col].astype(str)
         return data_products
     
@@ -102,34 +94,30 @@ class Transform:
         products = self.transform_products()
         
         claves = products['clave'].unique().tolist()
-        # Claves para las que necesitamos buscar fichas técnicas (no en BD)
         claves_a_buscar = []
         fichas_tecnicas_existentes = {}
 
         for clave in claves:
             ficha_existente = self.specifications_collection.find_one({"clave": clave})
             if ficha_existente:
-                fichas_tecnicas_existentes[clave] = ficha_existente['data'] # Asume que la data transformada está bajo 'data'
+                fichas_tecnicas_existentes[clave] = ficha_existente['data'] 
             else:
                 claves_a_buscar.append(clave)
         
-        # Extraer solo las fichas técnicas que no existen en la BD
         new_specs = {}
         if claves_a_buscar:
             print(f"Extrayendo {len(claves_a_buscar)} fichas técnicas nuevas...")
             raw_new_specs = self.data.get_specifications(claves_a_buscar)
             new_specs = self.transform_specifications(raw_new_specs)
             
-            # Guardar las nuevas fichas técnicas en la colección de especificaciones
             for clave, data in new_specs.items():
                 self.specifications_collection.update_one(
                     {"clave": clave},
-                    {"$set": {"clave": clave, "data": data}}, # Guarda la clave y la ficha técnica transformada
+                    {"$set": {"clave": clave, "data": data}},
                     upsert=True
                 )
             print(f"Guardadas {len(new_specs)} fichas técnicas nuevas en MongoDB.")
 
-        # Combinar fichas técnicas existentes y nuevas
         all_fichas_tecnicas = {**fichas_tecnicas_existentes, **new_specs}
         
         products_dict : dict = products.to_dict(orient='records')
@@ -166,48 +154,44 @@ class Transform:
         offer_id_cols = [
             'idProducto', 'nombre', 'clave', 'categoria', 'marca', 'tipo',
             'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
-            'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin', 'moneda' # 'moneda' se mueve aquí
+            'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin', 'moneda' 
         ]
 
-        # Agrupar por offer_id_cols y agregar los detalles de lista de precios,
-        # asegurando que sean distintos y sin incluir 'moneda' en esta lista anidada.
+
         grouped_sales = sales_raw.groupby(offer_id_cols).apply(
             lambda x: {
                 "detalles_sucursales": list(
                     {
-                        (str(lp), str(p)) # Ahora solo tuplas de 2 elementos (listaPrecio, precio)
+                        (str(lp), str(p)) 
                         for lp, p in zip(x['listaPrecio'], x['precio'])
                     }
                 )
             }
         ).reset_index()
 
-        # Convertir las tuplas de nuevo a diccionarios para 'detalles_sucursales'
-        sales_transformed = grouped_sales.rename(columns={0: 'detalles_sucursales'})
-        sales_transformed['detalles_sucursales'] = sales_transformed['detalles_sucursales'].apply(
-            lambda d: [
-                {"listaPrecio": lp, "precio": p}
-                for lp, p in d["detalles_sucursales"]
-            ]
-        )
+        sales_transformed = grouped_sales.rename(columns={0: 'lista_precio'})
+        sales_transformed['lista_precio'] = sales_transformed['lista_precio'].apply(
+            lambda d: sorted(
+                    [
+                        {"listaPrecio": lp, "precio": p}
+                        for lp, p in d["lista_precio"]
+                    ],
+                    key=lambda item: int(item["listaPrecio"])  
+                )
+            )
 
-
-        # Convertir columnas relevantes a tipo string para consistencia
         for col in sales_transformed.columns:
-            if col not in ['detalles_sucursales']: # No convertir la lista de diccionarios a string aquí
+            if col not in ['listaPrecio']: 
                 sales_transformed[col] = sales_transformed[col].astype(str)
 
-        # Convertir 'descuento' a cadena de porcentaje
         sales_transformed['descuento'] = sales_transformed['descuento'].apply(lambda x: f"{x}%" if x.replace('.', '', 1).isdigit() else x)
         
-        # Asegurarse de que todas las columnas originales (excepto listaPrecio, precio, moneda)
-        # estén presentes y en el orden deseado.
+
         final_columns = [
             'idProducto', 'nombre', 'clave', 'categoria', 'marca', 'tipo',
             'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
             'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin',
-            'moneda', # 'moneda' ahora está aquí como columna principal
-            'detalles_sucursales' # La nueva columna consolidada
+            'moneda', 'listaPrecio' 
         ]
         
         existing_cols = [col for col in final_columns if col in sales_transformed.columns]
@@ -226,7 +210,6 @@ class Transform:
         
         claves = sales['clave'].unique().tolist()
 
-        # Claves para las que necesitamos buscar fichas técnicas (no en BD)
         claves_a_buscar = []
         fichas_tecnicas_existentes = {}
 
@@ -237,14 +220,12 @@ class Transform:
             else:
                 claves_a_buscar.append(clave)
         
-        # Extraer solo las fichas técnicas que no existen en la BD
         new_specs = {}
         if claves_a_buscar:
             print(f"Extrayendo {len(claves_a_buscar)} fichas técnicas nuevas para ofertas...")
             raw_new_specs = self.data.get_specifications(claves_a_buscar)
             new_specs = self.transform_specifications(raw_new_specs)
             
-            # Guardar las nuevas fichas técnicas en la colección de especificaciones
             for clave, data in new_specs.items():
                 self.specifications_collection.update_one(
                     {"clave": clave},
@@ -253,7 +234,6 @@ class Transform:
                 )
             print(f"Guardadas {len(new_specs)} fichas técnicas nuevas para ofertas en MongoDB.")
 
-        # Combinar fichas técnicas existentes y nuevas
         all_fichas_tecnicas = {**fichas_tecnicas_existentes, **new_specs}
 
         sales_dict : dict = sales.to_dict(orient='records')

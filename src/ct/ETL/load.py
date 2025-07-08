@@ -5,7 +5,7 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from ct.config import PRODUCTS_VECTOR_PATH, SALES_PRODUCTS_VECTOR_PATH
 # Importa la nueva colección de la configuración si la tienes, de lo contrario, defínela aquí
-from ct.clients import openai_api_key as api_key, mongo_uri, mongo_db, mongo_collection_products, mongo_collection_sales, mongo_collection_specifications
+from ct.clients import openai_api_key as api_key, mongo_db, mongo_collection_products, mongo_collection_sales, mongo_collection_specifications
 
 
 class Load:
