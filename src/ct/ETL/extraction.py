@@ -98,7 +98,7 @@ class Extraction():
                   SEPARATOR ','
               ), 
               ']'
-          ) AS detalles_sucursales,
+          ) AS lista_precio,
           pre.idMoneda AS moneda
       FROM productos pro
       LEFT JOIN precio pre 
