@@ -227,6 +227,43 @@ class Extraction():
       if 'cnx' in locals() and cnx is not None:
           cnx.close()
 
+  def get_existences(self) -> pd.DataFrame:
+    try:
+      cnx = mysql.connector.connect(
+          host=self.ip,
+          port=self.port,
+          user=self.user,
+          password=self.pwd,
+          database=self.database,
+          read_timeout=60,
+          write_timeout=15
+      )
+      cursor = cnx.cursor(buffered=False)
+      cursor.execute("""
+      SELECT pro.clave, SUM(e.cantidad) AS existencias
+      FROM existencias e
+      LEFT JOIN productos pro ON pro.idProductos = e.idProductos
+      WHERE pro.idProductos > 0
+      AND e.cantidad > 0
+      GROUP BY pro.idProductos;
+      """)
+      rows = cursor.fetchall()
+      df = pd.DataFrame(rows, columns=["clave", "existencias"])
+      return df
+    except mysql.connector.Error as err:
+      if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+          print("Hay un error con la contraseña o el usuario")
+      elif err.errno == errorcode.ER_BAD_DB_ERROR:
+          print("La base de datos no existe")
+      else:
+          print(err)
+      return None
+    finally:
+      if 'cursor' in locals() and cursor is not None:
+          cursor.close()
+      if 'cnx' in locals() and cnx is not None:
+          cnx.close()
+
   def get_specifications_cloudscraper(self, claves: List[str], max_retries: int = 3, sleep_seconds: float = 0.15) -> Dict[str, dict]:
     specs = {}
     errors = {}

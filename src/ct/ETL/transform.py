@@ -151,8 +151,7 @@ class Transform:
         sales_raw['detalles'] = sales_raw['detalles'].str.strip()
 
         # Columnas para identificar una oferta única (incluyendo 'moneda' aquí)
-        offer_id_cols = [
-            'idProducto', 'nombre', 'clave', 'categoria', 'marca', 'tipo',
+        offer_id_cols = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
             'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
             'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin', 'moneda' 
         ]
@@ -160,7 +159,7 @@ class Transform:
 
         grouped_sales = sales_raw.groupby(offer_id_cols).apply(
             lambda x: {
-                "detalles_sucursales": list(
+                "lista_precio": list(
                     {
                         (str(lp), str(p)) 
                         for lp, p in zip(x['listaPrecio'], x['precio'])
@@ -181,7 +180,7 @@ class Transform:
             )
 
         for col in sales_transformed.columns:
-            if col not in ['listaPrecio']: 
+            if col not in ['lista_precio']: 
                 sales_transformed[col] = sales_transformed[col].astype(str)
 
         sales_transformed['descuento'] = sales_transformed['descuento'].apply(lambda x: f"{x}%" if x.replace('.', '', 1).isdigit() else x)
@@ -191,7 +190,7 @@ class Transform:
             'idProducto', 'nombre', 'clave', 'categoria', 'marca', 'tipo',
             'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
             'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin',
-            'moneda', 'listaPrecio' 
+            'moneda', 'lista_precio' 
         ]
         
         existing_cols = [col for col in final_columns if col in sales_transformed.columns]

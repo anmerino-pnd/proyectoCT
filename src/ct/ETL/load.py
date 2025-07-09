@@ -81,6 +81,40 @@ class Load:
         else:
             print("No se encontraron ofertas con clave.")
 
+    def update_existencias_en_mongo(self):
+        """
+        Actualiza el campo 'existencias' en productos y ofertas de MongoDB
+        con base en los datos de MySQL.
+        """
+        from ct.ETL.extraction import Extraction  # Asegúrate que este módulo tenga `get_existences`
+        extractor = Extraction()
+        df_existencias = extractor.get_existences()
+
+        if df_existencias is None or df_existencias.empty:
+            print("No se encontraron existencias para actualizar.")
+            return
+
+        operaciones_productos = []
+        operaciones_ofertas = []
+
+        for _, row in df_existencias.iterrows():
+            clave = row['clave']
+            existencias = float(row['existencias'])  # asegúrate que sea numérico
+
+            operaciones_productos.append(
+                UpdateOne({"clave": clave}, {"$set": {"existencias": existencias}})
+            )
+            operaciones_ofertas.append(
+                UpdateOne({"clave": clave}, {"$set": {"existencias": existencias}})
+            )
+
+        if operaciones_productos:
+            resultado = self.products_collection.bulk_write(operaciones_productos)
+            print(f"Productos actualizados: {resultado.modified_count}")
+
+        if operaciones_ofertas:
+            resultado = self.sales_collection.bulk_write(operaciones_ofertas)
+            print(f"Ofertas actualizadas: {resultado.modified_count}")
 
     def load_products(self):
         """
@@ -90,7 +124,7 @@ class Load:
         if not products:
             return []
         
-        product_features = [column for column in products[0].keys() if column != "_id"]
+        product_features = [column for column in products[0].keys() if column != ("_id", "idProducto")]
 
         docs = [
             Document(
@@ -109,7 +143,7 @@ class Load:
         if not sales:
             return []
         
-        sales_features = [column for column in sales[0].keys() if column != "_id"]
+        sales_features = [column for column in sales[0].keys() if column != ("_id", "idProducto")]
         docs = [
             Document(
                 page_content=self.build_content(sale, sales_features),
