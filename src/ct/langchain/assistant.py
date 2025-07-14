@@ -1,7 +1,7 @@
 import os
 import json
 import time
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 from datetime import datetime, timezone
 
 from langchain_openai import ChatOpenAI
@@ -170,7 +170,12 @@ class LangchainAssistant:
         """
         )
 
-    async def answer(self, session_id: str, question: str, listaPrecio: str = None) -> AsyncGenerator[str, None]:
+    async def answer(self, 
+                     session_id: str, 
+                     question: str, 
+                     listaPrecio: str = None
+                     ) -> AsyncGenerator[str, None]:
+        
         token_cost_process = TokenCostProcess()
         cost_handler = CostCalcAsyncHandler(
             self.model,
@@ -275,7 +280,8 @@ class LangchainAssistant:
             "estimated_cost": metadata["tokens"]["estimated_cost"],
             "duration_seconds": metadata["duration"]["seconds"],
             "tokens_per_second": metadata["duration"]["tokens_per_second"],
-            "model_used": metadata["cost_model"]
+            "model_used": metadata["cost_model"],
+            "label": True
         }
 
         try:
@@ -284,6 +290,17 @@ class LangchainAssistant:
             pass
         except Exception as e:
             pass
+    
+    def add_irrelevant_message(self, session_id: str, question: str, full_answer: str):
+        message_doc = {
+            "session_id": session_id,
+            "question": question,
+            "answer": full_answer,
+            "timestamp": datetime.now(timezone.utc),
+            "label": False
+
+        }
+        self.message_backup.insert_one(message_doc)
 
     def make_metadata(self, token_cost_process: TokenCostProcess, duration: float = None) -> dict:
         cost = token_cost_process.get_total_cost_for_model(self.model)
