@@ -42,7 +42,7 @@ class Extraction():
       ON pro.idProductos = e.idProductos
     JOIN precio pre 
       ON pro.idProductos = pre.idProducto
-    WHERE e.cantidad > 10
+    WHERE e.cantidad > 3
     AND pro.idProductos > 0
     ;
     """
@@ -244,7 +244,7 @@ class Extraction():
       FROM existencias e
       LEFT JOIN productos pro ON pro.idProductos = e.idProductos
       WHERE pro.idProductos > 0
-      AND e.cantidad > 0
+      AND e.cantidad > 3
       GROUP BY pro.idProductos;
       """)
       rows = cursor.fetchall()

@@ -29,6 +29,7 @@ dependencies = [
     "plotly>=6.0.1",
     "pydantic>=2.10.6",
     "pymongo>=4.13.0",
+    "pymysql>=1.1.1",
     "pytz>=2025.1",
     "quarto>=0.1.0",
     "requests>=2.32.3",
