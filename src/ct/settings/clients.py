@@ -1,6 +1,4 @@
 import os
-import json
-from pathlib import Path
 import openai as openai_api
 from pydantic import BaseModel
 from dotenv import load_dotenv

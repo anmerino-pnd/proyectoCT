@@ -3,9 +3,9 @@ from langchain.schema import Document
 from ct.ETL.transform import Transform  # Asegúrate de que la ruta sea correcta
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
-from ct.config import PRODUCTS_VECTOR_PATH, SALES_PRODUCTS_VECTOR_PATH
+from ct.settings.config import PRODUCTS_VECTOR_PATH, SALES_PRODUCTS_VECTOR_PATH
 # Importa la nueva colección de la configuración si la tienes, de lo contrario, defínela aquí
-from ct.clients import openai_api_key as api_key, mongo_db, mongo_collection_products, mongo_collection_sales, mongo_collection_specifications
+from ct.settings.clients import openai_api_key as api_key, mongo_db, mongo_collection_products, mongo_collection_sales, mongo_collection_specifications
 
 
 class Load:
@@ -81,55 +81,19 @@ class Load:
         else:
             print("No se encontraron ofertas con clave.")
 
-    def update_existencias_en_mongo(self):
-        """
-        Actualiza el campo 'existencias' en productos y ofertas de MongoDB
-        con base en los datos de MySQL.
-        """
-        from ct.ETL.extraction import Extraction  # Asegúrate que este módulo tenga `get_existences`
-        extractor = Extraction()
-        df_existencias = extractor.get_existences()
-
-        if df_existencias is None or df_existencias.empty:
-            print("No se encontraron existencias para actualizar.")
-            return
-
-        operaciones_productos = []
-        operaciones_ofertas = []
-
-        for _, row in df_existencias.iterrows():
-            clave = row['clave']
-            existencias = float(row['existencias'])  # asegúrate que sea numérico
-
-            operaciones_productos.append(
-                UpdateOne({"clave": clave}, {"$set": {"existencias": existencias}})
-            )
-            operaciones_ofertas.append(
-                UpdateOne({"clave": clave}, {"$set": {"existencias": existencias}})
-            )
-
-        if operaciones_productos:
-            resultado = self.products_collection.bulk_write(operaciones_productos)
-            print(f"Productos actualizados: {resultado.modified_count}")
-
-        if operaciones_ofertas:
-            resultado = self.sales_collection.bulk_write(operaciones_ofertas)
-            print(f"Ofertas actualizadas: {resultado.modified_count}")
 
     def load_products(self):
         """
         Carga los productos de MongoDB y los convierte en objetos Document de Langchain.
         """
-        products = list(self.products_collection.find()) # Convertir a lista para poder acceder por índice
-        if not products:
-            return []
+        products = list(self.products_collection.find())
         
-        product_features = [column for column in products[0].keys() if column != ("_id", "idProducto")]
+        product_features = [column for column in products[0].keys() if column not in ["_id", "idProducto"]]
 
         docs = [
             Document(
                 page_content=self.build_content(product, product_features),
-                metadata = {"_id": str(product["_id"]), "clave": product.get("clave")} # Añadir clave a metadata
+                metadata = {"_id": str(product["_id"]), "collection": 'productos'} # Añadir clave a metadata
             )
             for product in products 
         ]
@@ -139,15 +103,13 @@ class Load:
         """
         Carga las ventas (ofertas) de MongoDB y las convierte en objetos Document de Langchain.
         """
-        sales = list(self.sales_collection.find()) # Convertir a lista para poder acceder por índice
-        if not sales:
-            return []
+        sales = list(self.sales_collection.find())
         
-        sales_features = [column for column in sales[0].keys() if column != ("_id", "idProducto")]
+        sales_features = [column for column in sales[0].keys() if column not in ["_id", "idProducto"]]
         docs = [
             Document(
                 page_content=self.build_content(sale, sales_features),
-                metadata = {"_id": str(sale["_id"]), "clave": sale.get("clave")} # Añadir clave a metadata
+                metadata = {"_id": str(sale["_id"]), "collection": 'promociones'} # Añadir clave a metadata
             )
             for sale in sales
         ]
