@@ -3,7 +3,7 @@ import pprint
 import pandas as pd
 from ct.ETL.extraction import Extraction
 from pymongo import MongoClient
-from ct.clients import mongo_uri, mongo_db, mongo_collection_specifications # Asume que tienes esta configuración
+from ct.settings.clients import mongo_uri, mongo_db, mongo_collection_specifications # Asume que tienes esta configuración
 
 
 class Transform:
@@ -76,40 +76,40 @@ class Transform:
         products['palabrasClave'] = products['palabrasClave'].fillna('').astype(str).replace('0', '')
         products['detalles'] = products['descripcion'] + ' ' + products['descripcion_corta'] + ' ' + products['palabrasClave']
         products['detalles'] = products['detalles'].str.strip()
-        products["lista_precio"] = products["lista_precio"].apply(json.loads) 
+        #products["lista_precio"] = products["lista_precio"].apply(json.loads) 
         
         columns = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
-                   'modelo', 'detalles', 'lista_precio', 'moneda'] 
+                   'modelo', 'detalles']#, 'lista_precio', 'moneda'] 
         data_products = products[columns].copy()
         for col in data_products.columns:
-            if col != 'lista_precio':
-                data_products[col] = data_products[col].astype(str)
+            #if col != 'lista_precio':
+            data_products[col] = data_products[col].astype(str)
         return data_products
     
     def clean_products(self) -> dict:
         """
         Limpia los datos de productos, obteniendo las fichas técnicas de MongoDB
-        o extrayéndolas si no existen.
+        o extrayéndolas si no existen. Si no se encuentra o falla, se guarda una ficha vacía.
         """
         products = self.transform_products()
-        
         claves = products['clave'].unique().tolist()
+
         claves_a_buscar = []
         fichas_tecnicas_existentes = {}
 
         for clave in claves:
             ficha_existente = self.specifications_collection.find_one({"clave": clave})
             if ficha_existente:
-                fichas_tecnicas_existentes[clave] = ficha_existente['data'] 
+                fichas_tecnicas_existentes[clave] = ficha_existente['data']
             else:
                 claves_a_buscar.append(clave)
-        
+
         new_specs = {}
         if claves_a_buscar:
             print(f"Extrayendo {len(claves_a_buscar)} fichas técnicas nuevas...")
             raw_new_specs = self.data.get_specifications(claves_a_buscar)
             new_specs = self.transform_specifications(raw_new_specs)
-            
+
             for clave, data in new_specs.items():
                 self.specifications_collection.update_one(
                     {"clave": clave},
@@ -118,20 +118,30 @@ class Transform:
                 )
             print(f"Guardadas {len(new_specs)} fichas técnicas nuevas en MongoDB.")
 
-        all_fichas_tecnicas = {**fichas_tecnicas_existentes, **new_specs}
-        
-        products_dict : dict = products.to_dict(orient='records')
+            # Guardar vacías las que fallaron
+            claves_procesadas = set(fichas_tecnicas_existentes.keys()) | set(new_specs.keys())
+            claves_fallidas = set(claves) - claves_procesadas
+            for clave in claves_fallidas:
+                print(f"Advertencia: No se encontró ficha técnica para la clave {clave}. Se añadirá vacía.")
+                self.specifications_collection.update_one(
+                    {"clave": clave},
+                    {"$set": {"clave": clave, "data": {}}},
+                    upsert=True
+                )
+
+        # Combinar todo
+        all_fichas_tecnicas = {
+            doc["clave"]: doc.get("data", {})
+            for doc in self.specifications_collection.find({"clave": {"$in": claves}})
+        }
+
+        products_dict = products.to_dict(orient='records')
         for producto in products_dict:
-            clave_producto = producto['clave']
-            if clave_producto in all_fichas_tecnicas:
-                ficha = all_fichas_tecnicas[clave_producto]
-                producto['fichaTecnica'] = ficha['fichaTecnica']
-                producto['resumen'] = ficha['resumen']
-            else:
-                producto['fichaTecnica'] = {}
-                producto['resumen'] = {}
-                print(f"Advertencia: No se encontró ficha técnica para la clave {clave_producto}. Se añadirá vacía.")
+            ficha = all_fichas_tecnicas.get(producto['clave'], {})
+            producto['fichaTecnica'] = ficha.get('fichaTecnica', {})
+            producto['resumen'] = ficha.get('resumen', {})
         return products_dict
+
 
     def transform_sales(self) -> pd.DataFrame:
         """
@@ -151,62 +161,62 @@ class Transform:
         sales_raw['detalles'] = sales_raw['detalles'].str.strip()
 
         # Columnas para identificar una oferta única (incluyendo 'moneda' aquí)
-        offer_id_cols = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
-            'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
-            'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin', 'moneda' 
-        ]
+        # offer_id_cols = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
+        #     'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
+        #     'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin', 'moneda' 
+        # ]
 
 
-        grouped_sales = sales_raw.groupby(offer_id_cols).apply(
-            lambda x: {
-                "lista_precio": list(
-                    {
-                        (str(lp), str(p)) 
-                        for lp, p in zip(x['listaPrecio'], x['precio'])
-                    }
-                )
-            }
-        ).reset_index()
+        # grouped_sales = sales_raw.groupby(offer_id_cols).apply(
+        #     lambda x: {
+        #         "lista_precio": list(
+        #             {
+        #                 (str(lp), str(p)) 
+        #                 for lp, p in zip(x['listaPrecio'], x['precio'])
+        #             }
+        #         )
+        #     }
+        # ).reset_index()
 
-        sales_transformed = grouped_sales.rename(columns={0: 'lista_precio'})
-        sales_transformed['lista_precio'] = sales_transformed['lista_precio'].apply(
-            lambda d: sorted(
-                    [
-                        {"listaPrecio": lp, "precio": p}
-                        for lp, p in d["lista_precio"]
-                    ],
-                    key=lambda item: int(item["listaPrecio"])  
-                )
-            )
+        # sales_transformed = grouped_sales.rename(columns={0: 'lista_precio'})
+        # sales_transformed['lista_precio'] = sales_transformed['lista_precio'].apply(
+        #     lambda d: sorted(
+        #             [
+        #                 {"listaPrecio": lp, "precio": p}
+        #                 for lp, p in d["lista_precio"]
+        #             ],
+        #             key=lambda item: int(item["listaPrecio"])  
+        #         )
+        #     )
 
-        for col in sales_transformed.columns:
-            if col not in ['lista_precio']: 
-                sales_transformed[col] = sales_transformed[col].astype(str)
+        for col in sales_raw.columns:
+        #     if col not in ['lista_precio']: 
+                sales_raw[col] = sales_raw[col].astype(str)
 
-        sales_transformed['descuento'] = sales_transformed['descuento'].apply(lambda x: f"{x}%" if x.replace('.', '', 1).isdigit() else x)
-        
+        sales_raw['descuento'] = sales_raw['descuento'].apply(lambda x: f"{x}%" if x.replace('.', '', 1).isdigit() else x)
+        sales_raw['moneda'] = sales_raw['moneda'].replace({'0': 'USD', '1': 'MXN'})
 
         final_columns = [
             'idProducto', 'nombre', 'clave', 'categoria', 'marca', 'tipo',
             'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
             'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin',
-            'moneda', 'lista_precio' 
+            'moneda',# 'lista_precio' 
         ]
         
-        existing_cols = [col for col in final_columns if col in sales_transformed.columns]
-        data_sales = sales_transformed[existing_cols].copy()
+        existing_cols = [col for col in final_columns if col in sales_raw.columns]
+        data_sales = sales_raw[existing_cols].copy()
 
         return data_sales
         
     def clean_sales(self) -> dict:
         """
         Limpia los datos de ventas (ofertas), obteniendo las fichas técnicas de MongoDB
-        o extrayéndolas si no existen.
+        o extrayéndolas si no existen. Si no se encuentra o falla, se guarda una ficha vacía.
         """
         sales = self.transform_sales()
         if sales.empty:
             return []
-        
+
         claves = sales['clave'].unique().tolist()
 
         claves_a_buscar = []
@@ -218,13 +228,13 @@ class Transform:
                 fichas_tecnicas_existentes[clave] = ficha_existente['data']
             else:
                 claves_a_buscar.append(clave)
-        
+
         new_specs = {}
         if claves_a_buscar:
             print(f"Extrayendo {len(claves_a_buscar)} fichas técnicas nuevas para ofertas...")
             raw_new_specs = self.data.get_specifications(claves_a_buscar)
             new_specs = self.transform_specifications(raw_new_specs)
-            
+
             for clave, data in new_specs.items():
                 self.specifications_collection.update_one(
                     {"clave": clave},
@@ -233,17 +243,27 @@ class Transform:
                 )
             print(f"Guardadas {len(new_specs)} fichas técnicas nuevas para ofertas en MongoDB.")
 
-        all_fichas_tecnicas = {**fichas_tecnicas_existentes, **new_specs}
+            # Guardar vacías las que fallaron
+            claves_procesadas = set(fichas_tecnicas_existentes.keys()) | set(new_specs.keys())
+            claves_fallidas = set(claves) - claves_procesadas
+            for clave in claves_fallidas:
+                print(f"Advertencia: No se encontró ficha técnica para la clave {clave}. Se añadirá vacía.")
+                self.specifications_collection.update_one(
+                    {"clave": clave},
+                    {"$set": {"clave": clave, "data": {}}},
+                    upsert=True
+                )
 
-        sales_dict : dict = sales.to_dict(orient='records')
+        # Combinar todo
+        all_fichas_tecnicas = {
+            doc["clave"]: doc.get("data", {})
+            for doc in self.specifications_collection.find({"clave": {"$in": claves}})
+        }
+
+        sales_dict = sales.to_dict(orient='records')
         for sale in sales_dict:
-            clave_sale = sale['clave']
-            if clave_sale in all_fichas_tecnicas:
-                ficha = all_fichas_tecnicas[clave_sale]
-                sale['fichaTecnica'] = ficha['fichaTecnica']
-                sale['resumen'] = ficha['resumen']
-            else:
-                sale['fichaTecnica'] = {}
-                sale['resumen'] = {}
-                print(f"Advertencia: No se encontró ficha técnica para la clave {clave_sale}. Se añadirá vacía.")
+            ficha = all_fichas_tecnicas.get(sale['clave'], {})
+            sale['fichaTecnica'] = ficha.get('fichaTecnica', {})
+            sale['resumen'] = ficha.get('resumen', {})
+
         return sales_dict

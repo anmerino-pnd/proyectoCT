@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from ct.langchain.assistant import LangchainAssistant
+from ct.langchain.tool_agent import ToolAgent
 import ollama
 
 
 class QueryModerator:
-    def __init__(self, model: str = "gemma3:4b", assistant : LangchainAssistant = None):
+    def __init__(self, model: str = "gemma3:4b", assistant : ToolAgent = None):
         self.model = model
         self.assistant = assistant
 
@@ -15,11 +15,11 @@ class QueryModerator:
             system=self._classification_prompt(),
             prompt=query,
             options={
-                "temperature": 0,
-                "top_p": 0.8,
-                "num_predict": 20,
-                "num_ctx": 36000,
-                "top_k": 3
+                "temperature": 0,       # Valor de 0 lo hace determinista
+                "top_p": 0.8,           # Distribución de probabilidad
+                "num_predict": 20,      # Cantidad de palabras que devuelve al contestar
+                "num_ctx": 36000,       # Cantidad de tokens de entrada, modelo gemma3 tiene 128k de entrada máximo
+                "top_k": 3              # Prioridad de la cantidad de palabras 
             }
         )
         return result.response.strip().lower()
@@ -43,51 +43,6 @@ class QueryModerator:
         Solo responde con una palabra exacta: 'relevante', 'irrelevante' o 'inapropiado'. No des explicaciones ni repitas el mensaje del usuario.
         """
     
-    def classify_relevant_query(self, query: str) -> str:
-        result = ollama.generate(
-            model=self.model,
-            system=self._classification_relevant_query(),
-            prompt=query,
-            options={
-                "temperature": 0,
-                "top_p": 0.8,
-                "num_predict": 20,
-                "num_ctx": 36000,
-                "top_k": 2
-            }
-        )
-        return result.response.strip().lower()
-
-
-    def _classification_relevant_query(self) -> str:
-        return """
-        Eres un clasificador. Clasifica la intención de la entrada del usuario. 
-
-        Responde solamente con UNA de estas etiquetas (sin comillas):
-
-        - existencias
-        - información
-
-        Instrucciones:
-        - Usa 'existencias' **solo si** el usuario está preguntando por una cantidad específica de productos, como "¿cuántas tienen?", "¿quedan 10?", "¿hay más de 3?".
-        - Usa 'información' para TODO lo demás, incluyendo preguntas como "¿tienen laptops?" o "¿venden ese modelo?", incluso si se habla de productos.
-
-        Ejemplos:
-        Usuario: ¿Cuántas impresoras tienen?
-        → existencias
-
-        Usuario: ¿Tienen laptops?
-        → información
-
-        Usuario: ¿Todavía hay 5 disponibles?
-        → existencias
-
-        Usuario: ¿Tienen el modelo X?
-        → información
-
-        Tu única respuesta debe ser una sola palabra: 'existencias' o 'información'.
-        """
-
     def polite_answer(self) -> str:
         """
         Devuelve una respuesta prediseñada cuando la consulta es irrelevante.

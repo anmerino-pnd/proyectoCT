@@ -1,21 +1,17 @@
-from pathlib import Path
-from fastapi import HTTPException, Response
+from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from ct.langchain.rag import LangchainRAG
 from langchain.schema import HumanMessage
 from typing import AsyncGenerator
-from ct.clients import QueryRequest
-from pydantic import BaseModel
-from ct.config import DATA_DIR
+from ct.settings.clients import QueryRequest
 
 
-rag = LangchainRAG(DATA_DIR)
-assistant = rag.assistant
+assistant = LangchainRAG()
 
 
 def get_chat_history(user_id: str):
     """Devuelve el historial de chat de un usuario en formato JSON."""
-    history = assistant.get_session_history(user_id)
+    history = assistant.tool_agent.get_session_history(user_id)
     
     if not history:
         return []
@@ -24,7 +20,7 @@ def get_chat_history(user_id: str):
 
 
 async def async_chat_generator(request: QueryRequest) -> AsyncGenerator[str, None]:
-        async for chunk in rag.run(request.user_query, request.user_id, request.listaPrecio):
+        async for chunk in assistant.run(request.user_query, request.user_id, request.listaPrecio):
             yield chunk  
 
 
@@ -37,7 +33,7 @@ async def delete_chat_history_endpoint(user_id: str):
     Responde 204 No Content si se elimina o si no existía (operación idempotente).
     """
     try:
-        assistant.clear_session_history(user_id)
+        assistant.tool_agent.clear_session_history(user_id)
 
         return "success"
 

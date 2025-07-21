@@ -3,7 +3,7 @@ import http.client
 import pandas as pd
 import mysql.connector
 from mysql.connector import errorcode
-from ct.clients import ip, port, user, pwd, database, url, tokenapi, tokenct, cookie, dominio, boundary
+from ct.settings.clients import ip, port, user, pwd, database, url, tokenapi, tokenct, cookie, dominio, boundary
 
 from typing import List, Dict
 import cloudscraper 
@@ -87,22 +87,8 @@ class Extraction():
           pro.modelo, 
           pro.descripcion, 
           pro.descripcion_corta,
-          pro.palabrasClave,
-          CONCAT(
-              '[', 
-              GROUP_CONCAT(
-                  CONCAT('{{',
-                      '"listaPrecio":"', pre.listaPrecio, '",',
-                      '"precio":"', pre.precio, '"',
-                  '}}')
-                  SEPARATOR ','
-              ), 
-              ']'
-          ) AS lista_precio,
-          pre.idMoneda AS moneda
+          pro.palabrasClave
       FROM productos pro
-      LEFT JOIN precio pre 
-        ON pro.idProductos = pre.idProducto 
       LEFT JOIN categorias cat 
         ON pro.idCategoria = cat.idCategoria
       LEFT JOIN marcas m 
@@ -174,8 +160,6 @@ class Extraction():
       pros.ProductosGratis,
       pros.fecha_inicio,
       pros.fecha_fin,
-      pre.listaPrecio,
-      pre.precio,
       pre.idMoneda AS moneda
   FROM promociones pros
   INNER JOIN productos pro  
@@ -188,8 +172,7 @@ class Extraction():
     ON pro.idMarca = m.idMarca
   WHERE pros.fecha_fin >= CURRENT_DATE
     AND pro.descripcion_corta_icecat != ''
-    AND pre.precio IS NOT NULL
-    AND pre.listaPrecio IS NOT NULL
+    AND pre.idMoneda IS NOT NULL
   ORDER BY pros.importe ASC, pre.listaPrecio;
         ;"""
       return query 
