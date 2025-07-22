@@ -142,7 +142,6 @@ class Extraction():
       # Modificado para no usar JSON_ARRAYAGG y traer listaPrecio y precio en filas separadas
       query = f"""
   SELECT 
-      pros.idProducto,
       pro.descripcion_corta_icecat AS nombre,  
       pros.producto AS clave,  
       cat.nombre AS categoria,
