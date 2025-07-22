@@ -1,3 +1,4 @@
+import re
 from langchain.tools import tool
 from ct.settings.clients import openai_api_key
 from langchain_openai import OpenAIEmbeddings
@@ -32,9 +33,19 @@ retriever_promociones = vectorstore.vectorstore.as_retriever(
 def search_information_tool(query):
     promociones = retriever_promociones.invoke(query)
     productos = retriever_productos.invoke(query)
-    
+
+    def parse_page_content(content):
+        # Separa por '. ' pero ignora los puntos dentro de objetos o listas
+        parts = re.split(r'\.\s+', content.strip())
+        data = {}
+        for part in parts:
+            if ':' in part:
+                key, val = part.split(':', 1)
+                data[key.strip()] = val.strip().strip('.')
+        return data
+
     return {
-        "Promociones": [doc.page_content for doc in promociones],
-        "Productos": [doc.page_content for doc in productos]
+        "Promociones": [parse_page_content(doc.page_content) for doc in promociones],
+        "Productos": [parse_page_content(doc.page_content) for doc in productos]
     }
 

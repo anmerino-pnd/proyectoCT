@@ -1,9 +1,8 @@
-import json
-import pprint
+
 import pandas as pd
 from ct.ETL.extraction import Extraction
 from pymongo import MongoClient
-from ct.settings.clients import mongo_uri, mongo_db, mongo_collection_specifications # Asume que tienes esta configuración
+from ct.settings.clients import mongo_db, mongo_collection_specifications 
 
 
 class Transform:
@@ -71,18 +70,16 @@ class Transform:
         """
         products : pd.DataFrame = self.data.get_products()
         
-        products['descripcion'] = products['descripcion'].fillna('').astype(str).replace('0', '')
-        products['descripcion_corta'] = products['descripcion_corta'].fillna('').astype(str).replace('0', '')
-        products['palabrasClave'] = products['palabrasClave'].fillna('').astype(str).replace('0', '')
+        products['descripcion'] = products['descripcion'].fillna('').astype(str).replace('0', '').str.strip()
+        products['descripcion_corta'] = products['descripcion_corta'].fillna('').astype(str).replace('0', '').str.strip()
+        products['palabrasClave'] = products['palabrasClave'].fillna('').astype(str).replace('0', '').str.strip()
         products['detalles'] = products['descripcion'] + ' ' + products['descripcion_corta'] + ' ' + products['palabrasClave']
         products['detalles'] = products['detalles'].str.strip()
-        #products["lista_precio"] = products["lista_precio"].apply(json.loads) 
         
         columns = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
-                   'modelo', 'detalles']#, 'lista_precio', 'moneda'] 
+                   'modelo', 'detalles']
         data_products = products[columns].copy()
         for col in data_products.columns:
-            #if col != 'lista_precio':
             data_products[col] = data_products[col].astype(str)
         return data_products
     
@@ -153,54 +150,22 @@ class Transform:
         if sales_raw.empty:
             return pd.DataFrame()
 
-        # Limpieza de columnas de texto
-        sales_raw['descripcion'] = sales_raw['descripcion'].fillna('').astype(str).replace('0', '')
-        sales_raw['descripcion_corta'] = sales_raw['descripcion_corta'].fillna('').astype(str).replace('0', '')
-        sales_raw['palabrasClave'] = sales_raw['palabrasClave'].fillna('').astype(str).replace('0', '')
+        sales_raw['descripcion'] = sales_raw['descripcion'].fillna('').astype(str).replace('0', '').str.strip()
+        sales_raw['descripcion_corta'] = sales_raw['descripcion_corta'].fillna('').astype(str).replace('0', '').str.strip()
+        sales_raw['palabrasClave'] = sales_raw['palabrasClave'].fillna('').astype(str).replace('0', '').str.strip()
         sales_raw['detalles'] = sales_raw['descripcion'] + ' ' + sales_raw['descripcion_corta'] + ' ' + sales_raw['palabrasClave']
         sales_raw['detalles'] = sales_raw['detalles'].str.strip()
 
-        # Columnas para identificar una oferta única (incluyendo 'moneda' aquí)
-        # offer_id_cols = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
-        #     'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
-        #     'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin', 'moneda' 
-        # ]
-
-
-        # grouped_sales = sales_raw.groupby(offer_id_cols).apply(
-        #     lambda x: {
-        #         "lista_precio": list(
-        #             {
-        #                 (str(lp), str(p)) 
-        #                 for lp, p in zip(x['listaPrecio'], x['precio'])
-        #             }
-        #         )
-        #     }
-        # ).reset_index()
-
-        # sales_transformed = grouped_sales.rename(columns={0: 'lista_precio'})
-        # sales_transformed['lista_precio'] = sales_transformed['lista_precio'].apply(
-        #     lambda d: sorted(
-        #             [
-        #                 {"listaPrecio": lp, "precio": p}
-        #                 for lp, p in d["lista_precio"]
-        #             ],
-        #             key=lambda item: int(item["listaPrecio"])  
-        #         )
-        #     )
-
         for col in sales_raw.columns:
-        #     if col not in ['lista_precio']: 
                 sales_raw[col] = sales_raw[col].astype(str)
 
         sales_raw['descuento'] = sales_raw['descuento'].apply(lambda x: f"{x}%" if x.replace('.', '', 1).isdigit() else x)
         sales_raw['moneda'] = sales_raw['moneda'].replace({'0': 'USD', '1': 'MXN'})
 
-        final_columns = [
-            'idProducto', 'nombre', 'clave', 'categoria', 'marca', 'tipo',
-            'modelo', 'detalles', 'precio_oferta', 'descuento', 'EnCompraDE',
+        final_columns = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
+            'modelo', 'precio_oferta', 'moneda', 'descuento', 'EnCompraDE',
             'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin',
-            'moneda',# 'lista_precio' 
+            'categoria', 'marca', 'detalles',
         ]
         
         existing_cols = [col for col in final_columns if col in sales_raw.columns]
@@ -243,7 +208,6 @@ class Transform:
                 )
             print(f"Guardadas {len(new_specs)} fichas técnicas nuevas para ofertas en MongoDB.")
 
-            # Guardar vacías las que fallaron
             claves_procesadas = set(fichas_tecnicas_existentes.keys()) | set(new_specs.keys())
             claves_fallidas = set(claves) - claves_procesadas
             for clave in claves_fallidas:
@@ -254,7 +218,6 @@ class Transform:
                     upsert=True
                 )
 
-        # Combinar todo
         all_fichas_tecnicas = {
             doc["clave"]: doc.get("data", {})
             for doc in self.specifications_collection.find({"clave": {"$in": claves}})

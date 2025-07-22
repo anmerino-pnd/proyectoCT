@@ -24,7 +24,7 @@ class Load:
         Construye el contenido del documento para el embedding.
         """
         return ". ".join(
-            f"{product_feature.capitalize()}: {product.get(product_feature, 'No disponible')}" 
+            f"{product_feature}: {product.get(product_feature, 'No disponible')}" 
             for product_feature in product_features 
             if product.get(product_feature))
  
@@ -93,7 +93,7 @@ class Load:
         docs = [
             Document(
                 page_content=self.build_content(product, product_features),
-                metadata = {"_id": str(product["_id"]), "collection": 'productos'} # Añadir clave a metadata
+                metadata = {"collection": 'productos'} 
             )
             for product in products 
         ]
@@ -109,7 +109,7 @@ class Load:
         docs = [
             Document(
                 page_content=self.build_content(sale, sales_features),
-                metadata = {"_id": str(sale["_id"]), "collection": 'promociones'} # Añadir clave a metadata
+                metadata = {"collection": 'promociones'} 
             )
             for sale in sales
         ]

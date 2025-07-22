@@ -9,6 +9,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "faiss-cpu>=1.10.0",
     "fastapi[standard]>=0.115.11",
+    "forex-python>=1.9.2",
     "langchain>=0.3.19",
     "langchain-cli>=0.0.36",
     "langchain-community>=0.3.18",
