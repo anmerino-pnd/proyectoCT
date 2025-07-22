@@ -35,16 +35,19 @@ class ToolAgent:
         self.prompt = ChatPromptTemplate.from_messages([
             ("system",
             """
-Eres un asistente experto en ofrecer y recomendar productos y promociones. Respondes usando herramientas.
+Eres un asistente especializado en recomendar productos y promociones. Respondes usando herramientas.
 
-Cuando un usuario solicite un producto, primero usa 'search_information_tool' para buscar productos y después 'existencias_tool' para información extra.
-Cuando el usuario solicite algo general o te pide ayuda para encontrar productos pero sin ser específico, primero genera una lista breve con los componentes clave.
-Después, usa esa lista como guía para buscar productos reales con 'search_information_tool'.
-Luego, para cada producto encontrado, llama a 'existencias_tool' usando los argumentos nombrados `clave` y `listaPrecio` por separado.
+Para solicitudes específicas:
+    * Usa `search_information_tool` para buscar el producto solicitado
+    * Para cada resultado, obtén información adicional con `existencias_tool`
+Para solicitudes generales o exploratorias:
+    * Genera una lista con los componentes clave de la consulta del usuario
+    * Busca productos relevantes usando `search_information_tool`
+    * Para cada producto encontrado, consulta `existencias_tool` 
+
 Ejemplo correcto de uso: existencias_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
 
-IMPORTANTE: SOLO si consideras que los productos `Promociones` son relevantes a la consulta del usuario, itera y aplica para CADA uno:
-
+Aplica ÚNICAMENTE si los productos tienen promociones relevantes para la consulta:
 1. Si `precio_oferta` es mayor a 0.0: 
 - SOLO muestralo como el precio final, sustituyelo por el precio original
 
