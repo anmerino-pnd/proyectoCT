@@ -12,9 +12,10 @@ from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 from langchain.agents import create_openai_functions_agent, AgentExecutor
 
 from ct.settings.clients import openai_api_key
+from ct.tools.search_information import search_information_tool
+from ct.tools.sales_rules_tool import sales_rules_tool, SalesInput
 from ct.tools.existences import existencias_tool, ExistenciasInput # Import ExistenciasInput
 from ct.settings.tokens import TokenCostProcess, CostCalcAsyncHandler
-from ct.tools.search_information import search_information_tool
 from ct.settings.clients import mongo_uri, mongo_collection_sessions, mongo_collection_message_backup
 
 
@@ -40,38 +41,24 @@ Eres un asistente especializado en recomendar productos y promociones. Respondes
 Para solicitudes específicas:
     * Usa `search_information_tool` para buscar el producto solicitado
     * Para cada resultado, obtén información adicional con `existencias_tool`
+    * Siempre que tomes un producto de `Promociones`, usa `sales_rules_tool`
 Para solicitudes generales o exploratorias:
-    * Genera una lista con los componentes clave de la consulta del usuario
-    * Busca productos relevantes usando `search_information_tool`
-    * Para cada producto encontrado, consulta `existencias_tool` 
+    * Genera una lista con solo los componentes clave de la consulta del usuario
+    * Busca productos relevantes usando `search_information_tool` y toma el más afín a la necesidad
+    * Para cada producto encontrado, consulta `existencias_tool`
+    * Siempre que tomes un producto de `Promociones`, usa `sales_rules_tool`
 
-Ejemplo correcto de uso: existencias_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
-
-Aplica ÚNICAMENTE si los productos tienen promociones relevantes para la consulta:
-1. Si `precio_oferta` es mayor a 0.0: 
-- SOLO muestralo como el precio final, sustituyelo por el precio original
-
-2. Si `descuento` es mayor a 0.0%:
-- Toma el precio original de 'existencias_tool' y aplicale el descuento mencionado
-
-3. Si `EnCompraDe` y `Unidades` son mayor a 0.0:
-- Menciona la promoción de compra en cantidad, por ejemplo:
-    - En compra de X unidades, recibirás Y gratis
-- Usa un tono breve y amable
-
-4. Siempre revisa:
-- Si el campo `limitadoA` está presente, menciona que la disponibilidad es limitada
-- Usa el campo `fecha_fin` para aclarar la vigencia de la promoción
-    - Este dato debe mostrarse siempre que haya promoción
+Ejemplo correcto de uso: 
+    - existencias_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
+    - sales_rules_tool(precio='precio_original', descuento='descuento', moneda='moneda', precio_oferta='precio_oferta', EnCompraDe='EnCompraDe', Unidades='Unidades', limitadoA='limitadoA', fecha_fin='fecha_fin')
 
 Formato de respuesta SIEMPRE:
-Presenta los productos en formato claro, ordenado, usando bullet points y usa Markdown:
+Presenta los productos en formato claro, ordenado, usando bullet points y Markdown:
 - Nombre del producto como hipervínculo: [NOMBRE](https://ctonline.mx/buscar/productos?b=CLAVE)
 - Muestra el precio con símbolo $ y la moneda (MXN o USD) SIEMPRE
 - Informa la disponibilidad
-- No uses párrafos largos pero da detalles
+- Da detalles no muy extensos
 - No ofrezcas más de lo que se te pide
-- No expliques más de lo necesario
 
 SIEMPRE ACLARA:  
 _Los precios y existencias están sujetos a cambios._
@@ -96,8 +83,15 @@ Historial:
                 name='existencias_tool',
                 description="Esta herramienta sirve como referencia y devuelve precios, moneda y existencias de un producto por su clave y listaPrecio.",
                 args_schema=ExistenciasInput # Explicitly link the Pydantic schema
-            )
-        ]
+            ),
+            StructuredTool.from_function(
+            func=sales_rules_tool,
+            name='sales_rules_tool',
+            description="Aplica reglas de promoción, devuelve el precio final y mensaje para mostrar al usuario.",
+            args_schema=SalesInput
+        )
+]
+        
 
         self.executor = None
 
@@ -149,7 +143,7 @@ Historial:
         chat_history = trim_messages(
             full_history,
             token_counter=lambda messages: sum(len(m.content.split()) for m in messages),
-            max_tokens=800,
+            max_tokens=600,
             strategy="last",
             start_on="human",
             include_system=True,
@@ -226,7 +220,7 @@ Historial:
                         "last_messages": {
                             "$each": [short_msg],
                             "$sort": {"timestamp": 1},
-                            "$slice": -50  # Cambia este número según lo que quieras conservar
+                            "$slice": -24  # Cambia este número según lo que quieras conservar
                         }
                     }
                 }
