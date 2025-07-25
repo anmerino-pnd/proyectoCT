@@ -14,3 +14,5 @@ DATA_DIR = BASE_DIR / "datos" / "vectorstores" / "sales_products_vector_store"
 VECTORS_DIR = BASE_DIR / "datos" / "vectorstores"
 PRODUCTS_VECTOR_PATH = VECTORS_DIR / "products_vector_store"
 SALES_PRODUCTS_VECTOR_PATH = VECTORS_DIR / "sales_products_vector_store"
+
+ID_SUCURSAL = BASE_DIR / "datos" / "idSucursal.json"

@@ -1,3 +1,4 @@
+import re
 import time
 from datetime import datetime, timezone
 
@@ -41,19 +42,18 @@ Eres un asistente especializado en recomendar productos y promociones. Respondes
 Para solicitudes específicas:
     * Usa `search_information_tool` para buscar el producto solicitado
     * Para cada resultado, obtén información adicional con `existencias_tool`
-    * Siempre que tomes un producto de `Promociones`, usa `sales_rules_tool`
+    * SIEMPRE que el producto venga de `Promociones`, usa `sales_rules_tool`
 Para solicitudes generales o exploratorias:
     * Genera una lista con solo los componentes clave de la consulta del usuario
-    * Busca productos relevantes usando `search_information_tool` y toma el más afín a la necesidad
-    * Para cada producto encontrado, consulta `existencias_tool`
-    * Siempre que tomes un producto de `Promociones`, usa `sales_rules_tool`
+    * Busca productos relevantes usando `search_information_tool` y toma el mejor, afín a la necesidad
+    * Luego consulta `existencias_tool` del producto tomado y SIEMPRE que el producto venga de `Promociones`, usa `sales_rules_tool`
 
 Ejemplo correcto de uso: 
     - existencias_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
-    - sales_rules_tool(precio='precio_original', descuento='descuento', moneda='moneda', precio_oferta='precio_oferta', EnCompraDe='EnCompraDe', Unidades='Unidades', limitadoA='limitadoA', fecha_fin='fecha_fin')
+    - sales_rules_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio}, session_id={session_id})
 
 Formato de respuesta SIEMPRE:
-Presenta los productos en formato claro, ordenado, usando bullet points y Markdown:
+Enlista los productos en formato claro, ordenado, usando bullet points y Markdown:
 - Nombre del producto como hipervínculo: [NOMBRE](https://ctonline.mx/buscar/productos?b=CLAVE)
 - Muestra el precio con símbolo $ y la moneda (MXN o USD) SIEMPRE
 - Informa la disponibilidad
@@ -163,7 +163,8 @@ Historial:
         inputs = {
             "input": query,
             "chat_history": chat_history,
-            "listaPrecio": lista_precio
+            "listaPrecio": lista_precio,
+            "session_id" : session_id
         }
 
         full_answer = ""
@@ -171,7 +172,6 @@ Historial:
         try:
             async for output in self.executor.astream(inputs, config={"callbacks": [cost_handler]}):
                 content = output.get("output", "")
-                print(content)
                 full_answer += content
                 yield content
         finally:

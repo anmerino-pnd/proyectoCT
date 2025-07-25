@@ -37,7 +37,7 @@ def existencias_tool(clave: str, listaPrecio: int) -> str:
         result = cursor.fetchone()
         if result:
             moneda = "MXN" if result[3] == 1 else "USD"
-            return f"Producto {result[0]}, precio original: ${result[2]} {moneda}, {result[1]} unidades disponibles"
+            return f"{result[0]}: precio original: ${result[2]} {moneda}, {result[1]} unidades disponibles"
         return "No se encontró el producto o no tiene existencias."
     except mysql.connector.Error as err:
         return f"Error de base de datos: {err}"

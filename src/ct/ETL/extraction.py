@@ -141,26 +141,17 @@ class Extraction():
   def current_sales_query(self) -> str:
       # Modificado para no usar JSON_ARRAYAGG y traer listaPrecio y precio en filas separadas
       query = f"""
-  SELECT 
-      pro.descripcion_corta_icecat AS nombre,  
-      pros.producto AS clave,  
-      cat.nombre AS categoria,
-      m.nombre AS marca,
-      pro.tipo, 
-      pro.modelo, 
-      pro.descripcion, 
-      pro.descripcion_corta,
-      pro.palabrasClave,
-      pros.importe AS precio_oferta,
-      pros.porcentaje AS descuento,
-      pros.EnCompraDE,
-      pros.Unidades, 
-      pros.limitadoA, 
-      pros.ProductosGratis,
-      pros.fecha_inicio,
-      pros.fecha_fin,
-      pre.idMoneda AS moneda
-  FROM promociones pros
+SELECT 
+    pro.descripcion_corta_icecat AS nombre,  
+    pros.producto                      AS clave,  
+    cat.nombre                        AS categoria,
+    m.nombre                          AS marca,
+    pro.tipo, 
+    pro.modelo, 
+    pro.descripcion, 
+    pro.descripcion_corta,
+    pro.palabrasClave
+FROM promociones pros
   INNER JOIN productos pro  
     ON pro.idProductos = pros.idProducto
   LEFT JOIN precio pre 
@@ -169,10 +160,20 @@ class Extraction():
     ON pro.idCategoria = cat.idCategoria
   LEFT JOIN marcas m 
     ON pro.idMarca = m.idMarca
-  WHERE pros.fecha_fin >= CURRENT_DATE
+WHERE 
+    -- promoción activa 
+    pros.fecha_fin    >= CURRENT_DATE
+
+    -- más validaciones
     AND pro.descripcion_corta_icecat != ''
     AND pre.idMoneda IS NOT NULL
-  ORDER BY pros.importe ASC, pre.listaPrecio;
+
+GROUP BY 
+    pros.idProducto 
+    #pros.fecha_inicio
+ORDER BY 
+    pros.importe     ASC,
+    pre.listaPrecio;
         ;"""
       return query 
 
@@ -192,8 +193,7 @@ class Extraction():
       columnas = [desc[0] for desc in cursor.description]
       datos = [producto for producto in cursor.fetchall()]
       sales = pd.DataFrame(datos, columns=columnas)
-      sales['fecha_inicio'] = pd.to_datetime(sales['fecha_inicio']).dt.strftime('%Y-%m-%d')
-      sales['fecha_fin'] = pd.to_datetime(sales['fecha_fin']).dt.strftime('%Y-%m-%d')
+
       return sales
     except mysql.connector.Error as err:
       if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:

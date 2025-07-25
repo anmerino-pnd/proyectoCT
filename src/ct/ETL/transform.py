@@ -159,14 +159,8 @@ class Transform:
         for col in sales_raw.columns:
                 sales_raw[col] = sales_raw[col].astype(str)
 
-        sales_raw['descuento'] = sales_raw['descuento'].apply(lambda x: f"{x}%" if x.replace('.', '', 1).isdigit() else x)
-        sales_raw['moneda'] = sales_raw['moneda'].replace({'0': 'USD', '1': 'MXN'})
-
         final_columns = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
-            'modelo', 'precio_oferta', 'moneda', 'descuento', 'EnCompraDE',
-            'Unidades', 'limitadoA', 'ProductosGratis', 'fecha_inicio', 'fecha_fin',
-            'categoria', 'marca', 'detalles',
-        ]
+            'modelo', 'detalles']
         
         existing_cols = [col for col in final_columns if col in sales_raw.columns]
         data_sales = sales_raw[existing_cols].copy()
