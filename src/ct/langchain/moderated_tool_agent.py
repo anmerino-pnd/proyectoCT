@@ -2,7 +2,7 @@ from typing import AsyncGenerator
 from ct.langchain.tool_agent import ToolAgent
 from ct.moderation.query_moderator import QueryModerator
 
-class LangchainRAG:
+class ModeratedToolAgent:
     def __init__(self):
         self.tool_agent = ToolAgent()
         self.moderator = QueryModerator(assistant=self.tool_agent)

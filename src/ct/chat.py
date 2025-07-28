@@ -1,12 +1,12 @@
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
-from ct.langchain.rag import LangchainRAG
+from ct.langchain.moderated_tool_agent import ModeratedToolAgent
 from langchain.schema import HumanMessage
 from typing import AsyncGenerator
 from ct.settings.clients import QueryRequest
 
 
-assistant = LangchainRAG()
+assistant = ModeratedToolAgent()
 
 
 def get_chat_history(user_id: str):
