@@ -120,7 +120,7 @@ def sales_rules_tool(clave: str, listaPrecio: int, session_id: str) -> str:
 
             return ", ".join(mensaje)
 
-        return f"{clave}: No se encontraron reglas de promoción."
+        return f"{clave}: El producto ya no se encuentra en promoción"
 
     except mysql.connector.Error as err:
         return f"Error de base de datos: {err}"

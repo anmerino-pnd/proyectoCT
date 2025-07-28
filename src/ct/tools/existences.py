@@ -17,11 +17,16 @@ def existencias_tool(clave: str, listaPrecio: int) -> str:
         pro.clave,
         SUM(e.cantidad) AS existencias,
         pre.precio,
-        pre.idMoneda AS moneda
+        pre.idMoneda AS moneda,
+        CASE 
+            WHEN prom.producto IS NOT NULL THEN 'Sí'
+            ELSE 'No'
+        END AS en_promocion
     FROM productos pro
     LEFT JOIN existencias e ON pro.idProductos = e.idProductos
-    LEFT JOIN precio pre ON pro.idProductos = pre.idProducto
-    WHERE pro.clave = %s AND pre.listaPrecio = %s
+    LEFT JOIN precio pre ON pro.idProductos = pre.idProducto AND pre.listaPrecio = %s
+    LEFT JOIN promociones prom ON pro.clave = prom.producto
+    WHERE pro.clave = %s
     GROUP BY pro.idProductos
     """
 
@@ -33,11 +38,11 @@ def existencias_tool(clave: str, listaPrecio: int) -> str:
             read_timeout=60, write_timeout=15
         )
         cursor = cnx.cursor()
-        cursor.execute(query, (clave, lista_precio))
+        cursor.execute(query, (lista_precio, clave))
         result = cursor.fetchone()
         if result:
             moneda = "MXN" if result[3] == 1 else "USD"
-            return f"{result[0]}: precio original: ${result[2]} {moneda}, {result[1]} unidades disponibles"
+            return f"{result[0]}: precio original: ${result[2]} {moneda}, {result[1]} unidades disponibles, ¿en promoción?: {result[4]}"
         return "No se encontró el producto o no tiene existencias."
     except mysql.connector.Error as err:
         return f"Error de base de datos: {err}"
