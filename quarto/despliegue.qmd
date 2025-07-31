@@ -111,8 +111,15 @@ El proceso de despliegue consistió en los siguientes pasos:
 
 La imagen a continuación muestra el chatbot funcionando en su entorno de desarrollo, con el widget incrustado en la página de pruebas de CT Online:
 
-![Chatbot desplegado](./ctdev.jpg){width=90%}
+![Chatbot desplegado en el ambiente de desarrollo](./ctdev.jpg){width=90%}
 
 Este hito marca un avance significativo hacia la validación en entorno real del sistema conversacional, permitiendo recopilar feedback de usuarios internos antes de considerar un despliegue completo en producción.
+
+### 2.8 Despliegue del chatbot en el sistema de producción
+
+A partir del despliegue en el ambiente de pruebas, donde recopilamos retroalimentación e hicimos iteraciones sobre el modelo, finalmente pudimos desplegarlo al ambiente de producción. Este despliegue es escalonado, empezando por la sucursal de Hermosillo y con los vendedores de la empresa, recopilando nuevamente retroalimentación pero más pegada a casos de estudio concretos y reales.
+
+![Chatbot desplegado en el ambiente de producción](./ctonline.jpg){width=90%}
+
 
 :::
