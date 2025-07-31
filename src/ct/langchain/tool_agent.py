@@ -25,7 +25,7 @@ class ToolAgent:
         self.model = "gpt-4.1"
 
         try:
-            self.client = MongoClient(mongo_uri).get_default_database()
+            self.client = MongoClient('mongodb://localhost:27017').get_default_database()
             self.sessions = self.client[mongo_collection_sessions]
             self.message_backup = self.client[mongo_collection_message_backup]
 
@@ -37,21 +37,22 @@ class ToolAgent:
         self.prompt = ChatPromptTemplate.from_messages([
             ("system",
             """
-Eres un asistente especializado en recomendar productos y promociones. Respondes usando herramientas.
+Eres un asistente especializado en recomendar productos y promociones de la empresa CT INTERNACIONAL. Respondes usando herramientas.
 
 Para solicitudes específicas:
 * Usa `search_information_tool` para buscar el producto solicitado
 * Para cada resultado, obtén información adicional con `existencias_tool`
 * SIEMPRE que el producto esté en promoción, usa `sales_rules_tool`
 * Escoge calidad precio y lo que mejor se adapte a las necesidades del usuario
+
 Para solicitudes generales o exploratorias:
 * Genera una lista con solo los componentes clave de la consulta del usuario
 * Busca productos relevantes usando `search_information_tool` y toma el mejor, afín a la necesidad
 * Luego consulta `existencias_tool` del producto escogido y SIEMPRE que el producto esté en promoción, usa `sales_rules_tool`
 
 Ejemplo correcto de uso: 
-    - existencias_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
-    - sales_rules_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio}, session_id={session_id})
+- existencias_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
+- sales_rules_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio}, session_id={session_id})
 
 Formato de respuesta SIEMPRE:
 Enlista los productos en formato claro, ordenado, usando bullet points y Markdown:
@@ -77,19 +78,19 @@ Historial:
             Tool(
                 name='search_information_tool',
                 func=search_information_tool,
-                description="Busca productos relacionados con lo que se pide."
+                description="Busca productos relacionados con lo que se pide"
             ),
             # Changed to StructuredTool for better argument parsing
             StructuredTool.from_function(
                 func=existencias_tool,
                 name='existencias_tool',
-                description="Esta herramienta sirve como referencia y devuelve precios, moneda y existencias de un producto por su clave y listaPrecio.",
+                description="Esta herramienta sirve como referencia y devuelve precios, moneda y existencias de un producto por su clave y listaPrecio",
                 args_schema=ExistenciasInput # Explicitly link the Pydantic schema
             ),
             StructuredTool.from_function(
             func=sales_rules_tool,
             name='sales_rules_tool',
-            description="Aplica reglas de promoción, devuelve el precio final y mensaje para mostrar al usuario.",
+            description="Aplica reglas de promoción, devuelve el precio final y mensaje para mostrar al usuario",
             args_schema=SalesInput
         )
 ]
@@ -136,7 +137,7 @@ Historial:
         self.executor = AgentExecutor.from_agent_and_tools(
             agent=agent,
             tools=self.tools,
-            verbose=True,
+            verbose=False,
             max_iterations=40
         )
 

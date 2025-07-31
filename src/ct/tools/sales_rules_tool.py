@@ -5,6 +5,9 @@ from datetime import datetime
 from pydantic import BaseModel
 from ct.settings.clients import ip, port, user, pwd, database
 from ct.settings.config import ID_SUCURSAL
+import pymysql
+pymysql.install_as_MySQLdb()
+
 
 with open(ID_SUCURSAL, "r", encoding="utf-8") as f:
     SUCURSALES = json.load(f)

@@ -2,6 +2,9 @@ import mysql.connector
 from pydantic import BaseModel
 # from langchain.tools import tool # REMOVE THIS IMPORT if not used elsewhere
 from ct.settings.clients import ip, port, user, pwd, database
+import pymysql
+pymysql.install_as_MySQLdb()
+
 
 # 1. Definimos el esquema de entrada
 class ExistenciasInput(BaseModel):

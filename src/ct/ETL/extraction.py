@@ -170,7 +170,6 @@ WHERE
 
 GROUP BY 
     pros.idProducto 
-    #pros.fecha_inicio
 ORDER BY 
     pros.importe     ASC,
     pre.listaPrecio;
