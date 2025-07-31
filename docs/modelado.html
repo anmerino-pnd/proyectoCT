@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -137,10 +171,16 @@ ul.task-list li input[type="checkbox"] {
    
   <ul>
   <li><a href="#modelado" id="toc-modelado" class="nav-link active" data-scroll-target="#modelado">1 Modelado</a>
-  <ul class="collapse">
+  <ul>
   <li><a href="#modelos" id="toc-modelos" class="nav-link" data-scroll-target="#modelos">1.1 Modelos</a></li>
-  <li><a href="#arquitectura-del-sistema-rag" id="toc-arquitectura-del-sistema-rag" class="nav-link" data-scroll-target="#arquitectura-del-sistema-rag">1.2 Arquitectura del sistema RAG</a></li>
-  <li><a href="#métricas-de-evaluación" id="toc-métricas-de-evaluación" class="nav-link" data-scroll-target="#métricas-de-evaluación">1.3 Métricas de Evaluación</a></li>
+  <li><a href="#arquitectura-del-sistema" id="toc-arquitectura-del-sistema" class="nav-link" data-scroll-target="#arquitectura-del-sistema">1.2 Arquitectura del sistema</a>
+  <ul>
+  <li><a href="#información-estática" id="toc-información-estática" class="nav-link" data-scroll-target="#información-estática">1.2.1 Información estática</a></li>
+  <li><a href="#información-dinámica" id="toc-información-dinámica" class="nav-link" data-scroll-target="#información-dinámica">1.2.2 Información dinámica</a></li>
+  <li><a href="#flujo-de-datos-para-el-sistema-rag" id="toc-flujo-de-datos-para-el-sistema-rag" class="nav-link" data-scroll-target="#flujo-de-datos-para-el-sistema-rag">1.2.3 Flujo de datos para el sistema RAG</a></li>
+  </ul></li>
+  <li><a href="#atributos-del-modelo-y-contexto-de-ejecución" id="toc-atributos-del-modelo-y-contexto-de-ejecución" class="nav-link" data-scroll-target="#atributos-del-modelo-y-contexto-de-ejecución">1.3 Atributos del modelo y contexto de ejecución</a></li>
+  <li><a href="#métricas-de-evaluación" id="toc-métricas-de-evaluación" class="nav-link" data-scroll-target="#métricas-de-evaluación">1.4 Métricas de Evaluación</a></li>
   </ul></li>
   <li><a href="#evaluación" id="toc-evaluación" class="nav-link" data-scroll-target="#evaluación">2 Evaluación</a></li>
   </ul>
@@ -170,7 +210,7 @@ ul.task-list li input[type="checkbox"] {
 
 <section id="modelado" class="level2" style="text-align: justify">
 <h2 class="anchored" data-anchor-id="modelado">1 Modelado</h2>
-<p>El objetivo de esta fase es desarrollar la arquitectura del sistema de recuperación aumentada con generación (RAG). Para ello, se utiliza como fuente de conocimiento la base de datos vectorizada construida en la etapa anterior.</p>
+<p>El objetivo de esta fase es desarrollar la arquitectura del sistema de recuperación aumentada con generación (RAG) y las herramientas que utilizará el chatbot para la información dinámica. Para ello, se utiliza como fuente de conocimiento la base de datos vectorizada construida en la etapa anterior.</p>
 <section id="modelos" class="level3">
 <h3 class="anchored" data-anchor-id="modelos">1.1 Modelos</h3>
 <p>Dado que el enfoque del proyecto se basa en herramientas de OpenAI, los modelos considerados para esta fase son los siguientes:</p>
@@ -183,14 +223,118 @@ Modelo multimodal de última generación de OpenAI, capaz de procesar texto, im�
 Ollama permite correr modelos de lenguaje open-source de manera local o privada. En este proyecto se contemplan modelos como LLaMA o Mistral, que ofrecen alternativas de código abierto con buen rendimiento en tareas conversacionales.</p></li>
 </ul>
 </section>
-<section id="arquitectura-del-sistema-rag" class="level3">
-<h3 class="anchored" data-anchor-id="arquitectura-del-sistema-rag">1.2 Arquitectura del sistema RAG</h3>
+<section id="arquitectura-del-sistema" class="level3">
+<h3 class="anchored" data-anchor-id="arquitectura-del-sistema">1.2 Arquitectura del sistema</h3>
 <p>La implementación del sistema se basa en una estructura modular orientada a clases. Esto permite una mayor reutilización de código, facilita su mantenimiento y mejora la legibilidad, aspectos clave para futuras modificaciones o revisiones.</p>
 <p>Además, esta estructura permite importar únicamente la clase necesaria para ejecutar todo el sistema, lo cual es ideal para su integración a través de una API. De esta forma, se evita depender de notebooks o archivos extensos y poco escalables.</p>
 <p>El sistema se construyó utilizando principalmente la librería <strong>LangChain</strong>, la cual ofrece una base robusta para conectar modelos de lenguaje con herramientas externas y flujos personalizados.</p>
+<section id="información-estática" class="level4">
+<h4 class="anchored" data-anchor-id="información-estática">1.2.1 Información estática</h4>
+<p>A partir de los datos mencionados en el apartado anterior, procederemos a crear la base de datos vectorial con esta información. Tomamos los datos y los convertimos en un tipo <code>Document</code> para poder pasarlo a <code>FAISS</code> (base vectorial) junto con los <code>embeddings</code> y guardarlo de forma local.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>campos <span class="op">=</span> [</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>        <span class="st">"nombre"</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"producto"</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">"categoria"</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"marca"</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">"tipo"</span>,</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">"modelo"</span>,</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">"detalles"</span>,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">"fichaTecnica"</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">"resumen"</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        ]</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>docs <span class="op">=</span> [</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    Document(</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>        page_content<span class="op">=</span>construir_contenido(producto, campos), <span class="co"># recibe la información de cada producto y las columnas </span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>        metadata<span class="op">=</span>{<span class="st">"collection"</span>: <span class="st">'promociones'</span>} <span class="co"># o 'productos' dependiendo el caso</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> producto <span class="kw">in</span> productos</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Usar embeddings de OpenAI </span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>embeddings <span class="op">=</span> OpenAIEmbeddings(api_key<span class="op">=</span>api_key)</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Crear base de datos FAISS con los documentos</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>vectorstore <span class="op">=</span> FAISS.from_documents(docs, embeddings)</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co"># Guardar la base de datos para futuras consultas</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>vectorstore.save_local()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="información-dinámica" class="level4">
+<h4 class="anchored" data-anchor-id="información-dinámica">1.2.2 Información dinámica</h4>
+<p>Además de la información estática precargada en la base vectorial, el sistema cuenta con herramientas dinámicas que permiten consultar datos actualizados en tiempo real, como existencias, precios y promociones. Estas herramientas se integran al agente a través del framework LangChain, lo que permite invocarlas solo cuando el modelo detecta que son necesarias para responder con precisión.</p>
+<p>Las herramientas dinámicas disponibles son:</p>
+<ul>
+<li><code>search_information_tool</code>: realiza búsquedas básicas en los productos embebidos para encontrar coincidencias.</li>
+<li><code>existencias_tool</code>: consulta las existencias, precio actual y moneda para un producto específico.</li>
+<li><code>sales_rules_tool</code>: calcula promociones y reglas de venta que aplican a un producto según su lista de precios y sucursal.</li>
+</ul>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.tools <span class="op">=</span> [</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>            Tool(</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span><span class="st">'search_information_tool'</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>                func<span class="op">=</span>search_information_tool,</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>                description<span class="op">=</span><span class="st">"Busca productos relacionados con lo que se pide."</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>            ),</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>            StructuredTool.from_function(</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>                func<span class="op">=</span>existencias_tool,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span><span class="st">'existencias_tool'</span>,</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>                description<span class="op">=</span><span class="st">"Esta herramienta sirve como referencia y devuelve precios, moneda y existencias de un producto por su clave y listaPrecio."</span>,</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>                args_schema<span class="op">=</span>ExistenciasInput <span class="co"># Explicitly link the Pydantic schema</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            ),</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            StructuredTool.from_function(</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            func<span class="op">=</span>sales_rules_tool,</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            name<span class="op">=</span><span class="st">'sales_rules_tool'</span>,</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Aplica reglas de promoción, devuelve el precio final y mensaje para mostrar al usuario."</span>,</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>            args_schema<span class="op">=</span>SalesInput</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Estas herramientas son invocadas automáticamente por el agente cuando la consulta del usuario requiere información que no está contenida en el contexto estático. Esto permite entregar respuestas más precisas y alineadas con la situación real del negocio (existencias, promociones activas, etc.).</p>
+</section>
+<section id="flujo-de-datos-para-el-sistema-rag" class="level4">
+<h4 class="anchored" data-anchor-id="flujo-de-datos-para-el-sistema-rag">1.2.3 Flujo de datos para el sistema RAG</h4>
+<p>El sistema se alimenta con información a través de un proceso ETL (Extracción, Transformación y Carga) que asegura que los datos estén limpios, estructurados y listos para ser utilizados por el modelo y las herramientas.</p>
+<p><strong>Para una descripción detallada de cada etapa del proceso ETL en MongoDB y la base de datos vectorial, por favor, consultar el documento “Preparación de los datos”.</strong></p>
+<p>En resumen, este proceso garantiza que el modelo tenga acceso a una base de datos de conocimiento robusta y actualizada, tanto estática (productos y promociones embedidas) como dinámica (a través de las herramientas que consultan datos en tiempo real).</p>
+</section>
+</section>
+<section id="atributos-del-modelo-y-contexto-de-ejecución" class="level3">
+<h3 class="anchored" data-anchor-id="atributos-del-modelo-y-contexto-de-ejecución">1.3 Atributos del modelo y contexto de ejecución</h3>
+<p>Durante la ejecución del sistema, los modelos de lenguaje no operan en aislamiento. Se alimentan con diversos atributos y herramientas que enriquecen la interacción y permiten generar respuestas precisas y contextualizadas. A continuación, se describen los principales elementos que intervienen en este proceso y cómo la información preparada se integra en el modelo:</p>
+<p><strong>Atributos del modelo en tiempo de ejecución</strong></p>
+<ul>
+<li><code>query</code>: Pregunta o instrucción directa del usuario. Es el punto de entrada para iniciar el procesamiento.</li>
+<li><code>session_id</code>: Identificador de sesión que permite obtener el contexto del usuario (incluye la sucursal asociada para aplicar reglas de negocio como promociones).</li>
+<li><code>listaPrecio</code>: Parámetro numérico que indica la lista de precios relevante para consultas de productos y promociones.</li>
+</ul>
+<p>Estos atributos permiten personalizar las respuestas con base en el usuario que consulta, su sucursal, y las reglas comerciales que le aplican.</p>
+<p><strong>Alimentación del modelo con información adicional</strong></p>
+<p>El LLM se alimenta con información contextualizada de dos maneras principales, ambas derivadas de los datos procesados en la fase de Preparación de los Datos:</p>
+<ul>
+<li><p><strong>Información estática (a través del RAG)</strong>:</p>
+<ul>
+<li>Proviene de la base de datos vectorial (FAISS) construida con los productos y promociones previamente embedidos mediante <code>OpenAIEmbeddings</code>.</li>
+<li>Cuando el usuario realiza una <code>query</code> relevante, el sistema RAG busca los documentos más similares en el vector store. Estos documentos (<code>page_content</code> y <code>metadata</code>) se inyectan en el <em>context window</em> del LLM como información de referencia.</li>
+<li>Esto se activa principalmente para consultas generales de productos, descripciones, características, comparativas, etc., permitiendo al LLM generar respuestas basadas en un conocimiento específico y actualizado de tu catálogo.</li>
+</ul></li>
+<li><p><strong>Información dinámica (a través de herramientas LangChain)</strong>:</p>
+<ul>
+<li>Se accede a datos en tiempo real mediante herramientas personalizadas integradas con LangChain, como <code>existencias_tool</code> y <code>sales_rules_tool</code>.</li>
+<li>El LLM, basado en la <code>query</code> del usuario y su propio razonamiento, decide cuándo invocar estas herramientas. Por ejemplo, si el usuario pregunta por “el precio de la clave X”, el LLM activará <code>existencias_tool</code> con la clave proporcionada.</li>
+<li>El resultado de la ejecución de estas herramientas (e.g., el precio actual, las existencias, el precio final con promoción) se devuelve al LLM y se inyecta también en su <em>context window</em>.</li>
+<li>Esto permite al LLM generar respuestas con datos actualizados y específicos, como la disponibilidad de un producto o el precio final con promociones activas para una <code>listaPrecio</code> y <code>session_id</code> dados.</li>
+</ul></li>
+</ul>
+<p><strong>Moderación y clasificación de la consulta</strong></p>
+<p>Antes de ejecutar cualquier acción, la consulta pasa por una etapa de moderación:</p>
+<ul>
+<li>Se valida si el usuario está baneado (por comportamiento inapropiado).</li>
+<li>Se clasifica la consulta como <code>relevante</code>, <code>irrelevante</code> o <code>inapropiada</code>.</li>
+<li>Dependiendo de esta clasificación, se permite o bloquea el paso al modelo principal y las herramientas.</li>
+</ul>
+<p>Este flujo asegura robustez, control y trazabilidad en la interacción con el modelo.</p>
 </section>
 <section id="métricas-de-evaluación" class="level3">
-<h3 class="anchored" data-anchor-id="métricas-de-evaluación">1.3 Métricas de Evaluación</h3>
+<h3 class="anchored" data-anchor-id="métricas-de-evaluación">1.4 Métricas de Evaluación</h3>
 <p>A diferencia de los modelos clásicos de <em>machine learning</em> (ML), la evaluación de sistemas basados en modelos de lenguaje grande (LLMs) requiere enfoques distintos, centrados en la calidad de las respuestas generadas.</p>
 <p>En este proyecto, la evaluación se realiza mediante un análisis cualitativo de las respuestas del chatbot, tomando en cuenta los siguientes criterios:</p>
 <ul>

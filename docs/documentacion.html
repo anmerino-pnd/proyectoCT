@@ -265,18 +265,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> proyectoCT</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ol start="2" type="1">
 <li><p>Crear un entorno virtual e instalar dependencias:</p>
-<p>Se recomienda usar <code>uv</code> por su eficiencia.</p>
+<p>Se recomienda usar <code>uv</code> por su eficiencia.</p></li>
+</ol>
 <div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install uv <span class="co"># En caso de no estar instalado</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> venv</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .venv/bin/activate  <span class="co"># Para Linux/macOS</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># o `.venv\Scripts\activate` para Windows</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> pip install <span class="at">-e</span> .</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></li>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> pip install <span class="at">-e</span> .</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ol start="3" type="1">
 <li><p>Asegurarse de estar corriendo Ollama en el ambiente:</p>
-<p>Verifica que el servicio de Ollama esté instalado y activo, y que el modelo <code>gemma3:12b</code> esté disponible.</p>
+<p>Verifica que el servicio de Ollama esté instalado y activo, y que el modelo <code>gemma3:12b</code> esté disponible.</p></li>
+</ol>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> https://ollama.com/install.sh <span class="kw">|</span> <span class="fu">sh</span> <span class="co"># Para instalar Ollama</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ollama</span> serve</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ollama</span> list <span class="co"># Para verificar que el modelo gemma3:12b esté descargado y listo</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">ollama</span> pull gemma3:12b <span class="co"># Correr esta línea en caso que el modelo no aparezca</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div></li>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">ollama</span> pull gemma3:12b <span class="co"># Correr esta línea en caso que el modelo no aparezca</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ol start="4" type="1">
 <li><p>Configurar variables de entorno:</p>
 <p>Antes de levantar el <em>backend</em>, asegurarse de que el archivo <code>.env</code> en la raíz del proyecto contenga las siguientes variables con sus valores correctos.</p></li>
 </ol>
@@ -311,7 +315,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Levantar el backend con Gunicorn:</li>
 </ol>
 <p>Este comando inicia la API, especificando el número de <em>workers</em>, el <em>binding</em> de IP y puerto, y la configuración de SSL/TLS para HTTPS.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nohup</span> gunicorn ct.main:app   <span class="at">--workers</span> 4   <span class="at">--bind</span> 0.0.0.0:8000   <span class="at">--certfile</span><span class="op">=</span>static/ssl/cert.pem   <span class="at">--keyfile</span><span class="op">=</span>static/ssl/key.pem   <span class="at">-k</span> uvicorn.workers.UvicornWorker   <span class="at">--access-logfile</span> <span class="at">-</span>   <span class="at">--error-logfile</span> <span class="at">-</span> <span class="kw">&amp;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nohup</span> gunicorn ct.main:app   <span class="at">--workers</span> 4   <span class="at">--bind</span> 0.0.0.0:8000   <span class="at">--certfile</span><span class="op">=</span>static/ssl/cert.pem   <span class="at">--keyfile</span><span class="op">=</span>static/ssl/key.pem   <span class="at">-k</span> uvicorn.workers.UvicornWorker <span class="at">--timeout</span> 120 <span class="at">--access-logfile</span> <span class="at">-</span>   <span class="at">--error-logfile</span> <span class="at">-</span> <span class="kw">&amp;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>El uso de <code>nogup</code> y <code>&amp;</code> asegura que el proceso continúe ejecutándose en segundo plano incluso si la sesión SSH se cierra.</p>
 <ol start="6" type="1">
 <li>Regenerar el certificado SSL (si expira o es necesario):</li>
@@ -368,82 +372,100 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="estructura-de-carpetas-y-módulos">2.1 Estructura de carpetas y módulos</h3>
 <p>El proyecto sigue una estructura modular para facilitar la gestión y el mantenimiento. A continuación, se detalla el propósito de los módulos principales y algunas de sus funciones clave:</p>
 <p><strong>ct/langchain/vectorstore.py</strong></p>
+<p>Este módulo implementa la lógica para la creación, carga y consulta de la base de datos vectorial FAISS. Gestiona el retriever que busca los documentos más relevantes.</p>
 <ul>
-<li>Este módulo implementa la lógica para la creación, carga y consulta de la base de datos vectorial FAISS. Gestiona el retriever que busca los documentos más relevantes.</li>
 <li><strong>Clases y funciones clave</strong>:
 <ul>
 <li><code>class LangchainVectorStore</code>:
 <ul>
-<li><code>__init__(embedder, index_path: str = None)</code>: Inicializa el <em>vector store</em>.
+<li><code>__init__(self, embedder, index_path: str = None)</code>: Inicializa el <em>vector store</em>.
 <ul>
+<li><strong>Propósito</strong>: Inicializa el <em>vector store</em> de Langchain, configurando el <em>embedder</em> y la ruta del índice. Si el índice ya existe, lo carga; de lo contrario, se preparará para crear uno nuevo.</li>
 <li><strong>Parámetros</strong>:
 <ul>
 <li><code>embedder</code>: Una instancia de la clase <em>embedder</em> utilizada para generar los <em>embeddings</em> (ej., <code>OpenAIEmbeddings(openai_api_key=openai_api_key)</code>).</li>
 <li><code>index_path</code> (<code>str</code>): Ruta al directorio donde se guardará o cargará en el índice FAISS.</li>
 </ul></li>
-<li><strong>Comportarmiento</strong>: Si <code>index_path</code> existe, carga el índice preexistente. Configura un <code>retriever</code> con <code>k=10</code> (top 10 documentos) y <code>score_threshold=0.8</code> para la búsqueda.</li>
-</ul></li>
-<li><code>_load_index()</code>: Carga un índice FAISS existente desde disco.
+<li><strong>Comportarmiento</strong>:
 <ul>
+<li>Almacena el <code>embedder</code> y el <code>index_path</code>.</li>
+<li>Si <code>index_path</code> existe y es un directorio válido, llama a <code>_load_index()</code> para cargar el índice preexistente.</li>
+<li>Inicializa <code>self.vectorstore</code> as <code>None</code> hasta que se cargue o cree.</li>
+</ul></li>
+</ul></li>
+<li><code>_load_index(self)</code>:
+<ul>
+<li><strong>Propósito</strong>: Carga un índice FAISS existente desde disco en <code>self.vectorstore</code>.</li>
 <li><strong>Parámetros</strong>: Ninguno (usa <code>self.index_path</code>).</li>
-<li><strong>Comportamiento</strong>: Carga el índice y configura <code>self.retriever</code> búsquedas. Es una función interna.</li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Utiliza <code>FAISS.load_local()</code> para cargar el índice desde la <code>folder_path</code> especificada en <code>self.index_path</code>, usando el <code>embedder</code> configurado.</li>
+<li><code>allow_dangerous_deserialization=True</code> se usa para permitir la carga de índices serializados.</li>
+<li>Es una función interna que no debe ser llamada directamente desde fuera de la clase.</li>
+</ul></li>
 </ul></li>
 </ul></li>
 </ul></li>
 </ul>
-<p><strong>ct/langchain/assistant.py</strong></p>
+<p><strong>ct/langchain/tool_agent.py</strong></p>
+<p>Este archivo contiene la lógica principal del agente conversacional, incluyendo la interacción con herramientas externas, gestión del historial de conversación, uso de MongoDB, y conexión con el modelo GPT-4.1 a través de LangChain y OpenAI.</p>
 <ul>
-<li>Contiene la lógica central del chatbot, incluyendo la gestión del historial de sesiones (a través de MongoDB), la creación de las cadenas RAG con memoria conversacional y la interacción con el LLM de OpenAI.</li>
 <li><strong>Clases y funciones clave</strong>:
 <ul>
-<li><code>class LangchainAssistant</code>:
+<li><code>class ToolAgent</code>:
 <ul>
-<li><code>__init__(retriever)</code>: Inicializa el asistente del chatbot.
+<li><code>__init__</code>:
 <ul>
+<li><strong>Propósito</strong>: Inicializa el agente, configurando el modelo LLM, conectando a MongoDB para la persistencia de sesiones e historial, definiendo el <em>prompt</em> principal del sistema y registrando las herramientas disponibles.</li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Establece <code>self.model</code> a “gpt-4.1”.</li>
+<li>Inicializa las conexiones a las colecciones de MongoDB (<code>sessions</code>, <code>message_backup</code>).</li>
+<li>Define <code>self.prompt</code> como un <code>ChatPromptTemplate</code> que guía el comportamiento del agente, incluyendo instrucciones de formato de respuesta y el manejo del historial (<code>chat_history</code>).</li>
+<li>Define <code>self.tools</code> como una lista de objetos <code>Tool</code> y <code>StructuredTool</code>, que el agente puede invocar. Estas herramientas incluyen <code>search_information_tool</code>, <code>existencias_tool</code> y <code>sales_rules_tool</code>, cada una con su descripción y esquema de argumentos (<code>args_schema</code>) cuando aplica.</li>
+<li><code>self.executor</code> se inicializa a <code>None</code> y se construye bajo demanda.</li>
+</ul></li>
+</ul></li>
+<li><code>clear_session_history(self, session_id: str) -&gt; bool</code>:
+<ul>
+<li><strong>Propósito</strong>: Limpia el historial de mensajes (<code>last_messages</code>) para una sesión de usuario específica en la base de datos de MongoDB. Limpia el historial de mensajes para una sesión en particular.</li>
 <li><strong>Parámetros</strong>:
 <ul>
-<li><code>retriever</code>: Una instancia de un <strong>retriever</strong> (ej., <code>vectorstore.retriever</code>) que proporciona documentos relevantes.</li>
+<li><code>session_id (str)</code>: El identificador único de la sesión cuyo historial se desea borrar.</li>
 </ul></li>
-<li><strong>Comportamiento</strong>: Configura el LLM (OpenAI), las conexiones a MongoDB para <code>sessions</code> y <code>message_backup</code>, define el tamaño de la ventana de memoria (<code>memory_window_size</code>), y construye la cadena RAG principal (<code>rag_chain</code>).</li>
+<li><strong>Retorna</strong>: <code>bool</code>: <code>True</code> si la operación fue exitosa, <code>False</code> en caso de error.</li>
+<li><strong>Comportamiento</strong>: Actualiza el documento de la sesión en MongoDB, estableciendo <code>last_messages</code> como una lista vacía. Maneja excepciones de PyMongo y otras.</li>
 </ul></li>
-<li><code>get_session_history(session_id: str) -&gt; List[BaseMessage]</code>: Recupera el historial de chat de una sesión específica desde MongoDB.
+<li><code>ensure_session(self, session: str) -&gt; dict</code>:
 <ul>
-<li><strong>Parámetros</strong>:
-<ul>
-<li><code>session_id (str)</code>: El identificador único de la sesión del usuario.</li>
-</ul></li>
-<li><strong>Retorna</strong>: <code>List[BaseMessage]</code>: Una lista de objetos <code>HumanMessage</code> y <code>AIMessage</code> que representan la conversación previa.</li>
-</ul></li>
-<li><code>clear_session_history(session_id: str)</code>: Elimina el historial de mensajes de una sesión específica en MongoDB.
-<ul>
-<li><strong>Parámetros</strong>:
-<ul>
-<li><code>session_id (str)</code>: El identificador único de la sesión a borrar.</li>
-</ul></li>
-<li><strong>Retorna</strong>: <code>bool: True</code> si la operación fue exitosa, <code>False</code> en caso contrario.</li>
-</ul></li>
-<li><code>ensure_session(session: str)</code>: Asegura que exista una entrada para la <code>session_id</code> en la colección <code>sessions</code> de MongoDB, o la crea si no existe.
-<ul>
+<li><strong>Propósito</strong>: Garantiza que exista una entrada para la <code>sesion_id</code> en la colección <code>sessions</code> de MongoDB. Si no existe, la crea; si existe, actualiza la marca de tiempo de la última actividad.</li>
 <li><strong>Parámetros</strong>:
 <ul>
 <li><code>session_id (str)</code>: El identificador de la sesión.</li>
 </ul></li>
-<li><strong>Comportamiento</strong>: Actualiza la última actividad de la sesión o inserta una nueva sesión.</li>
+<li><strong>Retorna</strong>: <code>dict</code>: El documento de la sesión actualizado o recién creado.</li>
+<li><strong>Comportamiento</strong>: Utiliza <code>update_one</code> con <code>$setOnInsert</code> y <code>$set</code> para manejar la lógica de upsert y actualización de actividad.</li>
 </ul></li>
-<li><code>build_chain()</code>: Construye la cadena RAG que incorpora el historial de chat.
+<li><code>build_executor(self)</code>:
 <ul>
-<li><strong>Parámetros</strong>: Ninguno.</li>
-<li><strong>Retorna</strong>: Una instancia de <code>langchain.chains.create_retrieval_chain</code> configurada para manejar el historial y la recuperación de documentos.</li>
+<li><strong>Propósito</strong>: Construye el <code>AgentExecutor</code> de LangChain, que es el componente principal que orquesta la interacción entre el LLM, las herramientas y el <em>prompt</em>.</li>
+<li><strong>Parámetros</strong>: Ninguno (usa atributos de la clase).</li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Crea un <code>ChatOpenAI</code> LLM con el modelo y la configuración de <em>streaming</em>.</li>
+<li>Crea un agente de funciones de OpenAI (<code>create_openai_functions_agent</code>) vinculando el LLM, las herramientas y el <em>prompt</em>.</li>
+<li>Inicializa <code>self.executor</code> como una instancia de <code>AgentExecutor</code>, configurándolo para ser <code>verbose=False</code> y con un <code>max_iterations</code> para controlar la profundidad de la ejecución del agente.</li>
 </ul></li>
-<li><code>answer</code>:</li>
+</ul></li>
+<li><code>run</code>:</li>
 </ul>
-<div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>answer(</span>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> run(</span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
 <span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
 <span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-Responde a una consulta del usuario, transmitiendo la respuesta en tiempo real.
 <ul>
+<li><strong>Propósito</strong>: Ejecuta una consulta del usuario a través del agente, gestiona el historial de chat, recopila métricas y transmite la respuesta en tiempo real.</li>
 <li><strong>Parámetros</strong>:
 <ul>
 <li><code>session_id (str)</code>: ID de la sesión del usuario.</li>
@@ -451,144 +473,426 @@ Responde a una consulta del usuario, transmitiendo la respuesta en tiempo real.
 <li><code>listaPrecio (str)</code>: El nivel de lista de precios asociado al usuario, usado en el <em>prompt</em> del LLM.</li>
 </ul></li>
 <li><strong>Retorna</strong>: <code>AsyncGenerator[str, None]</code>: Un generador asíncrono que cede fragmentos (<code>chunks</code>) de la respuesta a medida que se generan.</li>
-<li><strong>Comportamiento</strong>: Recupera el historial, lo trunca si es muy largo, ejecuta la cadena RAG, recopila métricas de tokens/costo/duración y persiste el mensaje en <code>sessions</code> y <code>message_backup</code>.</li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Recupera el historial completo de la sesión (<code>get_session_history</code>).</li>
+<li>Trunca el historial (<code>trim_messages</code>) para ajustarse a la ventana de contexto del LLM, priorizando los mensajes más recientes.</li>
+<li>Inicializa un <code>TokenCostProcess</code> y <code>CostCalcAsyncHandler</code> para el seguimiento de tokens y costos.</li>
+<li>Si el <code>executor</code> no está construido, llama a <code>build_executor()</code>.</li>
+<li>Define los <code>inputs</code> para el <code>executor</code>, incluyendo la <code>query</code>, <code>chat_history</code>, <code>listaPrecio</code> y <code>session_id</code>.</li>
+<li>Utiliza <code>self.executor.astream()</code> para obtener la respuesta en <em>streaming</em>.</li>
+<li>Acumula los fragmentos de la respuesta completa.</li>
+<li>En el bloque <code>finally</code>, calcula la duración y los metadatos de la interacción.</li>
+<li>Persiste los mensajes del usuario y del asistente en las colecciones <code>sessions</code> y <code>message_backup</code> de MongoDB.</li>
+</ul></li>
+<li><code>get_session_history(self, session_id: str) -&gt; list[BaseMessage]</code>:
+<ul>
+<li><strong>Propósito</strong>: Recupera el historial de mensajes de una sesión específica desde MongoDB y lo convierte a objetos <code>BaseMessage</code> de LangChain.</li>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>session_id (str)</code>: El ID del usuario cuyo historial se desea recuperar.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>list[baseMessage]</code>: Una lista de objetos <code>HumanMessage</code> y <code>AIMessage</code> que representan el historial de conversación.</li>
+<li><strong>Comportamiento</strong>: Consulta la colección <code>sessions</code> en MongoDB para el <code>session_id</code> dado y mapea los mensajes almacenados a los tipos de mensaje de LangChain.</li>
+</ul></li>
 <li><code>add_message</code></li>
 </ul>
-<div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>add_message(</span>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_message(</span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a> message_type: <span class="bu">str</span>, </span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a> content: <span class="bu">str</span>, </span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-Agrega un mensaje a la colección <code>sessions</code> para mantener un historial de ventana.
 <ul>
+<li><strong>Propósito</strong>: Añade un nuevo mensaje (de usuario o asistente) al historial de <code>last_messages</code> de una sesión en MongoDB, manteniendo un tamaño fijo para optimizar el rendimiento.</li>
 <li><strong>Parámetros</strong>:
 <ul>
 <li><code>session_id (str)</code>: ID de la sesión.</li>
-<li><code>message_type (str)</code>: <em>human</em> o <em>assistant</em>.</li>
-<li><code>content (str)</code>: Contenido del mensaje.</li>
-<li><code>metadata (dict)</code>: Metadatos adicionales (usado para mensajes del asistente).</li>
+<li><code>message_type (str)</code>: Tipo de mensaje, puede ser “human” o “assistant”.</li>
+<li><code>content (str)</code>: Contenido textual del mensaje.</li>
 </ul></li>
-<li><strong>Comportamiento</strong>: Inserta el mensaje y trunca la colección <code>last_messages</code> a un tamaño fijo (actualmente 50 mensajes) para optimizar el rendimiento.</li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Crea un diccionario <code>short_msg</code> con el tipo, contenido y timestamp.</li>
+<li>Utiliza <code>$push</code> con <code>$each</code>, <code>$sort</code> y <code>$slice</code> para añadir el nuevo mensaje y truncar la lista <code>last_messages</code> a los últimos 24 mensajes (configurable).</li>
+</ul></li>
 <li><code>add_message_backup</code></li>
 </ul>
-<div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>add_message_backup(</span>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_message_backup(</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
 <span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
 <span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a> full_answer: <span class="bu">str</span>, </span>
 <span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-Guarda un respaldo completo de cada interacción (pregunta y respuesta) junto con métricas detalladas en la colección <code>message_backup</code>.
 <ul>
-<li><strong>Parámetros</strong>:
+<li><p><strong>Propósito</strong>: Guarda un respaldo completo de cada interacción (pregunta del usuario y respuesta completa del asistente) junto con métricas detalladas en la colección <code>message_backup</code> de MongoDB para análisis posterior.</p></li>
+<li><p><strong>Parámetros</strong>:</p>
 <ul>
 <li><code>session_id (str)</code>: ID de la sesión.</li>
-<li><code>message_type (str)</code>: <em>human</em> o <em>assistant</em>.</li>
-<li><code>content (str)</code>: Contenido del mensaje.</li>
-<li><code>metadata (dict)</code>: Metadatos adicionales (usado para mensajes del asistente).</li>
+<li><code>question (str)</code>: La pregunta original del usuario.</li>
+<li><code>full_answer (str)</code>: La respuesta completa generada por el asistente.</li>
+<li><code>metadata (dict)</code>: Diccionario con metadatos adicionales (tokens, costo, duración, modelo utilizado).</li>
 </ul></li>
-<li><strong>Comportamiento</strong>: Inserta un nuevo documento en <code>message_backup</code> con toda la información relevante para análisis posterior.</li>
+<li><p><strong>Comportamiento</strong>: Inserta un nuevo documento en <code>message_backup</code> con toda la información relevante para análisis posterior.</p></li>
+<li><p><code>add_irrelevant_message</code></p></li>
+</ul>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_irrelevant_message(</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a> <span class="va">self</span>,</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a> full_answer: <span class="bu">str</span>, </span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ul>
+<li><p><strong>Propósito</strong>: Guarda un mensaje etiquetado como “irrelevante” en la colección <code>message_backup</code>. Esto es útil para el monitoreo y posible re-entrenamiento del clasificador.</p></li>
+<li><p><strong>Parámetros</strong>:</p>
+<ul>
+<li><code>session_id (str)</code>: ID de la sesión.</li>
+<li><code>question (str)</code>: La pregunta del usuario clasificada como irrelevante.</li>
+<li><code>full_answer (str)</code>: La respuesta generada por el moderador para consultas irrelevantes.</li>
+</ul></li>
+<li><p><strong>Comportamiento</strong>: Inserta un nuevo documento en <code>message_backup</code> con el campo <code>label</code> establecido en <code>False</code>.</p></li>
+<li><p><code>make_metadata</code></p></li>
+</ul>
+<div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_metadata(</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a> <span class="va">self</span>,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a> token_cost_process: TokenCostProcess,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a> duration: <span class="bu">float</span> <span class="op">=</span> <span class="va">None</span>) <span class="op">-&gt;</span> <span class="bu">dict</span> : </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ul>
+<li><strong>Propósito</strong>: Genera un diccionario con metadatos de la interacción, incluyendo información sobre el costo, los tokens utilizados y el tiempo de procesamiento.</li>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>token_cost_process (TokenCostProcess)</code>: Objeto que contiene información de los tokens.</li>
+<li><code>duration (float)</code>: Duración de la ejecución en segundos.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>dict</code>: Diccionario con metadatos.</li>
 </ul></li>
 </ul></li>
 </ul>
-<p><strong>ct/langchain/rag.py</strong></p>
+<p><strong>ct/tools/search_information.py</strong></p>
+<p>Este módulo define la herramienta <code>search_information_tool</code>, que permite al chatbot realizar búsquedas semánticas en las bases de datos vectoriales de productos y promociones para encontrar elementos relevantes.</p>
 <ul>
-<li>Orquesta el flujo completo de una consulta de usuario, incluyendo la clasificación de la intención y la delegación a los modelos adecuados.</li>
+<li><strong>Clases y funciones clave</strong>:
+<ul>
+<li><code>vectorstore</code>:
+<ul>
+<li><strong>Propósito</strong>: Una instancia global de <code>LangchainVectorStore</code> que carga el vector store combinado de productos y promociones desde <code>SALES_PRODUCTS_VECTOR_PATH</code>.</li>
+</ul></li>
+<li><code>retriever_productos</code>:
+<ul>
+<li><strong>Propósito</strong>: Un <code>retriever</code> configurado para buscar similitudes en el vector store, filtrando específicamente por documentos de la colección “productos”.</li>
+<li><strong>Configuración</strong>: <code>search_type='similarity'</code>, <code>k=2</code> (devuelve los 2 resultados más similares), <code>score_threshold=0.95</code> (filtra resultados con baja similitud), <code>filter={"collection": "productos"}</code>.</li>
+</ul></li>
+<li><code>retriever_promociones</code>:
+<ul>
+<li><strong>Propósito</strong>: Un <code>retriever</code> configurado de manera similar, pero filtrando por documentos de la colección “promociones”.</li>
+<li><strong>Configuración</strong>: <code>search_type='similarity'</code>, <code>k=2</code> (devuelve los 2 resultados más similares), <code>score_threshold=0.95</code> (filtra resultados con baja similitud), <code>filter={"collection": "promociones"}</code>.</li>
+</ul></li>
+<li><code>parse_page_content (content)</code>:
+<ul>
+<li><strong>Propósito</strong>: Una función auxiliar interna que parsea el <code>page_content</code> de un documento de LangChain (que es una cadena de texto concatenada) de nuevo a un diccionario de clave-valor.</li>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>content (str)</code>: La cadena de texto del <code>page_content</code> del documento.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>dict</code>: Un diccionario con las características del producto/promoción.</li>
+<li><strong>Comportamiento</strong>: Utiliza expresiones regulares para dividir la cadena por <code>.</code> y luego por <code>:</code> para extraer las claves y valores.</li>
+</ul></li>
+<li><code>search_information_tool(query) -&gt; dict</code>:
+<ul>
+<li><strong>Propósito</strong>: Busca productos y promociones relevantes en las bases de datos vectoriales utilizando la búsqueda semántica.</li>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>query (str)</code>: La consulta de búsqueda del usuario.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>dict</code>: Un diccionario que contiene dos listas: <code>"Promociones"</code> y <code>"Productos"</code>, donde cada lista contiene diccionarios de los resultados encontrados.</li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Invoca <code>retriever_promociones.invoke(query)</code> y <code>retriever_productos.invoke(query)</code> para obtener los documentos más relevantes de cada colección.</li>
+<li>Utiliza <code>parse_page_content()</code> para transformar el <code>page_content</code> de cada documento recuperado en un formato de diccionario estructurado.</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+<p><strong>ct/tools/existences.py</strong></p>
+<p>Este módulo define la herramienta <code>existencias_tool</code>, que permite al chatbot consultar la disponibilidad, precio y moneda de un producto específico en la base de datos MySQL.</p>
+<ul>
+<li><strong>Clases y funciones clave</strong>:
+<ul>
+<li><code>class ExistenciasInput(BaseModel)</code>:
+<ul>
+<li><strong>Propósito</strong>: Define el esquema de entrada (parámetros) para la herramienta <code>existencias_tool</code> utilizando Pydantic, asegurando la validación de los datos.</li>
+<li><strong>Atributos</strong>:
+<ul>
+<li><code>clave (str)</code>: La clave única del producto a consultar.</li>
+<li><code>listaPrecio (int)</code>: El ID de la lista de precios a considerar para la consulta.</li>
+</ul></li>
+</ul></li>
+<li><code>existencias_tool(clave: str, listaPrecio: int) -&gt; str</code>:
+<ul>
+<li><strong>Propósito</strong>: Define el esquema de entrada (parámetros) para la herramienta <code>existencias_tool</code> utilizando Pydantic, asegurando la validación de los datos.</li>
+<li><strong>Atributos</strong>:
+<ul>
+<li><code>clave (str)</code>: La clave del producto.</li>
+<li><code>listaPrecio (int)</code>: El ID de la lista de precios.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>str</code>: Una cadena de texto formateada con la información del producto (claave, precio original, moneda, existencias, si está en promoción) o un mensaje de promoción no encontrada.</li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Construye una consulta SQL que une las tablas <code>productos</code>, <code>existencias</code>, <code>precio</code> y <code>promociones</code>.</li>
+<li>Se conecta a MySQL, ejecuta la consulta con los parámetros proporcionados.</li>
+<li>Formatea el resultado para indicar la moneda (MXN/USD) y el estado de promoción (si el producto en cuestión está o no en promoción).</li>
+<li>Incluye manejo de errores para problemas de conexión a la base de datos o errores inesperados.</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+<p><strong>ct/tools/sales_rules_tool.py</strong></p>
+<p>Este módulo define la herramienta <code>sales_rules_tool</code>, que permite al chatbot aplicar reglas de promoción y calcular el precio final de un producto, considerando la lista de precios y la sucursal del usuario.</p>
+<ul>
+<li><strong>Clases y funciones clave</strong>:
+<ul>
+<li><code>SUCURSALES</code>:
+<ul>
+<li><strong>Propósito</strong>: Un diccionario global cargado desde un archivo JSON (<code>ID_SUCURSAL</code>) que mapea nemónicos de sucursal a sus IDs.</li>
+</ul></li>
+<li><code>class SalesInput(BaseModel)</code>:
+<ul>
+<li><strong>Propósito</strong>: Define el esquema de entrada (parámetros) para la herramienta <code>sales_rule_tool</code> utilizando Pydantic.</li>
+<li><strong>Atributos</strong>:
+<ul>
+<li><code>clave (str)</code>: La clave única del producto en promoción.</li>
+<li><code>listaPrecio (int)</code>: El ID de la lista de precios a considerar.</li>
+<li><code>session_id (str)</code>: El ID de la sesión del usuario, utilizado para inferir la sucursal.</li>
+</ul></li>
+</ul></li>
+<li><code>obtener_id_sucursal(session_id: str) -&gt; str</code>:
+<ul>
+<li><strong>Propósito</strong>: Extrae el ID de la sucursal a partir del <code>session_id</code> del usuario, utilizando patrones predefinidos (e.g., “XXCTIN” o nemónicos como “HMO”).</li>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>session_id (str)</code>: El ID de la sesión del usuario.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>str</code>: El ID de la sucursal como una cadena.</li>
+<li><strong>Comportamiento</strong>: Utiliza expresiones regulares para extraer el nemónico o ID de la sucursal del <code>session_id</code> y lo busca en el diccionario <code>SUCURSALES</code>. Lanza <code>ValueError</code> si no puede extraer o encontrar la sucursal.</li>
+</ul></li>
+<li><code>query_sales()</code>:
+<ul>
+<li><strong>Propósito</strong>: Retorna la consulta SQL para obtener los detalles de la promoción más relevante para un producto, lista de precios y sucursal específicos.</li>
+<li><strong>Parámetros</strong>: Ninguno.</li>
+<li><strong>Retorna</strong>: <code>str</code>: La cadena de la consulta SQL.</li>
+<li><strong>Comportamiento</strong>: La consulta filtra por promociones activas, producto, lista de precios y sucursal, ordenando por fecha de inicio para obtener la promoción más reciente.</li>
+</ul></li>
+<li><code>sales_rules_tool(clave: str, listaPrecio: int, session_id: str) -&gt; str</code>:
+<ul>
+<li><strong>Propósito</strong>: Aplica las reglas de promoción para un producto dado, calculando el precio final y generando un mensaje descriptivo para el usuario.</li>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>clave (str)</code>: La clave del producto.</li>
+<li><code>listaPrecio (int)</code>: El ID de la lista de precios.</li>
+<li><code>session_id (str)</code>: El ID de la sesión del usuario.</li>
+</ul></li>
+<li><strong>Retorna</strong>: <code>str</code>: Una cadena de texto formateada que describe la promoción aplicada (precio, final, descuento, condiciones, vigencia) o un mensaje si el producto no está en promoción.</li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Obtiene el <code>id_sucursal</code> usando <code>obtener_id_sucursal()</code>.</li>
+<li>Se conecta a MySQL y ejecuta <code>query_sales()</code> para obtener los detalles de la promoción.</li>
+<li>Evalúa diferentes tipos de promociones (precio de oferta, descuento porcentual, “en compra de X recibe Y”).</li>
+<li>Calcula el <code>precio_final</code> y construye un mensaje descriptivo.</li>
+<li>Maneja casos donde la promoción no está vigente o el producto no se encuentra en promoción.</li>
+<li>Incluye manejo de errores para problemas de base de datos o errores inesperados.</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+<p><strong>ct/moderation/query_moderator.py</strong></p>
+<p>Este módulo se encarga de clasificar las consultas del usuario (relevante, irrelevante, inapropiado) y de gestionar el comportamiento inapropiado, incluyendo la aplicación de sanciones temporales.</p>
+<ul>
 <li><strong>Clases y funciones claves</strong>:
 <ul>
-<li><code>class LangchainRAG</code>:
+<li><code>class QueryModerator</code>:
 <ul>
-<li><code>__init__(index_path: str = None)</code>: Inicializa el orquestador RAG.
+<li><code>__init__(model: str = "gemma3:4b", assistant : ToolAgent = None)</code>:
 <ul>
+<li><strong>Propósito</strong>: Inicializa el moderador de consultas, configurando el modelo LLM para clasificación y una referencia al <code>ToolAgent</code> para interactuar con la base de datos de sesiones.</li>
 <li><strong>Parámetros</strong>:
 <ul>
-<li><code>index_path (str)</code>: Ruta al índice FAISS.</li>
+<li><code>model (str)</code>: Nombre del modelo de Ollama a utilizar para la clasificación de consultas (por defecto “gemma3:4b”).</li>
+<li><code>assistant (ToolAgent)</code>: Instancia del <code>ToolAgent</code> para acceder a la gestión de sesiones en MongoDB.</li>
 </ul></li>
-<li><strong>Comportamiento</strong>: Inicializa el <em>embedder</em>, el <em>vector store</em> (cargando el índice si existe), y el asistente de LangChain. Configura el modelo Ollama (<code>gemma3:1b</code>) para la clasificación.</li>
 </ul></li>
-<li><code>classify_query(query: str) -&gt; str</code>: Clasifica la consulta del usuario.
+<li><code>classify_query(query: str) -&gt; str</code>
 <ul>
+<li><strong>Propósito</strong>: Clasifica la consulta del usuario como ‘relevante’, ‘irrelevante’ o ‘inapropiado’ utilizando un modelo de lenguaje.</li>
 <li><strong>Parámetros</strong>:
 <ul>
-<li><code>query (str)</code>: La consulta del usuario.</li>
+<li><code>query (str)</code>: La consulta de texto del usuario.</li>
 </ul></li>
 <li><strong>Retorna</strong>: Un <code>str</code> con una de las clasificaciones <em>relevante</em>, <em>irrelevante</em>, o <em>inapropiado</em>.</li>
-<li><strong>Comportamiento</strong>: Utiliza un modelo Ollama (<code>gemma3:1b</code>) con un <em>system prompt</em> específico para realizar la clasificación.</li>
-</ul></li>
-<li><code>polite_answer(query: str) -&gt; AsyncGenerator[str, None]</code>: Genera una respuesta cortés para consultas irrelevantes.
+<li><strong>Comportamiento</strong>:
 <ul>
+<li>Utiliza <code>ollama.generate()</code> con un <code>system_prompt</code> predefinido (<code>_classification_prompt</code>) para guiar la clasificación del modelo.</li>
+<li>Configura opciones del modelo como <code>temperature = 0</code> para un comportamiento determinista.</li>
+</ul></li>
+</ul></li>
+<li><code>_classification_prompt(self) -&gt; str</code>:
+<ul>
+<li><strong>Propósito</strong>: Retorna el <em>system prompt</em> utilizado por el modelo de clasificación para categorizar las consultas del usuario.</li>
+<li><strong>Parámetros</strong>: Ninguno.</li>
+<li><strong>Retorna</strong>: <code>str</code>: La cadena de texto del <em>system prompt</em>.</li>
+<li><strong>Comportamiento</strong>: Define las reglas y ejemplos para que el LLM clasifique las consultas en las tres categorías.</li>
+</ul></li>
+<li><code>polite_answer(self) -&gt; str</code>:
+<ul>
+<li><strong>Propósito</strong>: Devuelve una respuesta predefinida y amigable cuando la consulta del usuario es clasificada como ‘irrelevante’.</li>
+<li><strong>Parámetros</strong>: Ninguno.</li>
+<li><strong>Retorna</strong>: <code>str</code>: Una cadena de texto con la respuesta cortés.</li>
+<li><strong>Comportamiento</strong>: No utiliza un modelo de lenguaje para garantizar rapidez y confiabilidad en la respuesta.</li>
+</ul></li>
+<li><code>ban_answer(self) -&gt; str</code>:
+<ul>
+<li><strong>Propósito</strong>: Devuelve una respuesta predefinida que advierte al usuario sobre el uso de lenguaje inapropiado y las posibles consecuencias.</li>
+<li><strong>Parámetros</strong>: Ninguno.</li>
+<li><strong>Retorna</strong>: <code>str</code>: Una cadena de texto con el mensaje de advertencia.</li>
+<li><strong>Comportamiento</strong>: No utiliza un modelo de lenguaje para garantizar rapidez y control de tono.</li>
+</ul></li>
+<li><code>evaluate_inappropriate_behavior(self, session: dict, query: str)</code>:
+<ul>
+<li><strong>Propósito</strong>: Evalúa el comportamiento inapropiado del usuario, incrementa el contador de intentos y determina la duración de una posible sanción (baneo progresivo).</li>
 <li><strong>Parámetros</strong>:
 <ul>
-<li><code>query (str)</code>: La consulta del usuario.</li>
-<li><strong>Retorna</strong>: <code>AsyncGenerator[str, None]</code>: Cede fragmentos de una respuesta amigable indicando que la consulta está fuera de tema.</li>
-<li><strong>Comportamiento</strong>: Usa el modelo Ollama (<code>gemma3:1b</code>) con un <em>system prompt</em> que lo instruye a ser cortés y redirigir al usuario a temas tecnológicos.</li>
-</ul></li>
-</ul></li>
-<li><code>ban_answer(query: str) -&gt; AsyncGenerator[str, None]</code>: Genera una respuesta firme para consultas inapropiadas.
+<li><code>session (dict)</code>: El documento de la sesión del usuario, que contiene el historial de intentos inapropiados y el estado de baneo.</li>
+<li><code>query (str)</code>: La consulta inapropiada actual del usuario.</li>
+<li><strong>Retorna</strong>: <code>tuple[str, int, Optional[datetime]]</code>: Una tupla que contiene:
 <ul>
+<li><code>msg (str)</code>: El mensaje de sanción a mostrar al usuario.</li>
+<li><code>tries (int)</code>: El número actualizado de intentos inapropiados.</li>
+<li><code>banned_until (Optional[datetime])</code>: La fecha y hora hasta la cual el usuario estará baneado (o <code>None</code> si es solo una advertencia).</li>
+</ul></li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Implementa una lógica de escalamiuento progresivo de sanciones (advertencia, 1 min, 3 min, 10 min, 1 hora, 1 día, 7 días) basada en el número de intentos.</li>
+<li>Reinicia el contador de intentos si ha pasado suficiente tiempo desde el último incidente.</li>
+</ul></li>
+</ul></li>
+</ul></li>
+<li><code>check_if_banned(self, session: dict) -&gt; Optional[str]</code>:
+<ul>
+<li><strong>Propósito</strong>: Verifica si el usuario asociado a una sesión está actualmente baneado. Si el baneo ha expirado, limpia el estado de baneo en la base de datos. Verifica si el usuario está actualmente baneado.</li>
 <li><strong>Parámetros</strong>:
 <ul>
-<li><code>query (str)</code>: La consulta original del usuario.</li>
+<li><code>session (dict)</code>: El documento de la sesión del usuario.</li>
 </ul></li>
-<li><strong>Retorna</strong>: <code>AsyncGenerator[str, None]</code>: Cede fragmentos de una respuesta que prohíbe el lenguaje inapropiado y advierte de un posible bloqueo.</li>
-<li><strong>Comportamiento</strong>: Usa el modelo Ollama (<code>gemma3:1b</code>) con un <em>system prompt</em> que exige una respuesta directa y sin concensiones.</li>
+<li><strong>Retorna</strong>: <code>Optional[str]</code>: Un mensaje de baneo si el usuario está actualmente restringido, o <code>None</code> si no está baneado o si el baneo ha expirado.</li>
+<li><strong>Comportamiento</strong>: Compara la fecha y hora actual con la fecha <code>banned_until</code> de la sesión. Si el baneo ha expirado, actualiza la sesión en MongoDB para eliminar el campo <code>banned_until</code>.</li>
+</ul></li>
+<li><code>update_inappropriate_session(self, session, tries, banned_until)</code>:
+<ul>
+<li><strong>Propósito</strong>: Actualiza los campos relacionados con el comportamiento inapropiado (<code>inappropiate_tries</code>, <code>last_inappropiate</code>, <code>banned_until</code>) en el documento de la sesión del usuario en MongoDB.</li>
+<li><strong>Parámetros</strong>:
+<ul>
+<li><code>session_id (str)</code>: ID de la sesión.</li>
+<li><code>tries (int)</code>: El número de intentos inapropiados.</li>
+<li><code>banned_until (Optional[datetime])</code>: La fecha y hora hasta la que el usuario está baneado (o <code>None</code>).</li>
+</ul></li>
+<li><strong>Comportamiento</strong>: Realiza una operación de <code>update_one</code> en la colección <code>sessions</code> para establecer los campos especificados.</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+<p><strong>ct/langchain/moderated_tool_agent.py</strong></p>
+<p>Este módulo orquesta el flujo completo de una consulta de usuario, incluyendo la moderación de contenido y la delegación de la consulta al agente principal de herramientas (<code>ToolAgent</code>) si es relevante.</p>
+<ul>
+<li><strong>Clases y funciones claves</strong>:
+<ul>
+<li><code>class ModeratedToolAgent</code>:
+<ul>
+<li><code>__init__(self)</code>:
+<ul>
+<li><strong>Propósito</strong>: Inicializa el <code>ModeratedToolAgent</code>, creando instancias de <code>ToolAgent</code> y <code>QueryModerator</code> y vinculándolos para coordinar el flujo de la conversación.</li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Crea <code>self.tool_agent</code> para manejar la lógica principal del chatbot y la interración con herramientas.</li>
+<li>Crea <code>self.moderator</code> para la clasificación y gestión de comportamiento, pasándole <code>self.tool_agent</code> para que el moderador pueda actualizar el estado de la sesión.</li>
+</ul></li>
 </ul></li>
 <li><code>run</code></li>
 </ul>
-<div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>run(</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a> query: <span class="bu">str</span>, </span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>, </span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-Ejecuta el flujo completo de la consulta del usuario.
+<div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> run(</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a> query: <span class="bu">str</span>, </span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>, </span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
+<li><strong>Propósito</strong>: Ejecuta el flujo completo de una consulta del usuario, desde la verificación de baneo y la clasificación, hasta la generación de la respuesta (relevante, irrelevante, inapropiado) y su <em>streaming</em>.</li>
 <li><strong>Parámetros</strong>:
 <ul>
-<li><code>query (str)</code>: La consulta del usuario.</li>
-<li><code>session_id (str)</code>: ID de la sesión.</li>
-<li><code>listaPrecio (str)</code>: Nivel de lista de precios.</li>
+<li><code>query (str)</code>: La consulta de texto del usuario.</li>
+<li><code>session_id (str)</code>: ID de la sesión del usuario.</li>
+<li><code>listaPrecio (str)</code>: El nivel de lista de precios asociado al usuario.</li>
 </ul></li>
-<li><strong>Retorna</strong>: <code>AsyncGenerator[str, None]</code>: Cede fragmentos de la respuesta final del chatbot.</li>
-<li><strong>Comportamiento</strong>: Primero clasifica la consulta. Dependiendo de la clasificación, llama a <code>assistant.answer</code> (para relevante), <code>polite_answer</code> (para irrelevante) o <code>ban_answer</code> (para inapropiado).</li>
+<li><strong>Retorna</strong>: <code>AsyncGenerator[str, None]</code>: Un generador asíncrono que cede fragmentos (<code>chunks</code>) de la respuesta final del chatbot.</li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Asegura la existencia de la sesión (<code>tool_agent.ensure_session</code>).</li>
+<li>Verifica si el usuario está baneado (<code>moderator.check_if_banned</code>). Si lo está, cede el mensaje de baneo y termina.</li>
+<li>Clasifica la <code>query</code> (<code>moderator.classify_query</code>).</li>
+<li>Basado en la <code>label</code> de clasificación:
+<ul>
+<li>Si es <em>relevante</em>, delega la ejecución al <code>tool_agent.run()</code> para obtener una respuesta detallada con herramientas.</li>
+<li>Si es <em>irrelevante</em>, genera una respuesta cortés (<code>moderator.polite_answer()</code>) y la registra.</li>
+<li>Si es <em>inapropiado</em>, evalúa el comportamiento (<code>moderator.evaluate_inappropriate_behavior()</code>), actualiza la sesión (<code>moderator.update_inappropriate_session()</code>) y cede el mensaje de sanción.</li>
+<li>Si la clasificación no es reconocida, cede un mensaje de error genérico.</li>
+</ul></li>
+</ul></li>
 </ul></li>
 </ul></li>
 </ul>
 <p><strong>ct/chat.py</strong></p>
+<p>Este módulo define los <em>endpoints</em> de la API FastAPI para la interacción del chat y la gestión del historial de sesiones, sirviendo como la interfaz principal entre el <em>frontend</em> y la lógica del chatbot.</p>
 <ul>
-<li>Define los <em>endpoints</em> de la API para la interacción del chat y la gestión del historial de sesiones.</li>
 <li><strong>Funciones clave</strong>:
 <ul>
-<li><code>get_chat_history(user_id: str)</code>: Recupera el historial de chat de un usuario específico.
+<li><code>assistant = ModeratedToolAgent()</code>:
 <ul>
+<li><strong>Propósito</strong>: Inicializa una instancia global de <code>ModeratedToolAgent</code> que será utilizada por todos los <em>endpoints</em> del chat.</li>
+<li><strong>Comportamiento</strong>: Se crea una única instancia para mantener el estado y las conexiones a la base de datos.</li>
+</ul></li>
+<li><code>get_chat_history(user_id: str) -&gt; list[dict[str, str]]</code>:
+<ul>
+<li><strong>Propósito</strong>: Devuelve el historial de chat de un usuario específico en un formato JSON amigable para el <em>frontend</em>. Recupera el historial de chat de un usuario específico.</li>
 <li><strong>Parámetros</strong>:
 <ul>
 <li><code>user_id (str)</code>: El ID del usuario cuyo historial se desea recuperar.</li>
 </ul></li>
-<li><strong>Retorna</strong>: <code>List[Dict[str, str]]</code>: Una lista de diccionarios, donde cada diccionario representa un mensaje con <em>role</em> (<em>user</em> o <em>bot</em>) y <em>content</em>.</li>
-<li><strong>Comportamiento</strong>: Llama a <code>assistant.get_session_history()</code> y formatea la respuesta.</li>
+<li><strong>Retorna</strong>: <code>List[Dict[str, str]]</code>: Una lista de diccionarios, donde cada diccionario representa un mensaje con las claves <em>role</em> (<em>user</em> o <em>bot</em>) y <em>content</em> (el texto del mensaje). Retorna una lista vacía si no hay historial.</li>
+<li><strong>Comportamiento</strong>: Llama a <code>assistant.tool_agent.get_session_history()</code> para obtener el historial de LangChain y lo transforma al formato JSON deseado.</li>
 </ul></li>
-<li><code>async_chat_generator(request: QueryRequest) -&gt; AsyncGenerator[str, None]</code>: Un generador asíncrono que envuelve la función <code>run</code> de la clase <code>LangchainRAG</code> para permitir el <em>streaming</em> de respuestas.
+<li><code>async_chat_generator(request: QueryRequest) -&gt; AsyncGenerator[str, None]</code>:
 <ul>
+<li><strong>Propósito</strong>: Un generador asíncrono que envuelve la función <code>run</code> de la clase <code>ModeratedToolAgent</code> para permitir el <em>streaming</em> de respuestas a los clientes de la API.</li>
 <li><strong>Parámetros</strong>:
 <ul>
-<li><code>request (QueryRequest)</code>: Un objeto que contiene <code>user_query</code>, <code>user_id</code>, y <code>listaPrecio</code>.</li>
+<li><code>request (QueryRequest)</code>: Un objeto Pydantic que contiene la consulta del usuario (<code>user_query</code>), el ID del usuario (<code>user_id</code>), y la lista de precios (<code>listaPrecio</code>).</li>
 </ul></li>
-<li><strong>Retorna</strong>: <code>AsyncGenerator[str, None]</code>: Cede los fragmentos de respuesta directamente desde el <code>rag.run(query: str, session_id: str, listaPrecio: str)</code>.</li>
+<li><strong>Retorna</strong>: <code>AsyncGenerator[str, None]</code>: Cede los fragmentos de respuesta directamente desde el <code>assistant.run()</code>.</li>
 </ul></li>
-<li><code>async_chat_endpoint(request: QueryRequest)</code>: El <em>endpoint</em> HTTP POST para recibir nuevas consultas de chat y devolver respuestas en <em>streaming</em>.
+<li><code>async_chat_endpoint(request: QueryRequest) -&gt; StreamingResponse</code>:
 <ul>
+<li><strong>Propósito</strong>: El <em>endpoint</em> HTTP POST principal para recibir nuevas consultas de chat de los usuarios y devolver respuestas en <em>streaming</em> (Server-Sent Events).</li>
 <li><strong>Parámetros</strong>
 <ul>
 <li><code>request (QueryRequest)</code>: Objeto de solicitud Pydantic con la consulta del usuario, ID de usuario y lista de precios.</li>
 </ul></li>
-<li><strong>Retorna</strong>: <code>StreamingResponse</code>: Una respuesta HTTP que permite al cliente recibir los fragmentos de la respuesta en tiempo real.</li>
+<li><strong>Retorna</strong>: <code>StreamingResponse</code>: Una respuesta HTTP que permite al cliente recibir los fragmentos de la respuesta en tiempo real a medida que se generan.</li>
+<li><strong>Comportamiento</strong>: Envuelve el <code>async_chat_generator</code> en una <code>StreamingResponse</code> con <code>media_type="text/event-stream"</code>.</li>
 </ul></li>
-<li><code>delete_chat_history_endpoint(user_id: str)</code>: El <em>endpoint</em> HTTP DELETE para eliminar el historial de chat de un usuario.
+<li><code>delete_chat_history_endpoint(user_id: str) -&gt; str</code>:
 <ul>
+<li><strong>Propósito</strong>: <em>Endpoint</em> HTTP DELETE para eliminar el historial de chat de un usuario específico.</li>
 <li><strong>Parámetros</strong>:
 <ul>
 <li><code>user_id (str)</code>: El ID del usuario cuyo historial se va a eliminar.</li>
 </ul></li>
-<li><strong>Retorna</strong>: Un <code>str</code> que indica “success” si la eliminación fue exitosa.</li>
-<li><strong>Comportamiento</strong>: Llama a <code>assistant.clear_session_history()</code> y maneja excepciones.</li>
+<li><strong>Retorna</strong>: <code>str</code>: Una cadena “success” si la eliminación fue exitosa.</li>
+<li><strong>Comportamiento</strong>: Llama a <code>assistant.tool_agent.clear_session_history()</code> para borrar el historial. Maneja excepciones y levanta una <code>HTTPException</code> en caso de error interno.</li>
 </ul></li>
 </ul></li>
 </ul>
@@ -639,11 +943,11 @@ Ejecuta el flujo completo de la consulta del usuario.
 </ul></li>
 <li><code>get_specifications_cloudscraper</code>:</li>
 </ul>
-<div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>get_specifications_cloudscraper(</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    claves: List[<span class="bu">str</span>],</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    max_retries: <span class="bu">int</span> <span class="op">=</span> <span class="dv">3</span>,</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    sleep_seconds: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.15</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Dict[<span class="bu">str</span>, <span class="bu">dict</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>get_specifications_cloudscraper(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    claves: List[<span class="bu">str</span>],</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    max_retries: <span class="bu">int</span> <span class="op">=</span> <span class="dv">3</span>,</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    sleep_seconds: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.15</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Dict[<span class="bu">str</span>, <span class="bu">dict</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 Intenta obtener las fichas técnicas para una lista de claves de productos desde un servicio externo, utilizando <code>cloudscraper</code> para manejar posibles protecciones como Cloudflare.
 <ul>
 <li><strong>Parámetros</strong>:
@@ -745,48 +1049,56 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 <li><strong>Función</strong>: Este modelo <em>open-source</em>, cargado localmente a través de Ollama, es el primer punto de contacto. Su función principal es clasificar las consultas de los usuarios como <em>relevantes</em> (productos que se ofrecen en la empresa), <em>irrelevantes</em> (cualquier producto o tema fuera del ámbito de negocio), o <em>inapropiado</em> (lenguaje ofensivo).</li>
 <li><strong>Ventaja</strong>: Permite una gestión eficiente de consultas no relacionadas con el negocio sin incurrir en costos de API’s comerciales, y es ideal para respuestas de “baneo” o corteses.</li>
 </ul></li>
-<li><strong>Generación de respuestas relevantes (OpenAI - <code>gpt-4o</code>)</strong>:
+<li><strong>Generación de respuestas relevantes (OpenAI - <code>gpt-41</code>)</strong>:
 <ul>
 <li><strong>Función</strong>: Este modelo avanzado de OpenAI es el encargado de generar las respuestas detalladas y contextualizadas para las consultas clasificadas como <em>relevantes</em>. Trabaja en conjunto con la cadena RAG para integrar la información recuperada de la base de datos vectorial.</li>
 <li><strong>Ventaja</strong>: Ofrece alta calidad y precisión en las respuestas, especialmente en el manejo de precios, promociones complejas y detalles de productos, lo que fue validad en pruebas comparativas.</li>
-<li><strong>Nota</strong>: Se ha estado testeando el nuevo modelo <code>gpt-4.1</code> y ha dado buenos resultados. Posiblemente haya una actualización del modelo utilizado por OpenAI.</li>
 </ul></li>
 </ul>
 </section>
 <section id="puntos-de-entrada-y-funciones-clave" class="level3">
 <h3 class="anchored" data-anchor-id="puntos-de-entrada-y-funciones-clave">2.3 Puntos de entrada y funciones clave</h3>
-<p>Estos son los principales puntos de inicio para interactuar con las funcionalidades del chatbot:</p>
+<p>Estos son los principales puntos de inicio para interactuar con las funcionalidades del chatbot. Es crucial que aquí se documenten las funciones y clases <em>directamente expuestas</em> o <em>que inician un flujo principal</em>.</p>
 <ul>
-<li><code>LangchainRAG.run</code>:</li>
+<li><code>ModeratedToolAgent.run</code>:</li>
 </ul>
-<div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>LangchainRAG.run(</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  query: <span class="bu">str</span>, </span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  session_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>, </span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]:</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>ModeratedToolAgent.run(</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  query: <span class="bu">str</span>, </span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  session_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>, </span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]:</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li>Es la función principal que orquesta el glujocompleto de una consulta de usuario.</li>
 <li><strong>Parámetros</strong>:
 <ul>
 <li><code>query (str)</code>: La pregunta o entrada del usuario.</li>
 <li><code>session_id (str)</code>: Un identificador único para la sesión del usuario, utilizado para mantener el historial correspondiente.</li>
-<li><code>listaPrecio (str)</code>: El nivel o clave de precio específico del cliente, que se pasa al LLM para asegurar la precisión de los precios.</li>
+<li><code>listaPrecio (str)</code>: El nivel o clave de precio específico del cliente, que se pasa al LLM para asegurar la precisión de los precios en las consultas dinámicas (ej. precios y promociones).</li>
 </ul></li>
 <li><strong>Comportamiento</strong>:
 <ol type="1">
-<li>Clasifica la <code>query</code> (usando <code>rag.classify_query</code>).</li>
-<li>Basado en la clasificación (<em>relevante</em>, <em>irrelevante</em>, <em>inapropiado</em>), delega la generación de la respuesta al método apropiado (<code>assistant.answer</code>, <code>rag.polite_answer</code>, <code>rag.ban_answer</code>).</li>
-<li>Cede fragmentos de la respuesta en tiempo real.</li>
-</ol></li>
-<li><code>assistant.answer</code>:</li>
-</ul>
-<div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>assistant.answer(</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<li>Verifica si el usuario está actualmente baneado (usando <code>QueryModerator.check_if_banned</code>). Si es así, retorna un mensaje de baneo.</li>
+<li>Clasifica la <code>query</code> (usando <code>QueryModerator.classify_query</code>) en una de las categorías: <code>relevante</code>, <code>irrelevante</code>, o <code>inapropiado</code>.</li>
+<li>Basado en la clasificación:</li>
+</ol>
 <ul>
-<li>Responde a consultas relevantes de productos, utilizando la cadena RAG con memoria.</li>
+<li><p>Si es <code>relevante</code>, delega la ejecución al <code>ToolAgent.run()</code> para obtener una respuesta detallada con el uso de herramientas y la base de datos vectorial.</p></li>
+<li><p>Si es <code>irrelevante</code>, retorna una respuesta predefinida y cortés (QueryModerator.polite_answer()) y registra la interacción.</p></li>
+<li><p>Si es <code>inapropiado</code>, evalúa el comportamiento (<code>QueryModerator.evaluate_inappropriate_behavior()</code>), actualiza el estado de baneo en la sesión del usuario (<code>QueryModerator.update_inappropriate_session()</code>) y retorna el mensaje de sanción apropiado.</p></li>
+</ul>
+<ol start="4" type="1">
+<li>Cede fragmentos de la respuesta en tiempo real (streaming).</li>
+<li>Registra la interacción completa, incluyendo la pregunta, respuesta y metadatos relevantes para análisis futuro.</li>
+</ol></li>
+<li><code>ToolAgent.run</code>:</li>
+</ul>
+<div class="sourceCode" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>ToolAgent().run(</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ul>
+<li><strong>Propósito</strong>: Responde a consultas relevantes de productos, utilizando el agente de LangChain con acceso a herramientas y memoria de conversación. Es la función que el <code>ModeratedToolAgent</code> invoca cuando una consulta es clasificada como relevante.</li>
 <li><strong>Parámetros</strong>:
 <ul>
 <li><code>session_id (str)</code>: ID de la sesión para recuperar/actualizar el historial.</li>
@@ -796,19 +1108,19 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 <li><strong>Comportamiento</strong>:
 <ol type="1">
 <li>Asegura la existencia de la sesión en MongoDB (<code>ensure_session</code>).</li>
-<li>Recupera el historial de la sesión (<code>get_session_history</code>) y lo trunca a la ventana de memoria definida (<code>memory_window_size</code>).</li>
-<li>Ejecuta la cadena RAG (<code>rag_chain</code>), que involucra la recuperación de documentos (<code>retriever</code>) y la generación de respuesta por el LLM.</li>
-<li>Transmite la respuesta en fragmentos (<code>yield_chunk_content</code>).</li>
-<li>Registra la interacción completa (pregunta, respuesta, métricas) en MongoDB (<code>add_message</code> y <code>add_message_backup</code>).</li>
+<li>Recupera el historial de la sesión (<code>get_session_history</code>) y lo trunca para ajustarse a la ventana de contexto del LLM (<code>trim_messages</code>).</li>
+<li>Inicializa el <code>AgentExecutor</code> si no ha sido construido.</li>
+<li>Ejecuta la <code>query</code> a través del <code>AgentExecutor</code> de LangChain, que orquesta el uso del LLM y las herramientas (<code>search_information_tool</code>, <code>existencias_tool</code>, <code>sales_rules_tool</code>) según la necesidad de la consulta.</li>
+<li>Transmite la respuesta en fragmentos (<code>astream()</code>).</li>
+<li>Registra la interacción completa (pregunta, respuesta, métricas como tokens y costo) en las colecciones <code>sessions</code> y <code>message_backup</code> de MongoDB.</li>
 </ol></li>
 <li><code>load.py::products_vs()</code> y <code>load.py::sales_products_vs()</code>:
 <ul>
-<li>Funciones clave para la creación y actualización incremental de las bases de datos vectoriales de productos y ofertas, respectivamente. Orquestan el proceso de carga de documentos desde MongoDB y su vectorización en FAISS.</li>
-<li><strong>Parámetros</strong>: Ninguno.</li>
-<li><strong>Comportamiento</strong>:
+<li><p><strong>Propósito</strong>: Funciones clave para la creación y actualización incremental de las bases de datos vectoriales (FAISS) de productos y ofertas, respectivamente. Orquestan el proceso de carga de documentos desde MongoDB y su vectorización.</p></li>
+<li><p><strong>Comportamiento</strong>:</p>
 <ol type="1">
-<li><code>products_vs()</code>: Carga todos los productos de la colección <code>products</code> de MongoDB, los vectoriza en lotes para optimizar la memoria y guarda el índice FAISS resultante en <code>PRODUCTS_VECTOR_PATH</code>.</li>
-<li><code>sales_products_vs()</code>: Carga las ofertas de la colección <code>sales</code> de MongoDB. Luego, carga el índice de productos existente (desde <code>PRODUCTS_VECTOR_PATH</code>) y añade las ofertas a este mismo índice, también en lotes. Finalmente, guarda el índice combinado (productos + ofertas) en <code>SALES_PRODUCTS_VECTOR_PATH</code>. Esta estrategia asegura que las ofertas se integren sin necesidad de re-vectorizar todo el catálogo de productos.</li>
+<li><p><code>products_vs()</code>: Carga todos los productos de la colección <code>products</code> de MongoDB, los convierte a <code>langchain.schema.Document</code> y los vectoriza en lotes (<code>batch_size=250</code>) utilizando <code>OpenAIEmbeddings</code>. Finalmente, guarda el índice FAISS resultante en <code>PRODUCTS_VECTOR_PATH</code>.</p></li>
+<li><p><code>sales_products_vs()</code>: Carga las ofertas de la colección <code>sales</code> de MongoDB. Luego, carga el índice de productos existente (desde <code>PRODUCTS_VECTOR_PATH</code>) y añade las ofertas a este mismo índice, también en lotes (<code>batch_size=200</code>). Finalmente, guarda el índice combinado (productos + ofertas) en <code>SALES_PRODUCTS_VECTOR_PATH</code>. Esta estrategia asegura que las ofertas se integren sin necesidad de re-vectorizar todo el catálogo de productos, optimizando tiempo y recursos.</p></li>
 </ol></li>
 </ul></li>
 </ul>
@@ -816,52 +1128,13 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 </section>
 <section id="guía-de-entrenamiento-y-mejora" class="level2" style="text-align: justify">
 <h2 class="anchored" data-anchor-id="guía-de-entrenamiento-y-mejora">3 Guía de entrenamiento y mejora</h2>
-<p>La mejora continua del chatbot se basa en un ciclo ETL robusto y monitoreo constante del rendimiento.</p>
 <p><strong>Flujo de Datos (ETL)</strong></p>
-<p>La información que alimenta la base de conocimientos del chatbot sigue un proceso ETL (Extracción, Transformación, Carga) bien definido.</p>
-<ul>
-<li>Extracción:
-<ul>
-<li>Los datos de productos base (ID, nombre, categoría, marca, tipo, modelo, descripciones, palabras clave, precios por lista de precio) se obtienen directamente de una <strong>base de datos MySQL</strong>.</li>
-<li>La información detallada de las fichas técnicas se extrae de un <strong>servicio externo</strong> a través de solicitudes HTTP/HTTPS, que devuelven los datos en formato XML. Se ha implementado un mecanismo de reintentos y manejo de errores (ej. 403 Forbidden por cambio de IP) para extracción.</li>
-</ul></li>
-<li>Transformación:
-<ul>
-<li>Esta etapa es crucial para preparar los datos para la vectorización y el consumo por el LLM. Incluye:
-<ul>
-<li>Limpieza y normalización: Eliminación de valores nulos o inconsistentes, estandarización de formatos.</li>
-<li>Unificación de contenido: Concatenación de campos textuales como <code>descripcion</code>. <code>descripcion_corta</code> y <code>palabrasClave</code> en un campo <code>detalles</code> para enriquecer el contexto del <em>embedding</em>.</li>
-<li>Integración de fichas técnicas: Los datos de las fichas técnicas XML son parseados y estructurados, combinándose con la información de productos. Las fichas técnicas transformadas se persisten en una colección dedicada en MongoDB (<code>specifications</code>) para optimizar futuras extracciones y reusabilidad.</li>
-<li>Manejo de promociones: Procesamiento de datos de promociones (<code>precio_oferta</code>, <code>descuento</code>, <code>EnCompraDE</code>, <code>Unidades</code>, <code>fecha_fin</code>, <code>limitadoA</code>) para asegurar que el chatbot pueda aplicar la lógica de promociones correctamente.</li>
-</ul></li>
-</ul></li>
-<li>Carga:
-<ul>
-<li>Los datos limpios y transformados se cargan en <strong>tres colecciones principales en MongoDB</strong>:
-<ul>
-<li><code>products</code>: Almacena la información principal de los productos.</li>
-<li><code>sales</code>: Contiene los detalles de las promociones y ofertas vigentes.</li>
-<li><code>specifications</code>: Respalda las fichas técnicas transformadas de los productos.</li>
-</ul></li>
-<li>Posteriormente, estos datos se recuperan de MongoDB y se convierten en objetos <code>Document</code> de LangChain, que son el formato estándar para la ingestión en bases de datos vectoriales. Se añaden metadatos relevantes como <code>clave</code> y <code>_id</code> de MongoDB a cada <code>Document</code>.</li>
-</ul></li>
-</ul>
+<p>La información que alimenta la base de conocimientos del chatbot sigue un proceso ETL (Extracción, Transformación, Carga) estructurado que garantiza que el modelo tenga acceso a datos actualizados, limpios y ricos en contexto semántico.</p>
+<p><strong>Para una descripción detallada de cada etapa del proceso ETL (Extracción de MySQL y servicio externo de fichas técnicas, Transformación para limpieza, unificación y estructuración, y Carga en MongoDB y la base de datos vectorial FAISS), por favor, consulta el documento “Preparación de los datos”.</strong></p>
 <section id="generación-de-la-base-de-datos-vectorial" class="level3">
 <h3 class="anchored" data-anchor-id="generación-de-la-base-de-datos-vectorial">3.1 Generación de la base de datos vectorial</h3>
-<p>La base de datos vectorial es el corazón del sistema RAG:</p>
-<ul>
-<li>Proceso de creación:
-<ul>
-<li>El archivo <code>load.py</code> contiene la lógica principal. La función <code>load_products()</code> obtiene los documentos de productos desde MongoDB.</li>
-<li>La función <code>vector_store()</code> crea un índice FAISS local utilizando <code>OpenAIEmbeddings</code> para generar las representaciones vectoriales de los documentos.</li>
-<li>las colecciones de productos y ofertas se procesan y vectorizan en <strong>lotes (<code>batch_size = 250</code> para productos, <code>200</code> para ofertas)</strong>. Esta estrategia es crucial para manejar grandes volúmenes de datos sin agotar la memoria del sistema ni exceder los límites de tasa (rate limits) de la API de OpenAI.</li>
-</ul></li>
-<li>Inclusión de ofertas:
-<ul>
-<li>Las ofertas (<code>sales</code>) se añaden <em>incrementalmente</em> sobre el <em>vector store</em> de productos ya existente utilizando <code>vector_store.add_documents(sales)</code>. Esto evita la necesidad de re-vectorizar todo el catálogo.</li>
-<li>Una copia del índice final, que combina productos y ofertas, se guarda en <code>SALES_PRODUCTS_VECTOR_PATH</code>.</li>
-</ul></li>
-</ul>
+<p>La base de datos vectorial FAISS es el corazón del sistema RAG, almacenando las representaciones vectoriales de la información de productos y promociones para búsquedas de similitud eficientes. Su generación y actualización son parte integral del proceso ETL, el cual asegura que el modelo tenga acceso a una base de conocimiento robusta y actualizada.</p>
+<p><strong>Los detalles sobre el proceso de creación del índice vectorial, el uso de embeddings, la estrategia de procesamiento en lotes y la inclusión incremental de ofertas se encuentran descritos exhaustivamente en el documento “Preparación de los datos”.</strong></p>
 </section>
 <section id="recomendaciones-para-futura-mejora" class="level3">
 <h3 class="anchored" data-anchor-id="recomendaciones-para-futura-mejora">3.2 Recomendaciones para futura mejora</h3>
@@ -907,7 +1180,7 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 </ul></li>
 <li><strong>Modelo de embeddings</strong>: Componente encargado de transformar tanto las consultas de los usuarios como la información de los productos en representaciones vectoriales numéricas (usando OpenAI Embeddings).</li>
 <li><strong>Base de datos vectorial (FAISS)</strong>: Almacena las representaciones vectoriales de la información de productos y ofertas, permitiendo búsquedas de similitud eficientes. Se actualiza con datos del ETL.</li>
-<li><strong>Clasificador de consultas (Ollama - <code>gemma3:12b</code>)</strong>: Componente central que, para consultas relevantes, coordina la búsqueda de información en la base de datos vectorial y contextualiza esta información con la consulta del usuario.</li>
+<li><strong>Clasificador de consultas (Ollama - <code>gemma3:4b</code>)</strong>: Componente central que, para consultas relevantes, coordina la búsqueda de información en la base de datos vectorial y contextualiza esta información con la consulta del usuario.</li>
 <li><strong>LLM</strong>: El motor principal del chatbot para consultas relevantes, responsable de generar respuestas coherentes y detalladas en base a la consulta contextualizada por el RAG.</li>
 <li><strong>Sistema de reportes automatizados</strong>: Procesa los datos del <code>message_backup</code> en MongoDB para generar <em>insights</em> sobre el uso del chatbot, intereses de los clientes, costos y rendimiento.</li>
 </ul>
@@ -917,11 +1190,13 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 <ol type="1">
 <li>El <strong>usuario</strong> interactúa con el <strong>widget del chatbot</strong> en la página web.</li>
 <li>La consulta se envía a la <strong>API del chatbot</strong> (<strong>potencialmente vía el servicio intermediario PHP</strong>)</li>
-<li>La <strong>API</strong> primero pasa consulta al <strong>clasificador de consultas</strong>.</li>
+<li>La API crea o continúa una <strong>sesión de conversación</strong>, y la consulta es pasada al asistente conversacional.</li>
 <li>Si la consulta es <em>relevante</em>:</li>
 </ol>
 <ul>
-<li>Pasa por el <strong>modelo de embeddings</strong> y luego al <strong>módulo RAG</strong> para buscar en la <strong>base de datos vectorial</strong>.</li>
+<li><code>existencias_tool</code>: obtiene precios, existencias y moneda por clave de producto.</li>
+<li><code>sales_rules_tool</code>: calcula el precio final considerando promociones o reglas de negocio.</li>
+<li><code>search_information_tool</code>: busca productos relevantes.</li>
 <li>La información recuperada se contextualiza y se envía al <strong>LLM</strong> para generar la <strong>respuesta al usuario</strong>.</li>
 </ul>
 <ol start="5" type="1">
@@ -939,7 +1214,7 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 </ol>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="./arquitectura.jpg" class="img-fluid figure-img" style="width:90.0%"></p>
+<p><img src="./arquitectura.jpg" class="img-fluid figure-img" style="width:120.0%"></p>
 <figcaption>Arquitectura del sistema</figcaption>
 </figure>
 </div>

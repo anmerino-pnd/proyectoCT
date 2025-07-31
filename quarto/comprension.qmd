@@ -40,7 +40,7 @@ Los productos se ofrecen a través de la plataforma, donde los clientes pueden r
 
 **Objetivo principal:**
 
-Desarrollar un chatbot de recomendación de productos basado en un sistema de generación de recuperación aumentada ([RAG](#terminologia)) conectada a una base de datos vectorial para ofrecer respuestas precisas y relevantes a los usuarios, optimizando el proceso de búsqueda de productos que la empresa ofrece.
+Desarrollar un chatbot inteligente para la recomendación de productos, conectado a una base de datos vectorial para ofrecer respuestas precisas y relevantes a los usuarios, y conectado a SQL para consultar información dinámica. Con la intención de optimizar el proceso de búsqueda de productos que la empresa ofrece.
 
 **Objetivos específicos:**
 

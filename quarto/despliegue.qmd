@@ -12,9 +12,13 @@ toc-depth: 3
 ## 1 Revisión del proceso
 El desarrollo del proyecto de Chatbot siguió un enfoque iterativo, basado en los principios del ciclo CRISP-DM. Esta metodología estructurada permitió abordar las distintas fases del proyecto de manera organizada, con un énfasis continuo en la mejora del diseño, la calidad del código y, fundamentalmente, el rendimiento del sistema en sus componentes clave.
 
-Los principales retos se concentraron en la fase de extracción, manipulación y estructuración de los datos, con el objetivo de mantenerlos lo más *tidy* posible y así garantizar una mayor precisión y coherencia en las respuestas generadas por el sistema.
+Los principales retos se concentraron en la fase de extracción, manipulación y estructuración de los datos, con el objetivo de mantenerlos lo más *tidy* posible y así garantizar una mayor precisión y coherencia en las respuestas generadas por el sistema. Además de las condiciones bajo las promociones y el dinamismo de los precios tanto para productos normales como ofertas.
 
-A lo largo de los ciclos de desarrollo, se han cumplido los hitos establecidos, manteniendo un ritmo de trabajo adecuado. La fase de evaluación, aunque continua, ha mostrado resultados prometedores que sugieren que el sistema, en su estado actual, posee la robustez necesaria para avanzar a una etapa de prueba en un entorno controlado y, aunque sea de pruebas, real.
+A lo largo de los ciclos de desarrollo, se han cumplido los hitos establecidos, manteniendo un ritmo de trabajo adecuado; aunque hubieron varios cambios, o ajustes, con respecto a la propuesta inicial mencionada en la comprensión del negocio, el objetivo sigue siendo el mismo: 
+
+  _Optimizar el proceso de recomendación de productos dentro de la empresa mediante el uso de inteligencia artificial, mejorando la precisión y eficiencia en la búsqueda de opciones alineadas con las necesidades de los clientes._
+
+La fase de evaluación, aunque continua, ha mostrado resultados prometedores que sugieren que el sistema, en su estado actual, posee la robustez necesaria para avanzar a una etapa de prueba en un entorno controlado y, aunque sea de pruebas, real.
 
 
 ### 1.1 Determinar próximos pasos

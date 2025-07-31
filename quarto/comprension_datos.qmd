@@ -12,20 +12,17 @@ toc-depth: 3
 ## 0.1 Recolección de los datos
 
 ### 0.1.1 Datos existentes
-La fuente principal de información es la base de datos SQL local de la empresa, específicamente las tablas que contienen los datos relevantes de los productos y sus características más importantes. Estos datos se extraen mediante una conexión de Python con SQL y se almacenan en un archivo `.json` para su posterior procesamiento.
-
-Además, complementamos esta información con datos obtenidos de un servicio local, el cual proporciona las fichas técnicas de los productos en formato XML.
+La fuente principal de información es la base de datos SQL local de la empresa, específicamente las tablas que contienen los datos relevantes de los productos, promociones y sus características más importantes. Estos datos se extraen mediante una conexión de Python con SQL. Además, complementamos esta información con datos obtenidos de un servicio local, el cual proporciona las fichas técnicas de los productos en formato XML.
 
 ### 0.1.2 Datos adquiridos
-El conjunto de datos contiene un total de 6,528 productos únicos. Aunque para la exploración hemos estado usando un subconjunto más pequeño de los datos. La información extraída de SQL incluye las siguientes columnas:
+Para la exploración hemos usado un subconjunto de los datos. La información extraída de SQL incluye las siguientes columnas:
 
 ```{python}
-import pandas as pd
-productos = pd.read_json('../datos/productos_raw.json')
-productos.columns
+['nombre', 'clave', 'categoria', 'categoria', 'marca', 'tipo',
+       'modelo', 'descripcion', 'descripcion_corta', 'palabrasClave']
 ```
 
-Estas columnas fueron seleccionadas en la consulta enviada al servidor SQL, priorizando aquellas más relevantes para el proyecto.
+Estas columnas fueron seleccionadas en la consulta enviada al servidor SQL, priorizando aquellas más relevantes para el proyecto y ricas en información textual.
 
 En cuanto a la información de las fichas técnicas, una vez llamado el servicio con la lista de claves de los productos, los datos obtenidos tienen el siguiente formato:
 
@@ -51,12 +48,11 @@ Para completar el sistema de ofertas de productos, añadiremos aquellos producto
 ::: {style="text-align: justify"}
 ## 0.2 Descripción de los datos
 
-Como se mencionó anteriormente, el conjunto de datos consta de **6,528 productos únicos**. Al combinar la información extraída de SQL con las fichas técnicas en formato XML, obtenemos las siguientes variables:
+Al combinar la información extraída de SQL con las fichas técnicas en formato XML, obtenemos las siguientes variables:
 
 
 | **Variable**         | **Descripción**                                                       | **Tipo de dato** |
 |----------------------|-----------------------------------------------------------------------|------------------|
-| `idProductos`        | Identificador único asignado a cada producto en la base de datos.     | Numérico         |
 | `Nombre`             | Nombre del producto tal como aparece en la página web o catálogo.     | Texto            |
 | `Clave`              | Código único que distingue al producto de otros en el sistema.        | Texto            |
 | `Categoría`          | Clasificación o tipo de producto al que pertenece.                    | Texto            |
@@ -64,7 +60,6 @@ Como se mencionó anteriormente, el conjunto de datos consta de **6,528 producto
 | `Tipo`               | Especificación del tipo de producto (por ejemplo, cable, bateria, etc.).| Texto            |
 | `Modelo`             | Identificación del modelo específico del producto.                    | Texto            |
 | `Detalles`           | Descripción completa y detallada del producto.                        | Texto            |
-| `Detalles precio`    | Rango de precios en el que el producto puede encontrarse.             | Texto            |
 | `Ficha técnica`      | Información técnica detallada sobre el producto.                      | Texto            |
 | `Resumen`            | Resumen general del producto y sus características principales.       | Texto            |
 
@@ -146,7 +141,7 @@ Al analizar las distribuciones, observamos que muchas de las instancias de la de
 ## 0.4 Verificación de la calidad de los datos
 
 ### 0.4.1 Datos faltantes
-Observando el comportamiento de las distribuciones de la gráfica pasada, observamos que debe haber presencia de varios datos nulos, además de una distribución algo rara para la variable de descripción ya que el promedio indica que es 1, algo que no se esperaría en una variable de este estilo.
+Observando el comportamiento de las distribuciones de la gráfica pasada, observamos que debe haber presencia de varios datos nulos, además de una distribución poco común para la variable de descripción ya que el promedio indica que es 1, algo que no se esperaría en una variable de este estilo.
 
 Si observamos la información de los datos:
 
@@ -156,7 +151,7 @@ productos = pd.read_json('../datos/productos_raw.json')
 productos.info()
 ```
 
-Aquí vemos que la razón por la cual la distribución de descripción corta empezaba en 0, era porque alrededor del 89% son datos nulos. Sin embargo vemos que la descripción no tiene datos nulos, pero aún así sigue siendo curioso que la cantidad de palabras en promedio sea 1. Para esto analizaremos esta columna, observando sus valores.
+Aquí vemos que la razón por la cual la distribución de descripción corta empezaba en 0, era porque alrededor del 89% son datos nulos. Sin embargo vemos que la descripción no tiene datos nulos, pero aún así sigue siendo curioso que la cantidad de palabras en promedio sea 1. Para esto analizaremos esta columna, contando sus valores únicos.
 
 ```{python}
 import pandas as pd

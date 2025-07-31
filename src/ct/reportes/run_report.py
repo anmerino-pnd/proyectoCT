@@ -13,7 +13,7 @@ from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords as nltk_stopwords
 from sklearn.feature_extraction.text import CountVectorizer
-from ct.clients import mongo_uri, mongo_collection_message_backup
+from ct.settings.clients import mongo_uri, mongo_collection_message_backup
 
 nltk_needed = ['wordnet', 'punkt', 'stopwords']
 for resource in nltk_needed:
@@ -41,7 +41,7 @@ combined_stopwords.update(nltk_stopwords)
 
 custom_stopwords = {"mx", "https", "dame", "hola", "quiero", "puedes", "gustaría",
                     "interesan", "opción", "opciones", "opcion", "favor", "sirve",
-                    "diste", "fijar", "debería", "viene", "palabra"}
+                    "diste", "fijar", "debería", "viene", "palabra", "qué", "necesito"}
 combined_stopwords.update(custom_stopwords)
 
 if nlp:
@@ -220,13 +220,16 @@ if data:
     st.sidebar.markdown("[Análisis de respuestas del asistente](#analisis-de-respuestas-del-asistente)")
 
     def preprocess(corpus):
-        """Preprocesses the corpus by tokenizing, lemmatizing, and removing stopwords."""
-        lemmatizer = WordNetLemmatizer()
+        """Preprocesses the corpus by tokenizing, lemmatizing (español) y removiendo stopwords."""
         processed_corpus = []
         for text in corpus:
             if isinstance(text, str):
-                tokens = word_tokenize(text.lower())
-                tokens = [lemmatizer.lemmatize(token) for token in tokens if token not in combined_stopwords]
+                doc = nlp(text.lower())
+                tokens = [
+                    token.lemma_
+                    for token in doc
+                    if not token.is_stop and token.is_alpha
+                ]
                 processed_corpus.append(' '.join(tokens))
             else:
                 processed_corpus.append('')

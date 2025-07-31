@@ -181,21 +181,26 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="recolección-de-los-datos">0.1 Recolección de los datos</h2>
 <section id="datos-existentes" class="level3">
 <h3 class="anchored" data-anchor-id="datos-existentes">0.1.1 Datos existentes</h3>
-<p>La fuente principal de información es la base de datos SQL local de la empresa, específicamente las tablas que contienen los datos relevantes de los productos y sus características más importantes. Estos datos se extraen mediante una conexión de Python con SQL y se almacenan en un archivo <code>.json</code> para su posterior procesamiento.</p>
-<p>Además, complementamos esta información con datos obtenidos de un servicio local, el cual proporciona las fichas técnicas de los productos en formato XML.</p>
+<p>La fuente principal de información es la base de datos SQL local de la empresa, específicamente las tablas que contienen los datos relevantes de los productos, promociones y sus características más importantes. Estos datos se extraen mediante una conexión de Python con SQL. Además, complementamos esta información con datos obtenidos de un servicio local, el cual proporciona las fichas técnicas de los productos en formato XML.</p>
 </section>
 <section id="datos-adquiridos" class="level3">
 <h3 class="anchored" data-anchor-id="datos-adquiridos">0.1.2 Datos adquiridos</h3>
-<p>El conjunto de datos contiene un total de 6,528 productos únicos. Aunque para la exploración hemos estado usando un subconjunto más pequeño de los datos. La información extraída de SQL incluye las siguientes columnas:</p>
-<div id="8c6379ea" class="cell" data-execution_count="1">
+<p>Para la exploración hemos usado un subconjunto de los datos. La información extraída de SQL incluye las siguientes columnas:</p>
+<div id="f36ffd18" class="cell" data-execution_count="1">
 <div class="cell-output cell-output-display" data-execution_count="1">
-<pre><code>Index(['idProductos', 'nombre', 'clave', 'categoria', 'marca', 'tipo',
-       'modelo', 'descripcion', 'descripcion_corta', 'palabrasClave',
-       'detalles_precio'],
-      dtype='object')</code></pre>
+<pre><code>['nombre',
+ 'clave',
+ 'categoria',
+ 'categoria',
+ 'marca',
+ 'tipo',
+ 'modelo',
+ 'descripcion',
+ 'descripcion_corta',
+ 'palabrasClave']</code></pre>
 </div>
 </div>
-<p>Estas columnas fueron seleccionadas en la consulta enviada al servidor SQL, priorizando aquellas más relevantes para el proyecto.</p>
+<p>Estas columnas fueron seleccionadas en la consulta enviada al servidor SQL, priorizando aquellas más relevantes para el proyecto y ricas en información textual.</p>
 <p>En cuanto a la información de las fichas técnicas, una vez llamado el servicio con la lista de claves de los productos, los datos obtenidos tienen el siguiente formato:</p>
 <pre class="{json}"><code>{
     "ACCCDM1010": {
@@ -215,7 +220,7 @@ ul.task-list li input[type="checkbox"] {
 </section>
 <section id="descripción-de-los-datos" class="level2" style="text-align: justify">
 <h2 class="anchored" data-anchor-id="descripción-de-los-datos">0.2 Descripción de los datos</h2>
-<p>Como se mencionó anteriormente, el conjunto de datos consta de <strong>6,528 productos únicos</strong>. Al combinar la información extraída de SQL con las fichas técnicas en formato XML, obtenemos las siguientes variables:</p>
+<p>Al combinar la información extraída de SQL con las fichas técnicas en formato XML, obtenemos las siguientes variables:</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 19%">
@@ -231,48 +236,38 @@ ul.task-list li input[type="checkbox"] {
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>idProductos</code></td>
-<td>Identificador único asignado a cada producto en la base de datos.</td>
-<td>Numérico</td>
-</tr>
-<tr class="even">
 <td><code>Nombre</code></td>
 <td>Nombre del producto tal como aparece en la página web o catálogo.</td>
 <td>Texto</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Clave</code></td>
 <td>Código único que distingue al producto de otros en el sistema.</td>
 <td>Texto</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>Categoría</code></td>
 <td>Clasificación o tipo de producto al que pertenece.</td>
 <td>Texto</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Marca</code></td>
 <td>Nombre de la empresa que fabrica o distribuye el producto.</td>
 <td>Texto</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>Tipo</code></td>
 <td>Especificación del tipo de producto (por ejemplo, cable, bateria, etc.).</td>
 <td>Texto</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>Modelo</code></td>
 <td>Identificación del modelo específico del producto.</td>
 <td>Texto</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>Detalles</code></td>
 <td>Descripción completa y detallada del producto.</td>
-<td>Texto</td>
-</tr>
-<tr class="odd">
-<td><code>Detalles precio</code></td>
-<td>Rango de precios en el que el producto puede encontrarse.</td>
 <td>Texto</td>
 </tr>
 <tr class="even">
@@ -294,7 +289,7 @@ ul.task-list li input[type="checkbox"] {
 <h3 class="anchored" data-anchor-id="variedad-de-productos">0.3.1 Variedad de productos</h3>
 <p>Para comenzar, examinaremos la distribución de categorías dentro del catálogo, identificando cuáles son las más representativas entre un total de 247 categorías distintas.</p>
 <p>El siguiente análisis nos permitirá visualizar las 10 categorías más frecuentes, lo que nos dará una mejor comprensión de la composición del inventario.</p>
-<div id="50c490f0" class="cell" data-execution_count="2">
+<div id="64a60525" class="cell" data-execution_count="2">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -305,7 +300,7 @@ ul.task-list li input[type="checkbox"] {
 </div>
 <p>Vemos que los tóners destacan como la categoría predominante, seguidos por las aplicaciones de seguridad, aunque en este último caso, la diferencia con el resto de las categorías es menos marcada en comparación con la primera.</p>
 <p>Del mismo modo, exploraremos la distribución de marcas en los productos y visualizaremos las 10 más comunes dentro de un total de 195 marcas registradas.</p>
-<div id="b3a53c61" class="cell" data-execution_count="3">
+<div id="93213b56" class="cell" data-execution_count="3">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -326,7 +321,7 @@ ul.task-list li input[type="checkbox"] {
 <li>Descripción corta</li>
 <li>Palabras clave asociadas Este análisis nos ayudará a identificar patrones en la longitud de las descripciones y su posible impacto en la categorización y búsqueda de los productos.</li>
 </ul>
-<div id="3dadc297" class="cell" data-execution_count="4">
+<div id="aa0bcf73" class="cell" data-execution_count="4">
 <div class="cell-output cell-output-display">
 <div>
 <figure class="figure">
@@ -342,9 +337,9 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="verificación-de-la-calidad-de-los-datos">0.4 Verificación de la calidad de los datos</h2>
 <section id="datos-faltantes" class="level3">
 <h3 class="anchored" data-anchor-id="datos-faltantes">0.4.1 Datos faltantes</h3>
-<p>Observando el comportamiento de las distribuciones de la gráfica pasada, observamos que debe haber presencia de varios datos nulos, además de una distribución algo rara para la variable de descripción ya que el promedio indica que es 1, algo que no se esperaría en una variable de este estilo.</p>
+<p>Observando el comportamiento de las distribuciones de la gráfica pasada, observamos que debe haber presencia de varios datos nulos, además de una distribución poco común para la variable de descripción ya que el promedio indica que es 1, algo que no se esperaría en una variable de este estilo.</p>
 <p>Si observamos la información de los datos:</p>
-<div id="96e69d38" class="cell" data-execution_count="5">
+<div id="cf4d7c56" class="cell" data-execution_count="5">
 <div class="cell-output cell-output-stdout">
 <pre><code>&lt;class 'pandas.core.frame.DataFrame'&gt;
 RangeIndex: 6526 entries, 0 to 6525
@@ -366,8 +361,8 @@ dtypes: int64(1), object(10)
 memory usage: 561.0+ KB</code></pre>
 </div>
 </div>
-<p>Aquí vemos que la razón por la cual la distribución de descripción corta empezaba en 0, era porque alrededor del 89% son datos nulos. Sin embargo vemos que la descripción no tiene datos nulos, pero aún así sigue siendo curioso que la cantidad de palabras en promedio sea 1. Para esto analizaremos esta columna, observando sus valores.</p>
-<div id="68c84a04" class="cell" data-execution_count="6">
+<p>Aquí vemos que la razón por la cual la distribución de descripción corta empezaba en 0, era porque alrededor del 89% son datos nulos. Sin embargo vemos que la descripción no tiene datos nulos, pero aún así sigue siendo curioso que la cantidad de palabras en promedio sea 1. Para esto analizaremos esta columna, contando sus valores únicos.</p>
+<div id="4e1e7e2a" class="cell" data-execution_count="6">
 <div class="cell-output cell-output-display" data-execution_count="6">
 <pre><code>descripcion
 0                                                                                                                   4983

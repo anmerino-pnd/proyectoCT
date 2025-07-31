@@ -171,11 +171,28 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#preparación-de-los-datos" id="toc-preparación-de-los-datos" class="nav-link active" data-scroll-target="#preparación-de-los-datos">1. Preparación de los datos</a>
-  <ul class="collapse">
-  <li><a href="#estructuración-de-los-datos" id="toc-estructuración-de-los-datos" class="nav-link" data-scroll-target="#estructuración-de-los-datos">1.1 Estructuración de los datos</a></li>
-  <li><a href="#limpieza-y-normalización-de-datos" id="toc-limpieza-y-normalización-de-datos" class="nav-link" data-scroll-target="#limpieza-y-normalización-de-datos">1.2 Limpieza y normalización de datos</a></li>
+  <ul>
+  <li><a href="#extracción-de-los-datos" id="toc-extracción-de-los-datos" class="nav-link" data-scroll-target="#extracción-de-los-datos">1.1. Extracción de los datos</a>
+  <ul>
+  <li><a href="#fuentes-de-datos" id="toc-fuentes-de-datos" class="nav-link" data-scroll-target="#fuentes-de-datos">1.1.1. Fuentes de datos</a></li>
+  <li><a href="#métodos-y-frecuencia-de-extracción" id="toc-métodos-y-frecuencia-de-extracción" class="nav-link" data-scroll-target="#métodos-y-frecuencia-de-extracción">1.1.2. Métodos y frecuencia de extracción</a></li>
+  <li><a href="#manejo-de-error-en-la-extracción" id="toc-manejo-de-error-en-la-extracción" class="nav-link" data-scroll-target="#manejo-de-error-en-la-extracción">1.1.3. Manejo de error en la extracción</a></li>
   </ul></li>
-  <li><a href="#consolidación-base-de-datos-vectorial" id="toc-consolidación-base-de-datos-vectorial" class="nav-link" data-scroll-target="#consolidación-base-de-datos-vectorial">2. Consolidación base de datos vectorial</a></li>
+  <li><a href="#transformación-de-los-datos" id="toc-transformación-de-los-datos" class="nav-link" data-scroll-target="#transformación-de-los-datos">1.2. Transformación de los datos</a>
+  <ul>
+  <li><a href="#estructuración-de-las-fichas-técnicas" id="toc-estructuración-de-las-fichas-técnicas" class="nav-link" data-scroll-target="#estructuración-de-las-fichas-técnicas">1.2.1. Estructuración de las fichas técnicas</a></li>
+  <li><a href="#limpieza-y-normalización" id="toc-limpieza-y-normalización" class="nav-link" data-scroll-target="#limpieza-y-normalización">1.2.2. Limpieza y normalización</a></li>
+  <li><a href="#enriquecimiento-y-consolidación" id="toc-enriquecimiento-y-consolidación" class="nav-link" data-scroll-target="#enriquecimiento-y-consolidación">1.2.3. Enriquecimiento y consolidación</a></li>
+  <li><a href="#lógica-de-negocio-aplicada" id="toc-lógica-de-negocio-aplicada" class="nav-link" data-scroll-target="#lógica-de-negocio-aplicada">1.2.4. Lógica de negocio aplicada</a></li>
+  </ul></li>
+  <li><a href="#carga-de-los-datos" id="toc-carga-de-los-datos" class="nav-link" data-scroll-target="#carga-de-los-datos">1.3. Carga de los datos</a>
+  <ul>
+  <li><a href="#destinos-de-carga" id="toc-destinos-de-carga" class="nav-link" data-scroll-target="#destinos-de-carga">1.3.1 Destinos de carga</a></li>
+  <li><a href="#estrategia-de-carga-en-mongodb" id="toc-estrategia-de-carga-en-mongodb" class="nav-link" data-scroll-target="#estrategia-de-carga-en-mongodb">1.3.2. Estrategia de carga en MongoDB</a></li>
+  <li><a href="#construcción-y-actualización-del-vector-store" id="toc-construcción-y-actualización-del-vector-store" class="nav-link" data-scroll-target="#construcción-y-actualización-del-vector-store">1.3.3. Construcción y actualización del vector store</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#estructura-final-de-los-datos" id="toc-estructura-final-de-los-datos" class="nav-link" data-scroll-target="#estructura-final-de-los-datos">2. Estructura final de los datos</a></li>
   </ul>
 </nav>
     </div>
@@ -203,20 +220,45 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="preparación-de-los-datos" class="level2" style="text-align: justify">
 <h2 class="anchored" data-anchor-id="preparación-de-los-datos">1. Preparación de los datos</h2>
-<p>Una vez establecidas las conexiones con los servicios de datos, transformamos y consolidamos la información en una base de datos completa y estructurada. Esta base servirá como fuente para el chatbot, permitiéndole responder consultas de manera eficiente.</p>
-<p>Los datos principales provienen de tres conjuntos:</p>
+<p>Una vez establecidas las conexiones con los servicios de datos, transformamos y consolidamos la información en una base de datos completa y estructurada. Esta base servirá como fuente robusta para el chatbot, permitiéndole responder consultas de manera eficiente y precisa. El objetivo de esta fase es asegurar que los datos estén limpios, consistentes y optimizados para la generación de embeddings y la recuperación de información.</p>
+<p>El proceso de preparación de datos se divide en tres etapas fundamentales: Extracción, Transformación y Carga (ETL).</p>
+<section id="extracción-de-los-datos" class="level3">
+<h3 class="anchored" data-anchor-id="extracción-de-los-datos">1.1. Extracción de los datos</h3>
+<p>La etapa de extracción se enfoca en recolectar la información bruta de sus fuentes originales, asegurando que todos los datos necesarios para el chatbot sean accesibles.</p>
+<section id="fuentes-de-datos" class="level4">
+<h4 class="anchored" data-anchor-id="fuentes-de-datos">1.1.1. Fuentes de datos</h4>
+<p>Los datos principales provienen de tres fuentes:</p>
 <ol type="1">
-<li>Productos disponibles en la plataforma.<br>
-</li>
-<li>Productos en promoción.<br>
-</li>
-<li>Fichas técnicas de los productos, proporcionando información detallada.</li>
+<li><strong>Base de datos MySQL</strong>: Contiene los productos disponibles en la plataforma y los productos en promoción. De aquí se extraen atributos como <code>nombre</code>, <code>clave</code>, <code>categoria</code>, <code>marca</code>, <code>tipo</code>, <code>modelo</code>, <code>descripcion</code>, <code>descripcion_corta</code>, y <code>palabrasClave</code>.</li>
+<li><strong>Servicio local de fichas técnicas (XML)</strong>: Proporciona información detallada y semi-estructurada de las fichas técnicas de los productos en formato XML.</li>
 </ol>
-<p>Todos los productos se relacionan a través de las claves <code>idProducto</code> y <code>Clave del producto</code>.</p>
-<section id="estructuración-de-los-datos" class="level3">
-<h3 class="anchored" data-anchor-id="estructuración-de-los-datos">1.1 Estructuración de los datos</h3>
-<p>Para estructurar la información de las fichas técnicas, extraemos los datos relevantes del apartado <code>@attributes</code>, transformando la estructura de la siguiente manera:</p>
-<p><strong>Formato original:</strong></p>
+<p>Todos los productos se relacionan a través de la claves <code>idProducto</code> y <code>Clave del producto</code>.</p>
+</section>
+<section id="métodos-y-frecuencia-de-extracción" class="level4">
+<h4 class="anchored" data-anchor-id="métodos-y-frecuencia-de-extracción">1.1.2. Métodos y frecuencia de extracción</h4>
+<ul>
+<li><strong>Extracción de MySQL</strong>: La conexión se realiza mediante <code>mysql.connector-python</code>. Se ejecutan consultas SQL específicas (<code>ids_query</code>, <code>product_query</code>, <code>current_sales_query</code> en <code>ct/ETL/extraction.py</code>) para obtener los IDs de productos válidos, los detalles de los productos y las promociones vigentes.</li>
+<li><strong>Extracción de fichas técnicas</strong>: Se interactúa con el servicio de fichas técnicas a través de solicitudes HTTP POST utilizando la librería <code>cloudscraper</code>. Esta librería es crucial para manejar posibles protecciones como Cloudflare, que podrían bloquear las solicitudes directas. Los headers incluyen tokens de API y cookies para autenticación.</li>
+<li><strong>Frecuencia</strong>: Este proceso de extracción está diseñado para ejecutarse periódicamente (e.g., diariamente o semanalmente) para asegurar que la base de conocimientos del chatbot esté siempre actualizada con la información más reciente de productos y promociones.</li>
+</ul>
+</section>
+<section id="manejo-de-error-en-la-extracción" class="level4">
+<h4 class="anchored" data-anchor-id="manejo-de-error-en-la-extracción">1.1.3. Manejo de error en la extracción</h4>
+<p>Se implementan mecanismos de manejo de errores para garantizar la robustez del proceso:</p>
+<ul>
+<li><strong>Reintentos con Backoff exponencial</strong>: Para las llamadas al servicio de fichas técnicas, se utilizan reintentos con un <em>backoff</em> exponencial controlado (<code>max_retries</code>, <code>sleep_seconds</code> en <code>get_specifications_cloudscraper</code> de <code>ct/ETL/extraction.py</code>). Esto ayuda a superar problemas temporales de red o sobrecarga del servicio.</li>
+<li><strong>Manejo de errores HTTP</strong>: Se capturan errores HTTP específicos, como el <code>403 Forbidden</code>, que puede indicar un bloqueo de IP. En estos casos, se registra el error y se maneja la situación para evitar interrupciones completas del proceso.</li>
+<li><strong>Registro de fallos</strong>: Las claves de productos para las cuales no se pudo obtener la ficha técnica se registran, permitiendo una revisión manual o una re-extracción posterior. En caso de fallo persistente, se añadirá una ficha técnica vacía para mantener la integridad de la estructura de datos.</li>
+</ul>
+</section>
+</section>
+<section id="transformación-de-los-datos" class="level3">
+<h3 class="anchored" data-anchor-id="transformación-de-los-datos">1.2. Transformación de los datos</h3>
+<p>La etapa de transformación se encarga de limpiar, unificar y normalizar los datos extraídos, preparándolos para su uso en el sistema de recomendación.</p>
+<section id="estructuración-de-las-fichas-técnicas" class="level4">
+<h4 class="anchored" data-anchor-id="estructuración-de-las-fichas-técnicas">1.2.1. Estructuración de las fichas técnicas</h4>
+<p>Las fichas técnicas, originalmente en formato XML, son procesadas para extraer los atributos más relevantes. Del formato original, se extraen los datos de <code>@attributes</code>, <code>Feature</code>, <code>Presentation_Value</code> y <code>SummaryDescription</code>, transformando la estructura a un formato más optimizado y fácil de consumir:</p>
+<p><strong>Formato original de la ficha técnica (ejemplo):</strong></p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>{</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"ACCCDM1010"</span>: {</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"respuesta"</span>: {</span>
@@ -225,109 +267,122 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>            <span class="st">"mensaje"</span>: <span class="st">"Consulta realizada"</span>,</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>            <span class="st">"data"</span>: {</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>                <span class="st">"Product"</span>: {</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"@attributes"</span>: {}</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>                }</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>            }</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"@attributes"</span>: {},</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"ProductFeature"</span>: [...],</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"SummaryDescription"</span>: {...}</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>                }</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>            }</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>Formato optimizado:</strong></p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>{<span class="st">'ACCCDM1010'</span>: {</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">'fichaTecnica'</span>: {</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>},</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'resumen'</span>: {</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  }},</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>   }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">'NombreCaracteristica1'</span>: <span class="st">'Valor1'</span>,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">'NombreCaracteristica2'</span>: <span class="st">'Valor2'</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'resumen'</span>: {</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">'ShortSummary'</span>: <span class="st">'Resumen corto del producto.'</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">'LongSummary'</span>: <span class="st">'Resumen largo y detallado del producto.'</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    }},</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>   }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Esta optimización permite un acceso directo a las características y resúmenes, y evita hacer llamadas al servicio de XML cada vez que se requiere la ficha técnica de un producto ya conocido. Las fichas técnicas transformadas se guardan en MongoDB para su reutilización.</p>
 </section>
-<section id="limpieza-y-normalización-de-datos" class="level3">
-<h3 class="anchored" data-anchor-id="limpieza-y-normalización-de-datos">1.2 Limpieza y normalización de datos</h3>
-<p>En cuanto a la limpieza de datos para los <code>productos</code> y las <code>promociones</code>, identificamos tres columnas que requieren un tratamiento similar. Aplicamos los siguientes pasos:</p>
+<section id="limpieza-y-normalización" class="level4">
+<h4 class="anchored" data-anchor-id="limpieza-y-normalización">1.2.2. Limpieza y normalización</h4>
+<p>Para las columnas textuales en los datos de <code>productos</code> y <code>promociones</code> (<code>descripcion</code>, <code>descripcion_corta</code>, <code>palabrasClave</code>), se aplican los siguientes pasos de limpieza para asegurar la calidad del texto y evitar ruido en los embeddings:</p>
 <ol type="1">
-<li>Reemplazo de valores nulos por un espacio <code>''</code>.<br>
-</li>
-<li>Sustitución de los <code>0</code> en la <strong>descripción</strong> por un espacio <code>''</code>.<br>
-</li>
-<li>Conversión de las tres columnas a tipo <code>string</code>.<br>
-</li>
-<li>Concatenación de estas columnas para generar una columna más completa.</li>
+<li><strong>Reemplazo de valores nulos</strong>: Los valores nulos (<code>NaN</code>) se reemplazan por un espacio vácio (<code>''</code>).</li>
+<li><strong>Sustitución de ‘0’ en descripciones</strong>: Los caracteres ‘0’ (que a menudo representan valores nulos o ausentes en la fuente original) en la columna <code>descripcion</code> se sustituyen por un espacio vacío (<code>''</code>).</li>
+<li><strong>Conversión a tipo <code>string</code></strong>: Todas las columnas relevantes se convierten explícitamente a tipo <code>string</code> para asegurar consistencia en el manejo del texto.</li>
+<li><strong>Eliminación de espacios extra</strong>: Se eliminan los espacios en blanco al inicio y al final de las cadenas (<code>.str.strip()</code>).</li>
 </ol>
-<p>Además, a la columna <strong>detalles_precio</strong> en los <code>productos</code>, le aplicamos una transformación de formato, convirtiéndola no solo en <code>string</code>, sino también en formato <code>JSON</code>.</p>
-<p>Una vez realizadas estas transformaciones, incorporamos la ficha técnica tanto a los <code>productos</code> como a las <code>promociones</code>.</p>
+<p>Esta limpieza es fundamental para asegurar la calidad del texto que será utilizado en los embeddings, evitando ruido y mejorando la relevancia de las búsquedas.</p>
+</section>
+<section id="enriquecimiento-y-consolidación" class="level4">
+<h4 class="anchored" data-anchor-id="enriquecimiento-y-consolidación">1.2.3. Enriquecimiento y consolidación</h4>
+<ul>
+<li><strong>Concatenación de <code>detalles</code></strong>: Las columnas <code>descripcion</code>, <code>descripcion_corta</code> y <code>palabrasClave</code> se concatenan en una nueva columna llamada <code>detalles</code>. Esto se hace con el fin de crear un campo textual más completo y denso para la generación de embeddings, capturando la mayor cantidad de información descriptiva relevante para cada producto en un solo lugar.</li>
+<li><strong>Integración de fichas técnicas</strong>: Una vez transformadas, la <code>fichaTecnica</code> y el <code>resumen</code> se incorporan como campos anidados a los diccionarios de productos y promociones, utilizando la <code>clave</code> del producto como identificador común. Esto enriquece cada registro con información técnica detallada y resúmenes generados.</li>
+</ul>
+</section>
+<section id="lógica-de-negocio-aplicada" class="level4">
+<h4 class="anchored" data-anchor-id="lógica-de-negocio-aplicada">1.2.4. Lógica de negocio aplicada</h4>
+<p>Durante la transformación, se aplican filtros para incluir solo productos con existencias superiores a un umbral definido (actualmente, más de 3 unidades) y aquellos con precios válidos. Esto asegura que solo los productos comercializables y relevantes para el negocio sean procesados y cargados en el sistema.</p>
+</section>
+</section>
+<section id="carga-de-los-datos" class="level3">
+<h3 class="anchored" data-anchor-id="carga-de-los-datos">1.3. Carga de los datos</h3>
+<p>La etapa de carga es donde los datos limpios y transformados se persisten en los destinos finales y se preparan para el consumo del chatbot.</p>
+<section id="destinos-de-carga" class="level4">
+<h4 class="anchored" data-anchor-id="destinos-de-carga">1.3.1 Destinos de carga</h4>
+<p>Los datos limpios y transformados se cargan en <strong>MongoDB</strong>, distribuidos en tres colecciones principales:</p>
+<ul>
+<li><code>products</code>: Almacena la información principal de los productos.</li>
+<li><code>sales</code>: Contiene los detalles de las promociones.</li>
+<li><code>specifications</code>: Respalda las fichas técnicas transformadas de los productos, evitando llamadas repetidas al servicio XML.</li>
+</ul>
+</section>
+<section id="estrategia-de-carga-en-mongodb" class="level4">
+<h4 class="anchored" data-anchor-id="estrategia-de-carga-en-mongodb">1.3.2. Estrategia de carga en MongoDB</h4>
+<p>La carga en MongoDB se realiza mediante operaciones de <code>upsert</code> (insertar si no existe, actualizar si existe) utilizando <code>UpdateOne</code> dentro de operaciones <code>bulk_write</code> (<code>mongo_products</code>, <code>mongo_sales</code> en <code>ct/ETL/load.py</code>). Esta estrategia optimiza el rendimiento al enviar múltiples operaciones de escritura en un solo lote y asegura que los datos existentes se actualicen de manera eficiente, mientras que los nuevos se insertan.</p>
+</section>
+<section id="construcción-y-actualización-del-vector-store" class="level4">
+<h4 class="anchored" data-anchor-id="construcción-y-actualización-del-vector-store">1.3.3. Construcción y actualización del vector store</h4>
+<p>La información de productos y promociones se utilizan para construir y mantener la base de datos vectorial FAISS, que es el corazón del sistema RAG.</p>
+<ul>
+<li><strong>Conversión a documentos LangChain</strong>: Los datos cargados en MongoDB se recuperan y se convierten en objetos <code>langchain.schema.Document</code> (<code>load_producs</code>, <code>load_sales</code> en <code>ct/ETL/load.py</code>). Estos documentos incluyen el contenido textual (<code>page_content</code> construido por <code>build_content</code>) y metadatos relevantes como la <code>clave</code> y la colección de origen (<code>productos</code> o <code>promociones</code>).</li>
+<li><strong>Generación de embeddings</strong>: Se utilizan <code>OpenAIEmbeddings</code> para transformar el contenido textual de cada documento en representaciones vectoriales numéricas de alta dimensionalidad.</li>
+<li><strong>Creación y actualización de FAISS</strong>:
+<ul>
+<li><strong>Para productos (<code>productos_vs</code>)</strong>: Se crea un índice FAISS inicial a partir de los documentos de productos. Este proceso se realiza en lotes (e.g., lotes de 150 documentos) para gestionar eficientemente el consumo de memoria y cumplir con los límites de tasa de la API de OpenAI. El índice resultante se guarda localmente en <code>PRODUCTS_VECTOR_PATH</code>.</li>
+<li><strong>Para promociones (<code>sales_products_vs</code>)</strong>: Las ofertas se añaden incrementalmente al vector store de productos ya existente. Se carga el índice de productos desde <code>PRODUCTS_VECTOR_PATH</code> y luego se utilizan <code>add_documents</code> para incorporar los documentos de ofertas al mismo índice. Esta estrategia evita la necesidad de re-vectorizar todo el catálogo de productos cada vez que se actualizan las ofertas, optimizando el tiempo y los recursos. El índice combinado (productos + ofertas) se guarda en <code>SALES_PRODUCTS_VECTOR_PATH</code>.</li>
+</ul></li>
+</ul>
+</section>
+</section>
+</section>
+<section id="estructura-final-de-los-datos" class="level2" style="text-align: justify">
+<h2 class="anchored" data-anchor-id="estructura-final-de-los-datos">2. Estructura final de los datos</h2>
+<p>Una vez completado el proceso ETL, la información de productos y promociones queda estructurada de la siguiente manera, lista para ser consumida por el chatbot y el sistema de recomendación:</p>
 <p>En el caso de los <code>productos</code>, la información final queda estructurada de la siguiente manera:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>{</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"0"</span>: {</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"idProductos"</span>: <span class="st">""</span>,</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">"nombre"</span>: <span class="st">""</span>,</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"clave"</span>: <span class="st">"ACCCDM1010"</span>,</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">"categoria"</span>: <span class="st">""</span>,</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">"marca"</span>: <span class="st">""</span>,</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">"tipo"</span>: <span class="st">""</span>,</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">"modelo"</span>: <span class="st">""</span>,</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">"detalles"</span>: <span class="st">""</span>,</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">"detalles_precio"</span>: [</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>            {</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>                <span class="st">"listaPrecio"</span>: <span class="dv">1</span>,</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>                <span class="st">"precio"</span>: <span class="st">""</span></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>            },</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>            {</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>                <span class="st">"listaPrecio"</span>: <span class="dv">2</span>,</span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>                <span class="st">"precio"</span>: <span class="st">""</span></span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>            }</span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>        ],</span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">"fichaTecnica"</span>: { <span class="st">""</span></span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>        },</span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>        <span class="st">"resumen"</span>: { <span class="st">""</span></span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    },}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Reiteramos que el proceso de limpieza aplicado a las <code>promociones</code> fue similar al de los <code>productos</code>. A continuación, se presenta el resultado final de la estructura deseada:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a> {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>        <span class="st">"nombre"</span>: <span class="st">"Nombre del Producto"</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"clave"</span>: <span class="st">"Clave"</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">"categoria"</span>: <span class="st">"Categoría del Producto"</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"marca"</span>: <span class="st">"Marca del Producto"</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">"tipo"</span>: <span class="st">"Tipo de Producto"</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">"modelo"</span>: <span class="st">"Modelo del Producto"</span>,</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">"detalles"</span>: <span class="st">"Descripción completa, corta y palabras clave concatenadas."</span>,</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">"fichaTecnica"</span>: {</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Caracteristica1"</span>: <span class="st">"Valor1"</span>,</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>            <span class="st">"Caracteristica2"</span>: <span class="st">"Valor2"</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">"resumen"</span>: {</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>            <span class="st">"ShortSummary"</span>: <span class="st">"Resumen corto."</span>,</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>            <span class="st">"LongSummary"</span>: <span class="st">"Resumen largo."</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    {...}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Reiteramos que el proceso de limpieza y enriquecimiento aplicado a las <code>promociones</code> fue similar al de los <code>productos</code>. A continuación, se presenta el resultado final de la estructura deseada para las promociones:</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>{</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"0"</span>: {</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"idProducto"</span>: <span class="st">""</span>,</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">"nombre"</span>: <span class="st">""</span>,</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"producto"</span>: <span class="st">"CARBRT010"</span>,</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">"categoria"</span>: <span class="st">""</span>,</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">"marca"</span>: <span class="st">""</span>,</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">"tipo"</span>: <span class="st">""</span>,</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">"modelo"</span>: <span class="st">""</span>,</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">"detalles"</span>: <span class="st">""</span>,</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">"importe"</span>: <span class="st">""</span>,</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">"porcentaje"</span>: <span class="st">"%"</span>,</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">"EnCompraDE"</span>: <span class="st">""</span>,</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Unidades"</span>: <span class="st">""</span>,</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">"limitadoA"</span>: <span class="st">""</span>,</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        <span class="st">"fecha_inicio"</span>: <span class="st">""</span>,</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        <span class="st">"fecha_fin"</span>: <span class="st">""</span>,</span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        <span class="st">"precios"</span>: <span class="st">"[]"</span>,</span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        <span class="st">"fichaTecnica"</span>: { <span class="st">""</span></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        },</span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        <span class="st">"resumen"</span>: {</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>            <span class="st">"ShortSummary"</span>: <span class="st">""</span>,</span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>            <span class="st">"LongSummary"</span>: <span class="st">""</span></span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>        }</span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    },}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</section>
-</section>
-<section id="consolidación-base-de-datos-vectorial" class="level2" style="text-align: justify">
-<h2 class="anchored" data-anchor-id="consolidación-base-de-datos-vectorial">2. Consolidación base de datos vectorial</h2>
-<p>Ahora que tenemos los datos preparados y con la estructura deseada. Procederemos a crear la base de datos vectorial con esta información. Tomamos los datos y los convertimos en un tipo <code>Document</code> para poder pasarlo a <code>FAISS</code> (base vectorial) junto con los <code>embeddings</code> y guardarlo de forma local.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>docs <span class="op">=</span> [</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    Document(</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        page_content<span class="op">=</span>construir_contenido(producto, campos),</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        metadata<span class="op">=</span>{<span class="st">"idProducto"</span>: producto[<span class="st">"idProductos"</span>], <span class="st">"Nombre"</span>: producto[<span class="st">"nombre"</span>]}</span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> producto <span class="kw">in</span> datos_dict.values()</span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>]</span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Usar embeddings de OpenAI </span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>embeddings <span class="op">=</span> OpenAIEmbeddings(api_key<span class="op">=</span>api_key)</span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Crear base de datos FAISS con los documentos</span></span>
-<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>vectorstore <span class="op">=</span> FAISS.from_documents(docs, embeddings)</span>
-<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Guardar la base de datos para futuras consultas</span></span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>vectorstore.save_local()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>        <span class="st">"nombre"</span>: <span class="st">"Nombre de la Promoción"</span>,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"producto"</span>: <span class="st">"Clave"</span>, <span class="co"># Clave del producto en promoción</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">"categoria"</span>: <span class="st">"Categoría del Producto"</span>,</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">"marca"</span>: <span class="st">"Marca del Producto"</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">"tipo"</span>: <span class="st">"Tipo de Producto"</span>,</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">"modelo"</span>: <span class="st">"Modelo del Producto"</span>,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">"detalles"</span>: <span class="st">"Descripción completa, corta y palabras clave de la promoción."</span>,</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">"fichaTecnica"</span>: {</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">"CaracteristicaA"</span>: <span class="st">"ValorA"</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>            <span class="st">"CaracteristicaB"</span>: <span class="st">"ValorB"</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">"resumen"</span>: {</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>            <span class="st">"ShortSummary"</span>: <span class="st">"Resumen corto de la promoción."</span>,</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>            <span class="st">"LongSummary"</span>: <span class="st">"Resumen largo de la promoción."</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        }</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    {...}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 
 
