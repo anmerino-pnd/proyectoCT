@@ -13,6 +13,7 @@ from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 from langchain.agents import create_openai_functions_agent, AgentExecutor
 
 from ct.settings.clients import openai_api_key
+from ct.tools.moneda_api import dolar_a_peso_tool, DolarInput
 from ct.tools.search_information import search_information_tool
 from ct.tools.sales_rules_tool import sales_rules_tool, SalesInput
 from ct.tools.existences import existencias_tool, ExistenciasInput # Import ExistenciasInput
@@ -25,7 +26,7 @@ class ToolAgent:
         self.model = "gpt-4.1"
 
         try:
-            self.client = MongoClient('mongodb://localhost:27017').get_default_database()
+            self.client = MongoClient('mongodb://localhost:27017')['CT_API_Publica']
             self.sessions = self.client[mongo_collection_sessions]
             self.message_backup = self.client[mongo_collection_message_backup]
 
@@ -53,11 +54,13 @@ Para solicitudes generales o exploratorias:
 Ejemplo correcto de uso: 
 - existencias_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
 - sales_rules_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio}, session_id={session_id})
+- dolar_a_peso_tool(dolar='PRECIO_EXACTO_DEL_PRODUCTO')
+
 
 Formato de respuesta SIEMPRE:
 Enlista los productos en formato claro, ordenado, usando bullet points y Markdown:
 - Nombre del producto como hipervínculo: [NOMBRE](https://ctonline.mx/buscar/productos?b=CLAVE)
-- Muestra el precio con símbolo $ y la moneda (MXN o USD) SIEMPRE
+- Muestra el precio en su moneda original (MXN o USD) y con $ SIEMPRE
 - Informa la disponibilidad
 - Para promociones, siempre indica la vigencia
 - Da detalles no muy extensos
@@ -92,6 +95,12 @@ Historial:
             name='sales_rules_tool',
             description="Aplica reglas de promoción, devuelve el precio final y mensaje para mostrar al usuario",
             args_schema=SalesInput
+        ),
+            StructuredTool.from_function(
+            func=dolar_a_peso_tool,
+            name='dolar_a_peso_tool',
+            description="Solo usa la tool para convertir el precio de un producto de USD a MXN y hacer cuentas",
+            args_schema=DolarInput
         )
 ]
         
@@ -137,7 +146,7 @@ Historial:
         self.executor = AgentExecutor.from_agent_and_tools(
             agent=agent,
             tools=self.tools,
-            verbose=False,
+            verbose=True,
             max_iterations=40
         )
 
