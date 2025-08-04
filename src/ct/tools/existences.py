@@ -11,11 +11,7 @@ class ExistenciasInput(BaseModel):
     clave: str
     listaPrecio: int
 
-# 2. La función ahora es una función Python normal, sin el decorador @tool
-def existencias_tool(clave: str, listaPrecio: int) -> str:
-    lista_precio = listaPrecio # Use the directly passed listaPrecio
-
-    query = """
+query = """
     SELECT
         pro.clave,
         SUM(e.cantidad) AS existencias,
@@ -33,6 +29,9 @@ def existencias_tool(clave: str, listaPrecio: int) -> str:
     GROUP BY pro.idProductos
     """
 
+# 2. La función ahora es una función Python normal, sin el decorador @tool
+def existencias_tool(clave: str, listaPrecio: int) -> str:
+    lista_precio = listaPrecio # Use the directly passed listaPrecio
     cnx = None
     cursor = None
     try:

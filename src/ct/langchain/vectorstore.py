@@ -18,13 +18,4 @@ class LangchainVectorStore():
             allow_dangerous_deserialization=True
         )
 
-    
-    def create_index(self, texts):
-        """Crea un nuevo índice"""
-        self.vectorstore = FAISS.from_documents(
-            documents=texts,
-            embedding=self.embedder  
-        )
-        if self.index_path:
-            self.vectorstore.save_local(self.index_path)
         
