@@ -114,21 +114,21 @@ La etapa de carga es donde los datos limpios y transformados se persisten en los
 
 #### 1.3.1 Destinos de carga
 
-Los datos limpios y transformados se cargan en **MongoDB**, distribuidos en tres colecciones principales:
+Los datos limpios y transformados se persisten en **MongoDB**, específicamente en una colección principal:
 
-* `products`: Almacena la información principal de los productos.
-* `sales`: Contiene los detalles de las promociones.
 * `specifications`: Respalda las fichas técnicas transformadas de los productos, evitando llamadas repetidas al servicio XML.
+
+Los datos de productos y promociones, una vez transformados, se utilizan directamente para la construcción de la base de datos vectorial sin una carga intermedia en colecciones dedicadas de MongoDB.
 
 #### 1.3.2. Estrategia de carga en MongoDB
 
-La carga en MongoDB se realiza mediante operaciones de `upsert` (insertar si no existe, actualizar si existe) utilizando `UpdateOne` dentro de operaciones `bulk_write` (`mongo_products`, `mongo_sales` en `ct/ETL/load.py`). Esta estrategia optimiza el rendimiento al enviar múltiples operaciones de escritura en un solo lote y asegura que los datos existentes se actualicen de manera eficiente, mientras que los nuevos se insertan.
+La carga en MongoDB se realiza mediante operaciones de `upsert` (insertar si no existe, actualizar si existe) utilizando `UpdateOne` dentro de operaciones `bulk_write`. Esta estrategia optimiza el rendimiento al enviar múltiples operaciones de escritura en un solo lote y asegura que las fichas técnicas existentes se actualicen de manera eficiente, mientras que las nuevas se insertan.
 
 #### 1.3.3. Construcción y actualización del vector store
 
 La información de productos y promociones se utilizan para construir y mantener la base de datos vectorial FAISS, que es el corazón del sistema RAG.
 
-* **Conversión a documentos LangChain**: Los datos cargados en MongoDB se recuperan y se convierten en objetos `langchain.schema.Document` (`load_producs`, `load_sales` en `ct/ETL/load.py`). Estos documentos incluyen el contenido textual (`page_content` construido por `build_content`) y metadatos relevantes como la `clave` y la colección de origen (`productos` o `promociones`).
+* **Conversión a documentos LangChain**: Los datos limpios de productos y promociones, obtenidos directamente de la etapa de transformación (`clean_products`, `clean_sales` en `ct/ETL/load.py`), se convierten en objetos `langchain.schema.Document`. Estos documentos incluyen el contenido textual (`page_content` construido por build_content) y metadatos relevantes como la clave y la colección de origen (`productos` o `promociones`)
 * **Generación de embeddings**: Se utilizan `OpenAIEmbeddings` para transformar el contenido textual de cada documento en representaciones vectoriales numéricas de alta dimensionalidad.
 * **Creación y actualización de FAISS**:
     * **Para productos (`productos_vs`)**: Se crea un índice FAISS inicial a partir de los documentos de productos. Este proceso se realiza en lotes (e.g., lotes de 150 documentos) para gestionar eficientemente el consumo de memoria y cumplir con los límites de tasa de la API de OpenAI. El índice resultante se guarda localmente en `PRODUCTS_VECTOR_PATH`.
