@@ -42,7 +42,7 @@ class Extraction():
       ON pro.idProductos = e.idProductos
     JOIN precio pre 
       ON pro.idProductos = pre.idProducto
-    WHERE e.cantidad > 3
+    WHERE e.cantidad > 0
     AND pro.idProductos > 0
     ;
     """
@@ -121,6 +121,7 @@ class Extraction():
       for file in filas:
           for producto in file:
               datos.append(producto)
+      print(f"Cantidad de productos: {len(datos)}")
       productos = pd.DataFrame(datos, columns=columnas)
       return productos
     
@@ -191,6 +192,7 @@ ORDER BY
       cursor.execute(self.current_sales_query())
       columnas = [desc[0] for desc in cursor.description]
       datos = [producto for producto in cursor.fetchall()]
+      print(f"Cantidad de productos: {len(datos)}")
       sales = pd.DataFrame(datos, columns=columnas)
 
       return sales
