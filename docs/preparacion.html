@@ -316,22 +316,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>La etapa de carga es donde los datos limpios y transformados se persisten en los destinos finales y se preparan para el consumo del chatbot.</p>
 <section id="destinos-de-carga" class="level4">
 <h4 class="anchored" data-anchor-id="destinos-de-carga">1.3.1 Destinos de carga</h4>
-<p>Los datos limpios y transformados se cargan en <strong>MongoDB</strong>, distribuidos en tres colecciones principales:</p>
+<p>Los datos limpios y transformados se persisten en <strong>MongoDB</strong>, específicamente en una colección principal:</p>
 <ul>
-<li><code>products</code>: Almacena la información principal de los productos.</li>
-<li><code>sales</code>: Contiene los detalles de las promociones.</li>
 <li><code>specifications</code>: Respalda las fichas técnicas transformadas de los productos, evitando llamadas repetidas al servicio XML.</li>
 </ul>
+<p>Los datos de productos y promociones, una vez transformados, se utilizan directamente para la construcción de la base de datos vectorial sin una carga intermedia en colecciones dedicadas de MongoDB.</p>
 </section>
 <section id="estrategia-de-carga-en-mongodb" class="level4">
 <h4 class="anchored" data-anchor-id="estrategia-de-carga-en-mongodb">1.3.2. Estrategia de carga en MongoDB</h4>
-<p>La carga en MongoDB se realiza mediante operaciones de <code>upsert</code> (insertar si no existe, actualizar si existe) utilizando <code>UpdateOne</code> dentro de operaciones <code>bulk_write</code> (<code>mongo_products</code>, <code>mongo_sales</code> en <code>ct/ETL/load.py</code>). Esta estrategia optimiza el rendimiento al enviar múltiples operaciones de escritura en un solo lote y asegura que los datos existentes se actualicen de manera eficiente, mientras que los nuevos se insertan.</p>
+<p>La carga en MongoDB se realiza mediante operaciones de <code>upsert</code> (insertar si no existe, actualizar si existe) utilizando <code>UpdateOne</code> dentro de operaciones <code>bulk_write</code>. Esta estrategia optimiza el rendimiento al enviar múltiples operaciones de escritura en un solo lote y asegura que las fichas técnicas existentes se actualicen de manera eficiente, mientras que las nuevas se insertan.</p>
 </section>
 <section id="construcción-y-actualización-del-vector-store" class="level4">
 <h4 class="anchored" data-anchor-id="construcción-y-actualización-del-vector-store">1.3.3. Construcción y actualización del vector store</h4>
 <p>La información de productos y promociones se utilizan para construir y mantener la base de datos vectorial FAISS, que es el corazón del sistema RAG.</p>
 <ul>
-<li><strong>Conversión a documentos LangChain</strong>: Los datos cargados en MongoDB se recuperan y se convierten en objetos <code>langchain.schema.Document</code> (<code>load_producs</code>, <code>load_sales</code> en <code>ct/ETL/load.py</code>). Estos documentos incluyen el contenido textual (<code>page_content</code> construido por <code>build_content</code>) y metadatos relevantes como la <code>clave</code> y la colección de origen (<code>productos</code> o <code>promociones</code>).</li>
+<li><strong>Conversión a documentos LangChain</strong>: Los datos limpios de productos y promociones, obtenidos directamente de la etapa de transformación (<code>clean_products</code>, <code>clean_sales</code> en <code>ct/ETL/load.py</code>), se convierten en objetos <code>langchain.schema.Document</code>. Estos documentos incluyen el contenido textual (<code>page_content</code> construido por build_content) y metadatos relevantes como la clave y la colección de origen (<code>productos</code> o <code>promociones</code>)</li>
 <li><strong>Generación de embeddings</strong>: Se utilizan <code>OpenAIEmbeddings</code> para transformar el contenido textual de cada documento en representaciones vectoriales numéricas de alta dimensionalidad.</li>
 <li><strong>Creación y actualización de FAISS</strong>:
 <ul>

@@ -230,7 +230,7 @@ Ollama permite correr modelos de lenguaje open-source de manera local o privada.
 <p>El sistema se construyó utilizando principalmente la librería <strong>LangChain</strong>, la cual ofrece una base robusta para conectar modelos de lenguaje con herramientas externas y flujos personalizados.</p>
 <section id="información-estática" class="level4">
 <h4 class="anchored" data-anchor-id="información-estática">1.2.1 Información estática</h4>
-<p>A partir de los datos mencionados en el apartado anterior, procederemos a crear la base de datos vectorial con esta información. Tomamos los datos y los convertimos en un tipo <code>Document</code> para poder pasarlo a <code>FAISS</code> (base vectorial) junto con los <code>embeddings</code> y guardarlo de forma local.</p>
+<p>A partir de los datos mencionados en el apartado anterior, procederemos a crear la base de datos vectorial con esta información. Tomamos los datos limpios y transformados directamente de las funciones de limpieza (<code>clean_products</code> y <code>clean_sales</code> en <code>ct/ETL/transform.py</code>) y los convertimos en un tipo <code>Document</code> para poder pasarlo a FAISS (base vectorial) junto con los <code>embeddings</code> y guardarlo de forma local.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>campos <span class="op">=</span> [</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>        <span class="st">"nombre"</span>,</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">"producto"</span>,</span>
@@ -293,7 +293,7 @@ Ollama permite correr modelos de lenguaje open-source de manera local o privada.
 <section id="flujo-de-datos-para-el-sistema-rag" class="level4">
 <h4 class="anchored" data-anchor-id="flujo-de-datos-para-el-sistema-rag">1.2.3 Flujo de datos para el sistema RAG</h4>
 <p>El sistema se alimenta con información a través de un proceso ETL (Extracción, Transformación y Carga) que asegura que los datos estén limpios, estructurados y listos para ser utilizados por el modelo y las herramientas.</p>
-<p><strong>Para una descripción detallada de cada etapa del proceso ETL en MongoDB y la base de datos vectorial, por favor, consultar el documento “Preparación de los datos”.</strong></p>
+<p><strong>Para una descripción detallada de cada etapa del proceso ETL, incluyendo la extracción de datos, la transformación (y el almacenamiento de fichas técnicas en MongoDB), y la carga directa a la base de datos vectorial, por favor, consultar el documento “Preparación de los datos”.</strong></p>
 <p>En resumen, este proceso garantiza que el modelo tenga acceso a una base de datos de conocimiento robusta y actualizada, tanto estática (productos y promociones embedidas) como dinámica (a través de las herramientas que consultan datos en tiempo real).</p>
 </section>
 </section>
