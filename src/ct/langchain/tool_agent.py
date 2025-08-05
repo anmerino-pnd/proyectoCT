@@ -26,7 +26,7 @@ class ToolAgent:
         self.model = "gpt-4.1"
 
         try:
-            self.client = MongoClient('mongodb://localhost:27017')['CT_API_Publica']
+            self.client = MongoClient(mongo_uri).get_default_database()
             self.sessions = self.client[mongo_collection_sessions]
             self.message_backup = self.client[mongo_collection_message_backup]
 

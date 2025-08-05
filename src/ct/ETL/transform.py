@@ -1,4 +1,3 @@
-
 import pandas as pd
 from ct.ETL.extraction import Extraction
 from pymongo import MongoClient
@@ -66,7 +65,6 @@ class Transform:
     def transform_products(self) -> pd.DataFrame:
         """
         Transforma los datos brutos de productos en un DataFrame limpio.
-        Se ajusta para el cambio de nombre de columna de 'detalles_precio' a 'detalles_sucursales'.
         """
         products : pd.DataFrame = self.data.get_products()
         
@@ -142,9 +140,7 @@ class Transform:
 
     def transform_sales(self) -> pd.DataFrame:
         """
-        Transforma los datos brutos de ventas (ofertas) en un DataFrame limpio y consolida
-        los detalles de precios por lista para cada oferta única, asegurando que 'precios_por_lista'
-        contenga entradas distintas y que 'moneda' se maneje como una columna de la oferta principal.
+        Transforma los datos brutos de ventas (ofertas) en un DataFrame limpio.
         """
         sales_raw: pd.DataFrame = self.data.get_current_sales()
         if sales_raw.empty:
