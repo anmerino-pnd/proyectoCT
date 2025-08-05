@@ -38,7 +38,7 @@ El sistema se construyó utilizando principalmente la librería **LangChain**, l
 
 #### 1.2.1 Información estática
 
-A partir de los datos mencionados en el apartado anterior, procederemos a crear la base de datos vectorial con esta información. Tomamos los datos y los convertimos en un tipo `Document` para poder pasarlo a `FAISS` (base vectorial) junto con los `embeddings` y guardarlo de forma local.
+A partir de los datos mencionados en el apartado anterior, procederemos a crear la base de datos vectorial con esta información. Tomamos los datos limpios y transformados directamente de las funciones de limpieza (`clean_products` y `clean_sales` en `ct/ETL/transform.py`) y los convertimos en un tipo `Document` para poder pasarlo a FAISS (base vectorial) junto con los `embeddings` y guardarlo de forma local.
 
 ```python
 campos = [
@@ -109,7 +109,7 @@ Estas herramientas son invocadas automáticamente por el agente cuando la consul
 
 El sistema se alimenta con información a través de un proceso ETL (Extracción, Transformación y Carga) que asegura que los datos estén limpios, estructurados y listos para ser utilizados por el modelo y las herramientas.
 
-**Para una descripción detallada de cada etapa del proceso ETL en MongoDB y la base de datos vectorial, por favor, consultar el documento "Preparación de los datos".**
+**Para una descripción detallada de cada etapa del proceso ETL, incluyendo la extracción de datos, la transformación (y el almacenamiento de fichas técnicas en MongoDB), y la carga directa a la base de datos vectorial, por favor, consultar el documento "Preparación de los datos".**
 
 En resumen, este proceso garantiza que el modelo tenga acceso a una base de datos de conocimiento robusta y actualizada, tanto estática (productos y promociones embedidas) como dinámica (a través de las herramientas que consultan datos en tiempo real).
 

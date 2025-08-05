@@ -160,8 +160,39 @@ tail -f nohup.out
 * Si la API corre en HTTP y el *frontend* en HTTPS, se enfrentarán problemas de "contenido mixto". La solución propuesta fue usar un archivo PHP (*backend* del sitio web) como intermediario, el cual es crucial aquí. La API debe apuntar a este PHP y el PHP a su *frontend* donde se encuentra el widget.
 * La `data-api-base` es el dominio donde es accesible la API mediante PHP.
 
+### 1.6 Actualización de la base de conocimientos (ETL)
 
-### 1.6 Notas adicionales
+Para asegurar que el chatbot tenga acceso a la información más reciente de productos, promociones y fichas técnicas, es necesario ejecutar periódicamente el pipeline ETL. Este proceso extrae, transforma y carga los datos, actualizando la base de datos vectorial utilizada por el sistema RAG.
+
+Para ejecutar el pipeline ETL, sigue estos pasos:
+
+  1. **Acceder al entorno virtual**:
+  Asegurarse de estar en el directorio raíz del proyecto (`proyectoCT`) y activa el entorno virtual donde se instalaron las dependencias del *backend*.
+    
+```bash
+source .venv/bin/activate # Para Linux/macOS
+# o `.venv/Scripts/activate` para Windows
+```
+
+  2. **Ejecutar el pipeline ETL**:
+  Una vez activado el entorno, puedes ejecutar el script `pipeline.py`. Este script se encargará de todo el proceso de extracción, transformación y carga, incluyendo la actualización de las fichas técnicas en MongoDB y la reconstrucción de los vector stores.
+
+```bash
+python -m ct.ETL.pipeline
+```
+
+  Este comando ejecutará la función `run_etl_pipeline()` definidad en `pipeline.py`, mostrando mensajes de progreso en la consola.
+
+  3. **Verificar logs (opcional)**:
+  Si el pipeline se ejecuta en segundo plano o si deseas verificar su estado y posibles errores, puedes revisar los logs generados.
+
+```bash
+tail -f nohup.out # Si estás usando nohup para el pipeline o el backend
+```
+
+Se recomienda programar la ejecución de este pipeline de forma regular (semanal o mensualmente) mediante *uncron job* en sistemas Linux o una tarea programada en Windows, para mantener la base de conocimientos del chatbot siempre actualizada.
+
+### 1.7 Notas adicionales
 
 * **Problemas de caché**: Es común que los navegadores almacenen versiones antiguas de archivos JS/CSS. Si la interfaz del *widget* no funciona correctamente después de una actualización, instruye a los usuarios a limpiar la caché de su navegador o a realizar un "hard refresh" (Ctrl+F5). Implementar una estrategia de *versioning* para los archivos del *widget* (ej.js?v=1.2.3) puede mitigar esto a futuro.
 * **Rotación de IP para fichas técnicas**: El sistema está diseñado para manejar el bloqueo de IP del servicio de fichas técnicas. Se recomienda monitorear los logs de la extracción (`extraction.py`) para identificar errores 403, lo que indicaría la necesidad de actualizar la IP en el servicio externo.
@@ -579,7 +610,8 @@ Este módulo define los _endpoints_ de la API FastAPI para la interacción del c
 
 **ct/main.py**
 
-* Es el archivo principal de la aplicación FastAPI. Configura la aplicación, habilita CORS y registra los *endpoints* definidos en `ct.chat`.
+Es el archivo principal de la aplicación FastAPI. Configura la aplicación, habilita CORS y registra los *endpoints* definidos en `ct.chat`.
+
 * **Funciones clave**:
   * `app = FastAPI`: Inicializa la aplicación FastAPI.
   * `app.add_middleware(CORSMiddleware, ...)`: Configura el middleware de CORS para permitir solicitudes desde cualquier origen, métodos y cabeceras, lo cual es crucial para la integración del *widget* en diferentes dominios.
@@ -594,7 +626,8 @@ Este módulo define los _endpoints_ de la API FastAPI para la interacción del c
 
 **ct/ETL/extraction.py**:
 
-* Módulo de la capa de Extracción. Responsable de conectarse a la base de datos MySQL para extraer información de productos y promociones, y de interactuar con el servicio externo para obtener fichas técnicas.
+Módulo de la capa de Extracción. Responsable de conectarse a la base de datos MySQL para extraer información de productos y promociones, y de interactuar con el servicio externo para obtener fichas técnicas.
+
 * **Clases y funciones clave**:
   * `class Extraction`:
     * `__init__()`: Inicializa la clase con los parámetros de conexión a MySQL y configura un `cloudscraper` para la extracción de fichas técnicas.
@@ -631,7 +664,8 @@ Este módulo define los _endpoints_ de la API FastAPI para la interacción del c
 
 **ct/ETL/transform.py** 
 
-* Módulo de la capa de Transformación. Se encarga de limpiar, unificar y normalizar los datos extraídos, y de persistir las fichas técnicas en MongoDB.
+Módulo de la capa de Transformación. Se encarga de limpiar, unificar y normalizar los datos extraídos, y de persistir las fichas técnicas en MongoDB.
+
 * **Clases y funciones claves**:
   * `class Transform`:
     * `__init__()`: Inicializa la clase `Transform`, creando una instancia de `Extraction` y configurando la conexión a la colección de especificaciones de producto.
@@ -655,7 +689,8 @@ Este módulo define los _endpoints_ de la API FastAPI para la interacción del c
 
 **ct/ETL/load.py**
 
-* Módulo de la capa de Carga. Maneja la inserción de los datos transformados en las colecciones de MongoDB y la construcción de la base de datos vectorial.
+Módulo de la capa de Carga. Maneja la inserción de los datos transformados en las colecciones de MongoDB y la construcción de la base de datos vectorial.
+
 * **Clases y funciones clave**:
   * `class Load`:
     * `__init__()`: Inicializa la clase `Load`, creando una instancia de `Transform` y configurando las conexiones a las colecciones de MongoDB (`products`, `sales`, `specifications`) y el *embedder* de OpenAI.
@@ -672,6 +707,21 @@ Este módulo define los _endpoints_ de la API FastAPI para la interacción del c
       * **Comportamiento**: Carga los productos desde MongoDB, los vectoriza en lotes (`batch_size = 250`) para optimizar el uso de memoria, y guarda el índice FAISS localmente en `PRODUCTS_VECTOR_PATH`.
     * `sales_products_vs()`: Crea o actualiza el *vector store* para ventas/ofertas.
       * **Comportamiento**: Carga las ofertas desde MongoDB. Luego, carga el *vector store* de productos existente desde `PRODUCTS_VECTOR_PATH` y añade las ofertas a este índice (también en lotes), guardando el índice combinado en `SALES_PRODUCTS_VECTOR_PATH`.
+
+**ct/ETL/pipeline.py**
+
+Este módulo actúa como el orquestador principal del proceso ETL (Extracción, Transformación, Carga). Centraliza la ejecución de las etapas de obtención, limpieza, enriquecimiento y carga de datos, asegurando que los vector stores de productos y promociones estén siempre actualizados.
+
+* **Clases y funciones clave**:
+  * `run_etl_pipeline()`:
+    * **Propósito**: Función principal que coordina la ejecución secuencial de todas las fases del pipeline ETL.
+    * **Comportamiento**:
+      1. Inicializa una instancia de la clase `Load`.
+      2. Invoca `load.products_vs()` para crear o actualizar el vector store de productos con los datos preparados.
+      3. Invoca `load.products_vs()` para crear o actualizar el vector store de productos con los datos preparados.
+      4. Invoca `load.load_sales()` para extraer, transformar y preparar los datos de promociones.
+      5. Invoca `load.sales_products_vs()` para crear o actualizar el vector store de promociones, integrándolos con el vector store de productos existente,
+    * **Uso**: Diseñada para ser el punto de entrada para la actualización programada o manual de la base de conocimientos del chatbot.
 
 
 ### 2.2 Modelos LLM utilizados
@@ -800,7 +850,7 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
   * Extrae datos de MySQL y el servicio de fichas técnicas.
   * Limpia, unifica, y transforma los datos, persistiendo las fichas técnicas en MongoDB.
   * Carga los datos limpios en colecciones de MongoDB (`products`, `sales`, `specifications`).
-* **Base de datos NoSQL (MongoDB)**: Almacena los datos limpios de productos, ofetas y fichas técnicas, así como el historial de las interacciones de los usuarios (`sessions`, `message_backup`).
+* **Base de datos NoSQL (MongoDB)**: Almacena las fichas técnicas (`specifications`), así como el historial de las interacciones de los usuarios (`sessions`, `message_backup`).
   * `sessions`: Mantiene los últimos *n* mensajes de cada usuario para recuperación rápida y una experiencia de usuario fluida.
   * `message_backup`: Almacena un historial completo de todas las consultas y respuestas con métricas detalladas para fines de análisis y reportes.
 * **Modelo de embeddings**: Componente encargado de transformar tanto las consultas de los usuarios como la información de los productos en representaciones vectoriales numéricas (usando OpenAI Embeddings).
@@ -824,8 +874,8 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
 
 ### 4.3 Flujo de datos
 1. El **módulo ETL** extrae datos de **MySQL** y el **servicio de fichas técnicas**.
-2. Los datos se transforman y se cargan en **MongoDB** (colecciones `products`, `sales`, `specifications`).
-3. Los datos de `products` y `sales` en **MongoDB** son utilizados por el **módulo ETL** para construir y actualizar la **base de datos vectorial**
+2. Los datos se transforman y las fichas técnicas se cargan en **MongoDB** (colección `specifications`).
+3. Los datos transformados  de `products` y `sales` (incluyendo las fichas técnicas obtenidas de MongoDB) son utilizados por el **módulo ETL** para construir y actualizar la **base de datos vectorial**.
 
 ![Arquitectura del sistema](./arquitectura.jpg){width=120%}
 
