@@ -12,21 +12,17 @@ class ExistenciasInput(BaseModel):
     listaPrecio: int
 
 query = """
-    SELECT
-        pro.clave,
-        SUM(e.cantidad) AS existencias,
-        pre.precio,
-        pre.idMoneda AS moneda,
-        CASE 
-            WHEN prom.producto IS NOT NULL THEN 'Sí'
-            ELSE 'No'
-        END AS en_promocion
-    FROM productos pro
-    LEFT JOIN existencias e ON pro.idProductos = e.idProductos
-    LEFT JOIN precio pre ON pro.idProductos = pre.idProducto AND pre.listaPrecio = %s
-    LEFT JOIN promociones prom ON pro.clave = prom.producto
-    WHERE pro.clave = %s
-    GROUP BY pro.idProductos
+SELECT pro.clave, 
+       SUM(e.cantidad) AS existencias, 
+       pre.precio, 
+       pre.idMoneda AS moneda,
+       CASE WHEN EXISTS(SELECT 1 FROM promociones WHERE producto = pro.clave) 
+            THEN 'Sí' ELSE 'No' END AS en_promocion
+FROM productos pro
+LEFT JOIN existencias e ON pro.idProductos = e.idProductos
+LEFT JOIN precio pre ON pro.idProductos = pre.idProducto AND pre.listaPrecio = %s
+WHERE pro.clave = %s
+GROUP BY pro.idProductos, pre.precio, pre.idMoneda;
     """
 
 # 2. La función ahora es una función Python normal, sin el decorador @tool
