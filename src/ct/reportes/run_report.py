@@ -1,10 +1,10 @@
 import pytz
 import nltk
 import spacy
-import calendar
 import numpy as np
 import pandas as pd
 import streamlit as st
+from rapidfuzz import fuzz
 import plotly.express as px
 from datetime import datetime
 from pymongo import MongoClient
@@ -186,16 +186,16 @@ selected_users = st.sidebar.multiselect(
 
 user_filter_mode = st.sidebar.radio(
     "Modo de filtro de usuario",
-    ['Incluir', 'Excluir'],
+    ['Excluir', 'Incluir'],
     index=0
 )
 
 # Aplicar el filtro de usuario a la consulta
 if selected_users:
-    if user_filter_mode == 'Incluir':
-        query_filter['session_id'] = {'$in': selected_users}
-    else:
+    if user_filter_mode == 'Excluir':
         query_filter['session_id'] = {'$nin': selected_users}
+    else:
+        query_filter['session_id'] = {'$in': selected_users}
 # --- FIN DE FILTROS DE USUARIO NUEVOS ---
 
 def fetch_messages_from_db(_coleccion, query_filter):
@@ -294,20 +294,36 @@ if data:
             st.error(f"Error al obtener los tópicos: {e}")
             return []
 
-    # --- NUEVA SECCIÓN DE LA TABLA ---
+    # --- INICIO DE LA SECCIÓN DE LA TABLA CON EL NUEVO FILTRO ---
     st.header("Tabla de Conversaciones")
 
+    # Filtra solo preguntas no vacías
     df_conversations = df[df['question'].notna() & df['question'].str.strip().astype(bool)].copy()
 
-    if not df_conversations.empty:
-        # Seleccionar las columnas que el jefe quiere ver
-        df_display = df_conversations[['full_date', 'question']].copy()
+    # Campo de texto para búsqueda
+    search_term = st.text_input("Filtrar por palabra clave en la pregunta (vacío para mostrar todo)")
+
+    # Slider para umbral de similitud
+    threshold = 90
+
+    if search_term:
+        # Aplica búsqueda difusa
+        df_filtered = df_conversations[
+            df_conversations['question'].apply(
+                lambda x: fuzz.partial_ratio(search_term.lower(), str(x).lower()) >= threshold
+            )
+        ].copy()
+    else:
+        df_filtered = df_conversations.copy()
+
+    if not df_filtered.empty:
+        df_display = df_filtered[['full_date', 'question']].copy()
         df_display.rename(columns={'full_date': 'Fecha y Hora', 'question': 'Pregunta del Usuario'}, inplace=True)
         st.dataframe(df_display, use_container_width=True)
     else:
         st.info("No hay conversaciones para mostrar con los filtros seleccionados.")
-    # --- FIN DE LA NUEVA SECCIÓN ---
 
+    # --- FIN DE LA SECCIÓN DE LA TABLA CON EL NUEVO FILTRO ---
 
     st.header("Tópicos más frecuentes")
     
