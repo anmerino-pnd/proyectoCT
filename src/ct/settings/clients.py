@@ -34,6 +34,7 @@ mongo_collection_message_backup: str = os.getenv('MONGO_COLLECTION_MESSAGE_BACKU
 mongo_collection_products: str = os.getenv('MONGO_COLLECTION_PRODUCTS')
 mongo_collection_sales: str = os.getenv('MONGO_COLLECTION_SALES')
 mongo_collection_specifications : str = os.getenv("MONGO_COLLECTION_SPECIFICATIONS")
+mongo_collection_pedidos: str = os.getenv("MONGO_COLLECTION_PEDIDOS")
 
 # Credenciales de OpenAI
 openai_api_key: str = os.getenv("OPENAI_API_KEY")
