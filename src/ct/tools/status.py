@@ -25,10 +25,10 @@ def status_tool(factura: str) -> str:
             case 'Confirmado':
                 return "Pedido creado"
             case 'Facturado':
-                return "Pedido creado"
+                return "La factura del producto ha sido generada"
             case 'Enviado':
-                return "La factura del pedido ha sido generada"
-            case 'Terminado':
+                return "La guía del pedido ha sido generada"
+            case 'Terminado' | 'FacturaESDActualizada':
                 return "Descarga digital entregada"
             case 'Preautorizado' | 'Autorizado':
                 return "Procesando tu pedido"
@@ -42,8 +42,6 @@ def status_tool(factura: str) -> str:
                 return "Estamos revisando tu pedido, gracias por la paciencia"
             case 'Cancelado':
                 return "El pedido ha sido cancelado"
-            case 'FacturaESDActualizada':
-                return "El pedido está siendo actualizado"
             case _:
                 return "Estamos trabajando en su pedido"
     else:
