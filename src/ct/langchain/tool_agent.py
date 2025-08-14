@@ -83,12 +83,11 @@ Historial:
                 func=search_information_tool,
                 description="Busca productos relacionados con lo que se pide"
             ),
-            # Changed to StructuredTool for better argument parsing
             StructuredTool.from_function(
                 func=inventory_tool,
                 name='inventory_tool',
                 description="Esta herramienta sirve como referencia y devuelve precios, moneda y existencias de un producto por su clave y listaPrecio",
-                args_schema=InventoryInput # Explicitly link the Pydantic schema
+                args_schema=InventoryInput 
             ),
             StructuredTool.from_function(
             func=sales_rules_tool,
