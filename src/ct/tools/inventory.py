@@ -1,15 +1,14 @@
 import mysql.connector
-from pydantic import BaseModel
-# from langchain.tools import tool # REMOVE THIS IMPORT if not used elsewhere
+from pydantic import BaseModel, Field
 from ct.settings.clients import ip, port, user, pwd, database
 import pymysql
 pymysql.install_as_MySQLdb()
 
 
 # 1. Definimos el esquema de entrada
-class ExistenciasInput(BaseModel):
-    clave: str
-    listaPrecio: int
+class InventoryInput(BaseModel):
+    clave: str = Field(description="Clave del producto")
+    listaPrecio: int = Field(description="Lista de precio al que pertenece el usuario")
 
 query = """
 SELECT pro.clave, 
@@ -26,7 +25,7 @@ GROUP BY pro.idProductos, pre.precio, pre.idMoneda;
     """
 
 # 2. La función ahora es una función Python normal, sin el decorador @tool
-def existencias_tool(clave: str, listaPrecio: int) -> str:
+def inventory_tool(clave: str, listaPrecio: int) -> str:
     lista_precio = listaPrecio # Use the directly passed listaPrecio
     cnx = None
     cursor = None
