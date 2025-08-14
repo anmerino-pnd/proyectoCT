@@ -1,11 +1,11 @@
 import mysql.connector
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from ct.settings.clients import ip, port, user, pwd, database
 import pymysql
 pymysql.install_as_MySQLdb()
 
 class DolarInput(BaseModel):
-    dolar: float
+    dolar: float = Field(description="Precio exacto en dólares del producto")
 
     
 query = """
@@ -16,7 +16,7 @@ FROM monedas_api
 LIMIT 1
 """
 
-def dolar_a_peso_tool(dolar: float) -> str:
+def dolar_convertion_tool(dolar: float) -> str:
     cnx = None
     cursor = None
     try:

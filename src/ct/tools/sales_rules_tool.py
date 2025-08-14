@@ -2,7 +2,7 @@ import re
 import json
 import mysql.connector
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from ct.settings.clients import ip, port, user, pwd, database
 from ct.settings.config import ID_SUCURSAL
 import pymysql
@@ -13,11 +13,11 @@ with open(ID_SUCURSAL, "r", encoding="utf-8") as f:
     SUCURSALES = json.load(f)
 
 class SalesInput(BaseModel):
-    clave: str
-    listaPrecio: int
-    session_id: str
+    clave: str = Field(description="Clave del producto")
+    listaPrecio: int = Field(description="Lista de precio al que pertenece el usuario")
+    session_id: str = Field(description="Sesión del usuario")
 
-def obtener_id_sucursal(session_id: str) -> str:
+def get_id_sucursal(session_id: str) -> str:
     match_ctin = re.match(r"^(\d{2})CTIN", session_id)
     if match_ctin:
         return match_ctin.group(1).lstrip("0")
@@ -75,7 +75,7 @@ def sales_rules_tool(clave: str, listaPrecio: int, session_id: str) -> str:
     cnx = None
     cursor = None
     try:
-        id_sucursal = obtener_id_sucursal(session_id)
+        id_sucursal = get_id_sucursal(session_id)
 
         cnx = mysql.connector.connect(
             host=ip, port=port, user=user, password=pwd, database=database,

@@ -1,22 +1,23 @@
-import re
 import time
 from datetime import datetime, timezone
 
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from langchain.tools import Tool, StructuredTool # Import StructuredTool
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import trim_messages
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 from langchain.agents import create_openai_functions_agent, AgentExecutor
 
-from ct.settings.clients import openai_api_key
-from ct.tools.moneda_api import dolar_a_peso_tool, DolarInput
+from langchain.tools import Tool, StructuredTool 
+from ct.tools.status import status_tool, StatusInput
 from ct.tools.search_information import search_information_tool
+from ct.tools.moneda_api import dolar_convertion_tool, DolarInput
+from ct.tools.inventory import inventory_tool, InventoryInput 
 from ct.tools.sales_rules_tool import sales_rules_tool, SalesInput
-from ct.tools.existences import existencias_tool, ExistenciasInput # Import ExistenciasInput
+
+from ct.settings.clients import openai_api_key
 from ct.settings.tokens import TokenCostProcess, CostCalcAsyncHandler
 from ct.settings.clients import mongo_uri, mongo_collection_sessions, mongo_collection_message_backup
 
@@ -42,20 +43,19 @@ Eres un asistente especializado en recomendar productos y promociones de la empr
 
 Para solicitudes específicas:
 * Usa `search_information_tool` para buscar el producto solicitado
-* Para cada resultado, obtén información adicional con `existencias_tool`
+* Para cada resultado, obtén información adicional con `inventory_tool`
 * SIEMPRE que el producto esté en promoción, usa `sales_rules_tool`
 * Escoge calidad precio y lo que mejor se adapte a las necesidades del usuario
 
 Para solicitudes generales o exploratorias:
 * Genera una lista con solo los componentes clave de la consulta del usuario
 * Busca productos relevantes usando `search_information_tool` y toma el mejor, afín a la necesidad
-* Luego consulta `existencias_tool` del producto escogido y SIEMPRE que el producto esté en promoción, usa `sales_rules_tool`
+* Luego consulta `inventory_tool` del producto escogido y SIEMPRE que el producto esté en promoción, usa `sales_rules_tool`
 
 Ejemplo correcto de uso: 
-- existencias_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
+- inventory_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
 - sales_rules_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio}, session_id={session_id})
-- dolar_a_peso_tool(dolar='PRECIO_EXACTO_DEL_PRODUCTO')
-
+- dolar_convertion_tool(dolar='PRECIO_EXACTO_DEL_PRODUCTO')
 
 Formato de respuesta SIEMPRE:
 Enlista los productos en formato claro, ordenado, usando bullet points y Markdown:
@@ -85,10 +85,10 @@ Historial:
             ),
             # Changed to StructuredTool for better argument parsing
             StructuredTool.from_function(
-                func=existencias_tool,
-                name='existencias_tool',
+                func=inventory_tool,
+                name='inventory_tool',
                 description="Esta herramienta sirve como referencia y devuelve precios, moneda y existencias de un producto por su clave y listaPrecio",
-                args_schema=ExistenciasInput # Explicitly link the Pydantic schema
+                args_schema=InventoryInput # Explicitly link the Pydantic schema
             ),
             StructuredTool.from_function(
             func=sales_rules_tool,
@@ -97,13 +97,18 @@ Historial:
             args_schema=SalesInput
         ),
             StructuredTool.from_function(
-            func=dolar_a_peso_tool,
-            name='dolar_a_peso_tool',
+            func=dolar_convertion_tool,
+            name='dolar_convertion_tool',
             description="Solo usa la tool para convertir el precio de un producto de USD a MXN y hacer cuentas",
             args_schema=DolarInput
-        )
+        ),
+            StructuredTool.from_function(
+                func=status_tool,
+                name='status_tool',
+                description="Cuando pregunten por el estatus de algún pedido hecho, pide la factura y busca dicho estatus y no ofrezcas más detalles, solo los regresados por la tool",
+                args_schema=StatusInput
+            )
 ]
-        
 
         self.executor = None
 
