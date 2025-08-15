@@ -68,7 +68,7 @@ Enlista los productos en formato claro, ordenado, usando bullet points y Markdow
 - SIEMPRE ACLARA: _Los precios y existencias están sujetos a cambios._
 
 Para seguir ofreciendo ayuda solo pregunta:
-- ¿Hay algo más en lo que pueda ayudarte?
+- ¿Hay algo más en lo que te pueda ayudar?
 
 Historial:
 {chat_history}
