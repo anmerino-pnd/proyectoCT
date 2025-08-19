@@ -152,7 +152,7 @@ Antes de ejecutar cualquier acción, la consulta pasa por una etapa de moderaci�
 Este flujo asegura robustez, control y trazabilidad en la interacción con el modelo.
 
 
-### 1.4 Métricas de Evaluación
+### 1.4 Métricas de evaluación
 
 A diferencia de los modelos clásicos de *machine learning* (ML), la evaluación de sistemas basados en modelos de lenguaje grande (LLMs) requiere enfoques distintos, centrados en la calidad de las respuestas generadas.
 
