@@ -160,7 +160,7 @@ Historial:
         chat_history = trim_messages(
             full_history,
             token_counter=lambda messages: sum(len(m.content.split()) for m in messages),
-            max_tokens=600,
+            max_tokens=800,
             strategy="last",
             start_on="human",
             include_system=True,
