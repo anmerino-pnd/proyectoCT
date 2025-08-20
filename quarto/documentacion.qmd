@@ -840,7 +840,7 @@ La base de datos vectorial FAISS es el corazón del sistema RAG, almacenando las
 
 El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, mostrando los componentes principales y el flujo de datos desde la interacción del usuario hasta la generación de respuestas y el almacenamiento del historial. Se ha actualizado para reflejar la implementación de MongoDB y los diferentes flujos.
 
-### 4.1 Componentes clave:
+### 4.1 Componentes clave
 * **Interfaz de usuario (widget del chatbot)**: El componente frontal incrustado en la página web de CT Internacional, permitiendo la interacción directa del usuario.
 * **Servicio intermediario PHP**: Actúa como un puente seguro entre el *frontend* (HTTPS) y la API del chatbot (HTTPS pero con certificado autofirmado, o sea, no seguro) para resolver problemas de *contenido mixto*. Si el *backend* ya está en en HTTPS con un certificado SSL seguro, este componente puede ser obviado.
 * **API del chatbot (FastAPI)**: El servicio *backend* principal que procesa las consultas de los usuarios, orquesta la recuperación de información y se comunica con los modelos de lenguaje.
@@ -859,7 +859,7 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
 * **LLM**: El motor principal del chatbot para consultas relevantes, responsable de generar respuestas coherentes y detalladas en base a la consulta contextualizada por el RAG.
 * **Sistema de reportes automatizados**: Procesa los datos del `message_backup` en MongoDB para generar *insights* sobre el uso del chatbot, intereses de los clientes, costos y rendimiento.
 
-### 4.2 Flujo de interacción principal:
+### 4.2 Flujo de interacción principal
 1. El **usuario** interactúa con el **widget del chatbot** en la página web.
 2. La consulta se envía a la **API del chatbot** (**potencialmente vía el servicio intermediario PHP**)
 3. La API crea o continúa una **sesión de conversación**, y la consulta es pasada al asistente conversacional.
