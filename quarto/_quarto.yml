@@ -42,3 +42,5 @@ format:
     toc: true
     execute:
       echo: false
+
+lang: es
