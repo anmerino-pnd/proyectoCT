@@ -5,17 +5,17 @@
 }
 
 :root {
-  --ct-gray: #cecece;
-  --ct-red: #8b0202;
+  --ct-gray: #b9b9b9;
+  --ct-blue: rgb(16, 24, 133);
 }
 
 .navbar {
     background-color: var(--ct-gray) !important; /* Naranja oscuro y menos brillante */
-    border-bottom: 3px solid var(--ct-red);
+    border-bottom: 3px solid var(--ct-blue);
 }
 
 .navbar a, .navbar-brand, .navbar-toggler {
-    color: rgb(16, 24, 133) !important; /* Texto y enlaces en blanco */
+    color: var(--ct-blue) !important; /* Texto y enlaces en blanco */
 }
 
 .navbar a:hover {
