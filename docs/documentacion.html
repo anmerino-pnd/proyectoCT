@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="es" xml:lang="es"><head>
 
 <meta charset="utf-8">
 <meta name="generator" content="quarto-1.6.40">
@@ -90,17 +90,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   ],
   "show-item-context": false,
   "language": {
-    "search-no-results-text": "No results",
-    "search-matching-documents-text": "matching documents",
-    "search-copy-link-title": "Copy link to search",
-    "search-hide-matches-text": "Hide additional matches",
-    "search-more-match-text": "more match in this document",
-    "search-more-matches-text": "more matches in this document",
-    "search-clear-button-title": "Clear",
+    "search-no-results-text": "Sin resultados",
+    "search-matching-documents-text": "documentos encontrados",
+    "search-copy-link-title": "Copiar el enlace en la búsqueda",
+    "search-hide-matches-text": "Ocultar resultados adicionales",
+    "search-more-match-text": "resultado adicional en este documento",
+    "search-more-matches-text": "resultados adicionales en este documento",
+    "search-clear-button-title": "Borrar",
     "search-text-placeholder": "",
-    "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit",
-    "search-label": "Search"
+    "search-detached-cancel-button-title": "Cancelar",
+    "search-submit-button-title": "Enviar",
+    "search-label": "Buscar"
   }
 }</script>
 
@@ -119,8 +119,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <img src="./ctlogo.png" alt="" class="navbar-logo">
     </a>
   </div>
-            <div id="quarto-search" class="" title="Search"></div>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+            <div id="quarto-search" class="" title="Buscar"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Navegación de palanca" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
@@ -156,7 +156,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
-  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Alternar modo oscuro"><i class="bi"></i></a>
 </div>
       </div> <!-- /container-fluid -->
     </nav>
@@ -193,8 +193,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#diagrama-de-arquitectura" id="toc-diagrama-de-arquitectura" class="nav-link" data-scroll-target="#diagrama-de-arquitectura">4 Diagrama de arquitectura</a>
   <ul class="collapse">
-  <li><a href="#componentes-clave" id="toc-componentes-clave" class="nav-link" data-scroll-target="#componentes-clave">4.1 Componentes clave:</a></li>
-  <li><a href="#flujo-de-interacción-principal" id="toc-flujo-de-interacción-principal" class="nav-link" data-scroll-target="#flujo-de-interacción-principal">4.2 Flujo de interacción principal:</a></li>
+  <li><a href="#componentes-clave" id="toc-componentes-clave" class="nav-link" data-scroll-target="#componentes-clave">4.1 Componentes clave</a></li>
+  <li><a href="#flujo-de-interacción-principal" id="toc-flujo-de-interacción-principal" class="nav-link" data-scroll-target="#flujo-de-interacción-principal">4.2 Flujo de interacción principal</a></li>
   <li><a href="#flujo-de-datos" id="toc-flujo-de-datos" class="nav-link" data-scroll-target="#flujo-de-datos">4.3 Flujo de datos</a></li>
   </ul></li>
   </ul>
@@ -263,7 +263,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Clonar el repositorio:</li>
 </ol>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/anmerino-pnd/proyectoCT</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> proyectoCT</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> proyectoCT</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ol start="2" type="1">
 <li><p>Crear un entorno virtual e instalar dependencias:</p>
 <p>Se recomienda usar <code>uv</code> por su eficiencia.</p></li>
@@ -272,7 +272,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> venv</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .venv/bin/activate  <span class="co"># Para Linux/macOS</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># o `.venv\Scripts\activate` para Windows</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> pip install <span class="at">-e</span> .</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> pip install <span class="at">-e</span> .</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ol start="3" type="1">
 <li><p>Asegurarse de estar corriendo Ollama en el ambiente:</p>
 <p>Verifica que el servicio de Ollama esté instalado y activo, y que el modelo <code>gemma3:12b</code> esté disponible.</p></li>
@@ -280,7 +280,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> https://ollama.com/install.sh <span class="kw">|</span> <span class="fu">sh</span> <span class="co"># Para instalar Ollama</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ollama</span> serve</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ollama</span> list <span class="co"># Para verificar que el modelo gemma3:12b esté descargado y listo</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">ollama</span> pull gemma3:12b <span class="co"># Correr esta línea en caso que el modelo no aparezca</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">ollama</span> pull gemma3:12b <span class="co"># Correr esta línea en caso que el modelo no aparezca</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ol start="4" type="1">
 <li><p>Configurar variables de entorno:</p>
 <p>Antes de levantar el <em>backend</em>, asegurarse de que el archivo <code>.env</code> en la raíz del proyecto contenga las siguientes variables con sus valores correctos.</p></li>
@@ -311,24 +311,24 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_MESSAGE_BACKUP <span class="op">=</span> <span class="st">""</span></span>
 <span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_PRODUCTS <span class="op">=</span> <span class="st">""</span></span>
 <span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_SALES <span class="op">=</span> <span class="st">""</span>         </span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_SPECIFICATIONS <span class="op">=</span> <span class="st">""</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_SPECIFICATIONS <span class="op">=</span> <span class="st">""</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ol start="5" type="1">
 <li>Levantar el backend con Gunicorn:</li>
 </ol>
 <p>Este comando inicia la API, especificando el número de <em>workers</em>, el <em>binding</em> de IP y puerto, y la configuración de SSL/TLS para HTTPS.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nohup</span> gunicorn ct.main:app   <span class="at">--workers</span> 4   <span class="at">--bind</span> 0.0.0.0:8000   <span class="at">--certfile</span><span class="op">=</span>static/ssl/cert.pem   <span class="at">--keyfile</span><span class="op">=</span>static/ssl/key.pem   <span class="at">-k</span> uvicorn.workers.UvicornWorker <span class="at">--timeout</span> 120 <span class="at">--access-logfile</span> <span class="at">-</span>   <span class="at">--error-logfile</span> <span class="at">-</span> <span class="kw">&amp;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nohup</span> gunicorn ct.main:app   <span class="at">--workers</span> 4   <span class="at">--bind</span> 0.0.0.0:8000   <span class="at">--certfile</span><span class="op">=</span>static/ssl/cert.pem   <span class="at">--keyfile</span><span class="op">=</span>static/ssl/key.pem   <span class="at">-k</span> uvicorn.workers.UvicornWorker <span class="at">--timeout</span> 120 <span class="at">--access-logfile</span> <span class="at">-</span>   <span class="at">--error-logfile</span> <span class="at">-</span> <span class="kw">&amp;</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>El uso de <code>nogup</code> y <code>&amp;</code> asegura que el proceso continúe ejecutándose en segundo plano incluso si la sesión SSH se cierra.</p>
 <ol start="6" type="1">
 <li>Regenerar el certificado SSL (si expira o es necesario):</li>
 </ol>
 <p>Si el certificado SSL autofirmado ha expirado o necesitas uno nuevo:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">openssl</span> req <span class="at">-x509</span> <span class="at">-newkey</span> rsa:2048 <span class="at">-nodes</span> <span class="at">-keyout</span> ssl/key.pem <span class="at">-out</span> ssl/cert.pem&nbsp;-days&nbsp;365</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">openssl</span> req <span class="at">-x509</span> <span class="at">-newkey</span> rsa:2048 <span class="at">-nodes</span> <span class="at">-keyout</span> ssl/key.pem <span class="at">-out</span> ssl/cert.pem&nbsp;-days&nbsp;365</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Asegurarse de que los archivos <code>cert.pem</code> y <code>key.pem</code> estén en la ruta <code>ssl</code> dentro de tu proyecto.</p>
 <ol start="7" type="1">
 <li>Verificar logs:</li>
 </ol>
 <p>Al correr la API con <code>nohup</code>, este genera un archivo <code>nohup.out</code>, con el cual podemos ver los logs del sistema, para eso solo hay que ubicarse en donde está dicho archivo y correr lo siguiente:</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-f</span> nohup.out</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-f</span> nohup.out</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="instalación-del-frontend-widget" class="level3">
 <h3 class="anchored" data-anchor-id="instalación-del-frontend-widget">1.5 Instalación del frontend (Widget)</h3>
@@ -352,7 +352,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="ot">    type=</span><span class="st">"text/javascript"</span><span class="dt">&gt;</span></span>
 <span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;/</span><span class="kw">script</span><span class="dt">&gt;</span></span>
 <span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">body</span><span class="dt">&gt;</span></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">html</span><span class="dt">&gt;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">html</span><span class="dt">&gt;</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>Notas importantes para el <code>data-api-base</code>:</strong></p>
 <ul>
 <li>Si la API corre en HTTP y el <em>frontend</em> en HTTPS, se enfrentarán problemas de “contenido mixto”. La solución propuesta fue usar un archivo PHP (<em>backend</em> del sitio web) como intermediario, el cual es crucial aquí. La API debe apuntar a este PHP y el PHP a su <em>frontend</em> donde se encuentra el widget.</li>
@@ -367,16 +367,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Acceder al entorno virtual</strong>: Asegurarse de estar en el directorio raíz del proyecto (<code>proyectoCT</code>) y activa el entorno virtual donde se instalaron las dependencias del <em>backend</em>.</li>
 </ol>
 <div class="sourceCode" id="cb9"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .venv/bin/activate <span class="co"># Para Linux/macOS</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># o `.venv/Scripts/activate` para Windows</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># o `.venv/Scripts/activate` para Windows</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ol start="2" type="1">
 <li><strong>Ejecutar el pipeline ETL</strong>: Una vez activado el entorno, puedes ejecutar el script <code>pipeline.py</code>. Este script se encargará de todo el proceso de extracción, transformación y carga, incluyendo la actualización de las fichas técnicas en MongoDB y la reconstrucción de los vector stores.</li>
 </ol>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> ct.ETL.pipeline</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> ct.ETL.pipeline</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Este comando ejecutará la función <code>run_etl_pipeline()</code> definidad en <code>pipeline.py</code>, mostrando mensajes de progreso en la consola.</p>
 <ol start="3" type="1">
 <li><strong>Verificar logs (opcional)</strong>: Si el pipeline se ejecuta en segundo plano o si deseas verificar su estado y posibles errores, puedes revisar los logs generados.</li>
 </ol>
-<div class="sourceCode" id="cb11"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-f</span> nohup.out <span class="co"># Si estás usando nohup para el pipeline o el backend</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-f</span> nohup.out <span class="co"># Si estás usando nohup para el pipeline o el backend</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Se recomienda programar la ejecución de este pipeline de forma regular (semanal o mensualmente) mediante <em>uncron job</em> en sistemas Linux o una tarea programada en Windows, para mantener la base de conocimientos del chatbot siempre actualizada.</p>
 </section>
 <section id="notas-adicionales" class="level3">
@@ -443,7 +443,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Establece <code>self.model</code> a “gpt-4.1”.</li>
 <li>Inicializa las conexiones a las colecciones de MongoDB (<code>sessions</code>, <code>message_backup</code>).</li>
 <li>Define <code>self.prompt</code> como un <code>ChatPromptTemplate</code> que guía el comportamiento del agente, incluyendo instrucciones de formato de respuesta y el manejo del historial (<code>chat_history</code>).</li>
-<li>Define <code>self.tools</code> como una lista de objetos <code>Tool</code> y <code>StructuredTool</code>, que el agente puede invocar. Estas herramientas incluyen <code>search_information_tool</code>, <code>existencias_tool</code> y <code>sales_rules_tool</code>, cada una con su descripción y esquema de argumentos (<code>args_schema</code>) cuando aplica.</li>
+<li>Define <code>self.tools</code> como una lista de objetos <code>Tool</code> y <code>StructuredTool</code>, que el agente puede invocar. Estas herramientas incluyen <code>search_information_tool</code>, <code>inventory_tool</code> y <code>sales_rules_tool</code>, cada una con su descripción y esquema de argumentos (<code>args_schema</code>) cuando aplica.</li>
 <li><code>self.executor</code> se inicializa a <code>None</code> y se construye bajo demanda.</li>
 </ul></li>
 </ul></li>
@@ -484,7 +484,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><strong>Propósito</strong>: Ejecuta una consulta del usuario a través del agente, gestiona el historial de chat, recopila métricas y transmite la respuesta en tiempo real.</li>
 <li><strong>Parámetros</strong>:
@@ -522,7 +522,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a> message_type: <span class="bu">str</span>, </span>
 <span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a> content: <span class="bu">str</span>, </span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><strong>Propósito</strong>: Añade un nuevo mensaje (de usuario o asistente) al historial de <code>last_messages</code> de una sesión en MongoDB, manteniendo un tamaño fijo para optimizar el rendimiento.</li>
 <li><strong>Parámetros</strong>:
@@ -542,7 +542,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a> full_answer: <span class="bu">str</span>, </span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><p><strong>Propósito</strong>: Guarda un respaldo completo de cada interacción (pregunta del usuario y respuesta completa del asistente) junto con métricas detalladas en la colección <code>message_backup</code> de MongoDB para análisis posterior.</p></li>
 <li><p><strong>Parámetros</strong>:</p>
@@ -560,7 +560,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
 <span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a> full_answer: <span class="bu">str</span>, </span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><p><strong>Propósito</strong>: Guarda un mensaje etiquetado como “irrelevante” en la colección <code>message_backup</code>. Esto es útil para el monitoreo y posible re-entrenamiento del clasificador.</p></li>
 <li><p><strong>Parámetros</strong>:</p>
@@ -575,7 +575,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_metadata(</span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a> <span class="va">self</span>,</span>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a> token_cost_process: TokenCostProcess,</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a> duration: <span class="bu">float</span> <span class="op">=</span> <span class="va">None</span>) <span class="op">-&gt;</span> <span class="bu">dict</span> : </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a> duration: <span class="bu">float</span> <span class="op">=</span> <span class="va">None</span>) <span class="op">-&gt;</span> <span class="bu">dict</span> : </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><strong>Propósito</strong>: Genera un diccionario con metadatos de la interacción, incluyendo información sobre el costo, los tokens utilizados y el tiempo de procesamiento.</li>
 <li><strong>Parámetros</strong>:
@@ -632,23 +632,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul></li>
 </ul></li>
 </ul>
-<p><strong>ct/tools/existences.py</strong></p>
-<p>Este módulo define la herramienta <code>existencias_tool</code>, que permite al chatbot consultar la disponibilidad, precio y moneda de un producto específico en la base de datos MySQL.</p>
+<p><strong>ct/tools/inventory.py</strong></p>
+<p>Este módulo define la herramienta <code>inventory_tool</code>, que permite al chatbot consultar la disponibilidad, precio y moneda de un producto específico en la base de datos MySQL.</p>
 <ul>
 <li><strong>Clases y funciones clave</strong>:
 <ul>
-<li><code>class ExistenciasInput(BaseModel)</code>:
+<li><code>class InventoryInput(BaseModel)</code>:
 <ul>
-<li><strong>Propósito</strong>: Define el esquema de entrada (parámetros) para la herramienta <code>existencias_tool</code> utilizando Pydantic, asegurando la validación de los datos.</li>
+<li><strong>Propósito</strong>: Define el esquema de entrada (parámetros) para la herramienta <code>inventory_tool</code> utilizando Pydantic, asegurando la validación de los datos.</li>
 <li><strong>Atributos</strong>:
 <ul>
 <li><code>clave (str)</code>: La clave única del producto a consultar.</li>
 <li><code>listaPrecio (int)</code>: El ID de la lista de precios a considerar para la consulta.</li>
 </ul></li>
 </ul></li>
-<li><code>existencias_tool(clave: str, listaPrecio: int) -&gt; str</code>:
+<li><code>inventory_tool(clave: str, listaPrecio: int) -&gt; str</code>:
 <ul>
-<li><strong>Propósito</strong>: Define el esquema de entrada (parámetros) para la herramienta <code>existencias_tool</code> utilizando Pydantic, asegurando la validación de los datos.</li>
+<li><strong>Propósito</strong>: Define el esquema de entrada (parámetros) para la herramienta <code>inventory_tool</code> utilizando Pydantic, asegurando la validación de los datos.</li>
 <li><strong>Atributos</strong>:
 <ul>
 <li><code>clave (str)</code>: La clave del producto.</li>
@@ -719,6 +719,33 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Calcula el <code>precio_final</code> y construye un mensaje descriptivo.</li>
 <li>Maneja casos donde la promoción no está vigente o el producto no se encuentra en promoción.</li>
 <li>Incluye manejo de errores para problemas de base de datos o errores inesperados.</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
+<p><strong>ct/tools/status.py</strong></p>
+<p>Este módulo define la herramienta <code>status_tool</code>, que permite al chatbot obtener el estado actual de un pedido a través de su número de factura.</p>
+<ul>
+<li><strong>Clases y funciones clave</strong>:
+<ul>
+<li><code>class StatusInput</code>:
+<ul>
+<li><strong>Propósito</strong>: Modelo de datos Pydantic para validar y describir el argumento de entrada <code>factura</code> requerido por la herramienta.</li>
+<li><strong>Comportamiento</strong>: Asegura que el número de factura sea una cadena de texto.</li>
+</ul></li>
+<li><code>status_tool(factura: str) -&gt; str</code>:
+<ul>
+<li><strong>Propósito</strong>: Consulta una base de datos de MongoDB para encontrar el estado de un pedido específico usando su número de factura.</li>
+<li><strong>Parámetros</strong>: <code>factura</code> (<code>str</code>): El número de factura del pedido.</li>
+<li><strong>Retorna</strong>: <code>str</code>: Una descripción textual del estado del pedido (ej. “Pedido entregado al domicilio”, “Pedido en generación”).</li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Conecta a la base de datos de MongoDB. Realiza una consulta para encontrar el documentos del pedido por su folio (<code>factura</code>).</li>
+<li>Realiza una consulta para encontrar el documento del pedido por su folio (<code>factura</code>).</li>
+<li>Si el pedido es encontrado, navega al último estado registrado en el historial de estados (<code>estatus</code>).</li>
+<li>Utiliza una declaración <code>match</code> para mapear los estados de la base de datos (ej. ‘Pendiente’, ‘Enviado’, ‘Entregado’) a descripciones amigables para el usuario.</li>
+<li>Maneja casos especiales como el estado de ‘Transito’ para formatear la fecha y hora de manera legible.</li>
+<li>Devuelve un mensaje apropiado si el pedido no es encontrado.</li>
 </ul></li>
 </ul></li>
 </ul></li>
@@ -840,7 +867,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a> query: <span class="bu">str</span>, </span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>, </span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><strong>Propósito</strong>: Ejecuta el flujo completo de una consulta del usuario, desde la verificación de baneo y la clasificación, hasta la generación de la respuesta (relevante, irrelevante, inapropiado) y su <em>streaming</em>.</li>
 <li><strong>Parámetros</strong>:
@@ -968,7 +995,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    claves: List[<span class="bu">str</span>],</span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    max_retries: <span class="bu">int</span> <span class="op">=</span> <span class="dv">3</span>,</span>
 <span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    sleep_seconds: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.15</span></span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Dict[<span class="bu">str</span>, <span class="bu">dict</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Dict[<span class="bu">str</span>, <span class="bu">dict</span>]</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 Intenta obtener las fichas técnicas para una lista de claves de productos desde un servicio externo, utilizando <code>cloudscraper</code> para manejar posibles protecciones como Cloudflare.
 <ul>
 <li><strong>Parámetros</strong>:
@@ -1107,7 +1134,7 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 <span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  query: <span class="bu">str</span>, </span>
 <span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  session_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>, </span>
 <span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>  listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]:</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>  ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]:</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li>Es la función principal que orquesta el glujocompleto de una consulta de usuario.</li>
 <li><strong>Parámetros</strong>:
@@ -1137,7 +1164,7 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
 <span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><strong>Propósito</strong>: Responde a consultas relevantes de productos, utilizando el agente de LangChain con acceso a herramientas y memoria de conversación. Es la función que el <code>ModeratedToolAgent</code> invoca cuando una consulta es clasificada como relevante.</li>
 <li><strong>Parámetros</strong>:
@@ -1151,7 +1178,7 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 <li>Asegura la existencia de la sesión en MongoDB (<code>ensure_session</code>).</li>
 <li>Recupera el historial de la sesión (<code>get_session_history</code>) y lo trunca para ajustarse a la ventana de contexto del LLM (<code>trim_messages</code>).</li>
 <li>Inicializa el <code>AgentExecutor</code> si no ha sido construido.</li>
-<li>Ejecuta la <code>query</code> a través del <code>AgentExecutor</code> de LangChain, que orquesta el uso del LLM y las herramientas (<code>search_information_tool</code>, <code>existencias_tool</code>, <code>sales_rules_tool</code>) según la necesidad de la consulta.</li>
+<li>Ejecuta la <code>query</code> a través del <code>AgentExecutor</code> de LangChain, que orquesta el uso del LLM y las herramientas (<code>search_information_tool</code>, <code>inventory_tool</code>, <code>sales_rules_tool</code>) según la necesidad de la consulta.</li>
 <li>Transmite la respuesta en fragmentos (<code>astream()</code>).</li>
 <li>Registra la interacción completa (pregunta, respuesta, métricas como tokens y costo) en las colecciones <code>sessions</code> y <code>message_backup</code> de MongoDB.</li>
 </ol></li>
@@ -1201,7 +1228,7 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 <h2 class="anchored" data-anchor-id="diagrama-de-arquitectura">4 Diagrama de arquitectura</h2>
 <p>El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, mostrando los componentes principales y el flujo de datos desde la interacción del usuario hasta la generación de respuestas y el almacenamiento del historial. Se ha actualizado para reflejar la implementación de MongoDB y los diferentes flujos.</p>
 <section id="componentes-clave" class="level3">
-<h3 class="anchored" data-anchor-id="componentes-clave">4.1 Componentes clave:</h3>
+<h3 class="anchored" data-anchor-id="componentes-clave">4.1 Componentes clave</h3>
 <ul>
 <li><strong>Interfaz de usuario (widget del chatbot)</strong>: El componente frontal incrustado en la página web de CT Internacional, permitiendo la interacción directa del usuario.</li>
 <li><strong>Servicio intermediario PHP</strong>: Actúa como un puente seguro entre el <em>frontend</em> (HTTPS) y la API del chatbot (HTTPS pero con certificado autofirmado, o sea, no seguro) para resolver problemas de <em>contenido mixto</em>. Si el <em>backend</em> ya está en en HTTPS con un certificado SSL seguro, este componente puede ser obviado.</li>
@@ -1227,7 +1254,7 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 </ul>
 </section>
 <section id="flujo-de-interacción-principal" class="level3">
-<h3 class="anchored" data-anchor-id="flujo-de-interacción-principal">4.2 Flujo de interacción principal:</h3>
+<h3 class="anchored" data-anchor-id="flujo-de-interacción-principal">4.2 Flujo de interacción principal</h3>
 <ol type="1">
 <li>El <strong>usuario</strong> interactúa con el <strong>widget del chatbot</strong> en la página web.</li>
 <li>La consulta se envía a la <strong>API del chatbot</strong> (<strong>potencialmente vía el servicio intermediario PHP</strong>)</li>
@@ -1235,9 +1262,9 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 <li>Si la consulta es <em>relevante</em>:</li>
 </ol>
 <ul>
-<li><code>existencias_tool</code>: obtiene precios, existencias y moneda por clave de producto.</li>
-<li><code>sales_rules_tool</code>: calcula el precio final considerando promociones o reglas de negocio.</li>
 <li><code>search_information_tool</code>: busca productos relevantes.</li>
+<li><code>inventory_tool</code>: obtiene precios, existencias y moneda por clave de producto.</li>
+<li><code>sales_rules_tool</code>: calcula el precio final considerando promociones o reglas de negocio.</li>
 <li>La información recuperada se contextualiza y se envía al <strong>LLM</strong> para generar la <strong>respuesta al usuario</strong>.</li>
 </ul>
 <ol start="5" type="1">
@@ -1264,7 +1291,7 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 
 
 
-<a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Back to top</a></main> <!-- /main -->
+<a onclick="window.scrollTo(0, 0); return false;" role="button" id="quarto-back-to-top"><i class="bi bi-arrow-up"></i> Volver arriba</a></main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
   const toggleBodyColorMode = (bsSheetEl) => {
@@ -1452,12 +1479,12 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     // flash "checked"
     button.classList.add('code-copy-button-checked');
     var currentTitle = button.getAttribute("title");
-    button.setAttribute("title", "Copied!");
+    button.setAttribute("title", "Copiado");
     let tooltip;
     if (window.bootstrap) {
       button.setAttribute("data-bs-toggle", "tooltip");
       button.setAttribute("data-bs-placement", "left");
-      button.setAttribute("data-bs-title", "Copied!");
+      button.setAttribute("data-bs-title", "Copiado");
       tooltip = new bootstrap.Tooltip(button, 
         { trigger: "manual", 
           customClass: "code-copy-button-tooltip",

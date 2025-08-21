@@ -242,7 +242,7 @@ Este archivo contiene la lógica principal del agente conversacional, incluyendo
         * Establece `self.model` a "gpt-4.1".
         * Inicializa las conexiones a las colecciones de MongoDB (`sessions`, `message_backup`).
         * Define `self.prompt` como un `ChatPromptTemplate` que guía el comportamiento del agente, incluyendo instrucciones de formato de respuesta y el manejo del historial (`chat_history`).
-        * Define `self.tools` como una lista de objetos `Tool` y `StructuredTool`, que el agente puede invocar. Estas herramientas incluyen `search_information_tool`, `existencias_tool` y `sales_rules_tool`, cada una con su descripción y esquema de argumentos (`args_schema`) cuando aplica.
+        * Define `self.tools` como una lista de objetos `Tool` y `StructuredTool`, que el agente puede invocar. Estas herramientas incluyen `search_information_tool`, `inventory_tool` y `sales_rules_tool`, cada una con su descripción y esquema de argumentos (`args_schema`) cuando aplica.
         * `self.executor` se inicializa a `None` y se construye bajo demanda.
 
     * `clear_session_history(self, session_id: str) -> bool`:  
@@ -399,19 +399,19 @@ Este módulo define la herramienta `search_information_tool`, que permite al cha
         * Invoca `retriever_promociones.invoke(query)` y `retriever_productos.invoke(query)` para obtener los documentos más relevantes de cada colección.
         * Utiliza `parse_page_content()` para transformar el `page_content` de cada documento recuperado en un formato de diccionario estructurado.
 
-**ct/tools/existences.py**
+**ct/tools/inventory.py**
 
-Este módulo define la herramienta `existencias_tool`, que permite al chatbot consultar la disponibilidad, precio y moneda de un producto específico en la base de datos MySQL.
+Este módulo define la herramienta `inventory_tool`, que permite al chatbot consultar la disponibilidad, precio y moneda de un producto específico en la base de datos MySQL.
 
 * **Clases y funciones clave**:
-  * `class ExistenciasInput(BaseModel)`:
-    * **Propósito**: Define el esquema de entrada (parámetros) para la herramienta `existencias_tool` utilizando Pydantic, asegurando la validación de los datos.
+  * `class InventoryInput(BaseModel)`:
+    * **Propósito**: Define el esquema de entrada (parámetros) para la herramienta `inventory_tool` utilizando Pydantic, asegurando la validación de los datos.
     * **Atributos**:
       * `clave (str)`: La clave única del producto a consultar.
       * `listaPrecio (int)`: El ID de la lista de precios a considerar para la consulta.
   
-  * `existencias_tool(clave: str, listaPrecio: int) -> str`:
-    * **Propósito**: Define el esquema de entrada (parámetros) para la herramienta `existencias_tool` utilizando Pydantic, asegurando la validación de los datos.
+  * `inventory_tool(clave: str, listaPrecio: int) -> str`:
+    * **Propósito**: Define el esquema de entrada (parámetros) para la herramienta `inventory_tool` utilizando Pydantic, asegurando la validación de los datos.
     * **Atributos**:
       * `clave (str)`: La clave del producto.
       * `listaPrecio (int)`: El ID de la lista de precios.
@@ -464,6 +464,28 @@ Este módulo define la herramienta `sales_rules_tool`, que permite al chatbot ap
       * Calcula el `precio_final` y construye un mensaje descriptivo.
       * Maneja casos donde la promoción no está vigente o el producto no se encuentra en promoción.
       * Incluye manejo de errores para problemas de base de datos o errores inesperados.
+
+**ct/tools/status.py**
+
+Este módulo define la herramienta `status_tool`, que permite al chatbot obtener el estado actual de un pedido a través de su número de factura.
+
+* **Clases y funciones clave**:
+  * `class StatusInput`:
+    * **Propósito**: Modelo de datos Pydantic para validar y describir el argumento de entrada `factura` requerido por la herramienta.
+    * **Comportamiento**: Asegura que el número de factura sea una cadena de texto.
+  
+  * `status_tool(factura: str) -> str`:
+    * **Propósito**: Consulta una base de datos de MongoDB para encontrar el estado de un pedido específico usando su número de factura.
+    * **Parámetros**: `factura` (`str`): El número de factura del pedido.
+    * **Retorna**: `str`: Una descripción textual del estado del pedido (ej. "Pedido entregado al domicilio", "Pedido en generación").
+    * **Comportamiento**:
+      * Conecta a la base de datos de MongoDB.
+      Realiza una consulta para encontrar el documentos del pedido por su folio (`factura`).
+      * Realiza una consulta para encontrar el documento del pedido por su folio (`factura`).
+      * Si el pedido es encontrado, navega al último estado registrado en el historial de estados (`estatus`).
+      * Utiliza una declaración `match` para mapear los estados de la base de datos (ej. 'Pendiente', 'Enviado', 'Entregado') a descripciones amigables para el usuario.
+      * Maneja casos especiales como el estado de 'Transito' para formatear la fecha y hora de manera legible.
+      * Devuelve un mensaje apropiado si el pedido no es encontrado.
 
 
 **ct/moderation/query_moderator.py**
@@ -785,7 +807,7 @@ ToolAgent().run(
     1. Asegura la existencia de la sesión en MongoDB (`ensure_session`).
     2. Recupera el historial de la sesión (`get_session_history`) y lo trunca para ajustarse a la ventana de contexto del LLM (`trim_messages`).
     3. Inicializa el `AgentExecutor` si no ha sido construido.
-    4. Ejecuta la `query` a través del `AgentExecutor` de LangChain, que orquesta el uso del LLM y las herramientas (`search_information_tool`, `existencias_tool`, `sales_rules_tool`) según la necesidad de la consulta.
+    4. Ejecuta la `query` a través del `AgentExecutor` de LangChain, que orquesta el uso del LLM y las herramientas (`search_information_tool`, `inventory_tool`, `sales_rules_tool`) según la necesidad de la consulta.
     5. Transmite la respuesta en fragmentos (`astream()`).
     6. Registra la interacción completa (pregunta, respuesta, métricas como tokens y costo) en las colecciones `sessions` y `message_backup` de MongoDB.
   
@@ -864,9 +886,9 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
 2. La consulta se envía a la **API del chatbot** (**potencialmente vía el servicio intermediario PHP**)
 3. La API crea o continúa una **sesión de conversación**, y la consulta es pasada al asistente conversacional.
 4. Si la consulta es *relevante*:
-  * `existencias_tool`: obtiene precios, existencias y moneda por clave de producto.
-  * `sales_rules_tool`: calcula el precio final considerando promociones o reglas de negocio.
   * `search_information_tool`: busca productos relevantes.
+  * `inventory_tool`: obtiene precios, existencias y moneda por clave de producto.
+  * `sales_rules_tool`: calcula el precio final considerando promociones o reglas de negocio.
   * La información recuperada se contextualiza y se envía al **LLM** para generar la **respuesta al usuario**.
 5. Si la consulta es *irrelevante* o *inapropiada*, el **clasificador** genera una respuesta adecuada (cortés o de advertencia) directamente al **usuario**.
 6. Todas las interacciones (consultas y respuestas) se registran en las colecciones `sessions` y `message_backup` en **MongoDB**.
