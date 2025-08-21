@@ -4,8 +4,14 @@
     width: auto !important;    /* Mantiene la proporción */
 }
 
+:root {
+  --ct-gray: #cecece;
+  --ct-red: #8b0202;
+}
+
 .navbar {
-    background-color: #b1b1b1 !important; /* Naranja oscuro y menos brillante */
+    background-color: var(--ct-gray) !important; /* Naranja oscuro y menos brillante */
+    border-bottom: 3px solid var(--ct-red);
 }
 
 .navbar a, .navbar-brand, .navbar-toggler {
@@ -13,5 +19,5 @@
 }
 
 .navbar a:hover {
-    color: #fafafa !important; /* Tono claro al pasar el mouse */
+    color: var(--ct-red) !important; /* Tono claro al pasar el mouse */
 }
