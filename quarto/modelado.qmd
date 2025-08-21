@@ -78,7 +78,7 @@ Además de la información estática precargada en la base vectorial, el sistema
 Las herramientas dinámicas disponibles son:
 
 * `search_information_tool`: realiza búsquedas básicas en los productos embebidos para encontrar coincidencias.
-* `existencias_tool`: consulta las existencias, precio actual y moneda para un producto específico.
+* `inventory_tool`: consulta las existencias, precio actual y moneda para un producto específico.
 * `sales_rules_tool`: calcula promociones y reglas de venta que aplican a un producto según su lista de precios y sucursal.
 
 ```python
@@ -89,8 +89,8 @@ Las herramientas dinámicas disponibles son:
                 description="Busca productos relacionados con lo que se pide."
             ),
             StructuredTool.from_function(
-                func=existencias_tool,
-                name='existencias_tool',
+                func=inventory_tool,
+                name='inventory_tool',
                 description="Esta herramienta sirve como referencia y devuelve precios, moneda y existencias de un producto por su clave y listaPrecio.",
                 args_schema=ExistenciasInput # Explicitly link the Pydantic schema
             ),
@@ -136,8 +136,8 @@ El LLM se alimenta con información contextualizada de dos maneras principales, 
 
 * **Información dinámica (a través de herramientas LangChain)**:
 
-  * Se accede a datos en tiempo real mediante herramientas personalizadas integradas con LangChain, como `existencias_tool` y `sales_rules_tool`.
-  * El LLM, basado en la `query` del usuario y su propio razonamiento, decide cuándo invocar estas herramientas. Por ejemplo, si el usuario pregunta por "el precio de la clave X", el LLM activará `existencias_tool` con la clave proporcionada.
+  * Se accede a datos en tiempo real mediante herramientas personalizadas integradas con LangChain, como `inventory_tool` y `sales_rules_tool`.
+  * El LLM, basado en la `query` del usuario y su propio razonamiento, decide cuándo invocar estas herramientas. Por ejemplo, si el usuario pregunta por "el precio de la clave X", el LLM activará `inventory_tool` con la clave proporcionada.
   * El resultado de la ejecución de estas herramientas (e.g., el precio actual, las existencias, el precio final con promoción) se devuelve al LLM y se inyecta también en su _context window_.
   * Esto permite al LLM generar respuestas con datos actualizados y específicos, como la disponibilidad de un producto o el precio final con promociones activas para una `listaPrecio` y `session_id` dados.
 
