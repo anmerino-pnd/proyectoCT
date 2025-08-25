@@ -26,21 +26,21 @@ class QueryModerator:
 
     def _classification_prompt(self) -> str:
         return """
-        Clasifica la entrada del usuario como uno de los siguientes valores:
+Clasifica la entrada del usuario como uno de los siguientes valores:
 
-        - 'relevante' si el mensaje trata exclusivamente sobre búsqueda o recomendación de productos de tecnología o cómputo, como laptops, computadoras, servidores, impresoras, monitores, teléfonos, cámaras, accesorios tecnológicos (teclados, mouse, mochilas para laptop, audífonos), redes, software, licencias, dispositivos inteligentes (como asistentes de voz, enchufes inteligentes, cerraduras electrónicas), sistemas de seguridad o vigilancia (como cámaras de seguridad, alarmas, sensores, videovigilancia, kits de monitoreo), automatización del hogar o cualquier otro producto relacionado con tecnología.
+- 'relevante' si el mensaje trata exclusivamente sobre búsqueda o recomendación de productos o marcas de tecnología o cómputo, como laptops, computadoras, servidores, impresoras, monitores, teléfonos, cámaras, accesorios tecnológicos (teclados, mouse, mochilas para laptop, audífonos), redes, software, licencias, dispositivos inteligentes (como asistentes de voz, enchufes inteligentes, cerraduras electrónicas), sistemas de seguridad o vigilancia (como cámaras de seguridad, alarmas, sensores, videovigilancia, kits de monitoreo), automatización del hogar o cualquier otro producto relacionado con tecnología.
 
-        También clasifica como 'relevante' si el usuario pide precios, cotizaciones o información para comprar productos tecnológicos. 
-        O si hace referencia a algo ya mencionado previamente (por ejemplo: "¿cuál es el precio de ese?"). 
-        Los saludos o mensajes iniciales para comenzar una conversación también deben clasificarse como 'relevante'.
+También clasifica como 'relevante' si el usuario pide precios, cotizaciones o información para comprar productos tecnológicos. 
+O si hace referencia a algo ya mencionado previamente (por ejemplo: "¿cuál es el precio de ese?"). 
+Los saludos o mensajes iniciales para comenzar una conversación también deben clasificarse como 'relevante'.
 
-        - 'irrelevante' si el mensaje NO está relacionado con productos tecnológicos. Esto incluye alimentos, ropa, perfumes, artículos de cuidado personal, muebles, mascotas, deportes, celebridades, electrodomésticos del hogar (lavadoras, refrigeradores, estufas), política, religión, salud, chistes, temas personales o cualquier otra conversación casual no relacionada con tecnología.
+- 'irrelevante' si el mensaje NO está relacionado con productos tecnológicos. Esto incluye alimentos, ropa, perfumes, artículos de cuidado personal, muebles, mascotas, deportes, celebridades, electrodomésticos del hogar (lavadoras, refrigeradores, estufas), política, religión, salud, chistes, temas personales o cualquier otra conversación casual no relacionada con tecnología.
 
-        - 'inapropiado' si el mensaje contiene lenguaje ofensivo, sexual, violento, amenazante o vulgar, o si solicita productos de carácter sexual.
+- 'inapropiado' si el mensaje contiene lenguaje ofensivo, sexual, violento, amenazante o vulgar, o si solicita productos de carácter sexual.
 
-        Ejemplos irrelevantes: "Quiero una hamburguesa", "Tienen pañales para bebé?", "Qué opinas de Messi?", "Me siento triste", "Dónde queda Cancún", "Quiero comprar una blusa".
+Ejemplos irrelevantes: "Quiero una hamburguesa", "Tienen pañales para bebé?", "Qué opinas de Messi?", "Me siento triste", "Dónde queda Cancún", "Quiero comprar una blusa".
 
-        Solo responde con una palabra exacta: 'relevante', 'irrelevante' o 'inapropiado'. No des explicaciones ni repitas el mensaje del usuario.
+Solo responde con una palabra exacta: 'relevante', 'irrelevante' o 'inapropiado'. No des explicaciones ni repitas el mensaje del usuario.
         """
     
     def polite_answer(self) -> str:
@@ -104,7 +104,7 @@ class QueryModerator:
             7: timedelta(days=7)
         }
 
-        sancion = escalado.get(tries, timedelta(days=7))  # Máximo castigo es 7 días
+        sancion : timedelta = escalado.get(tries, timedelta(days=7))  # Máximo castigo es 7 días
         banned_until = now + sancion if sancion else None
 
         # Mensajes personalizados
@@ -126,7 +126,7 @@ class QueryModerator:
     def check_if_banned(self, session: dict) -> Optional[str]:
         """Verifica si el usuario está actualmente baneado."""
         now = datetime.now(timezone.utc)
-        banned_until = session.get("banned_until")
+        banned_until : datetime = session.get("banned_until")
         
         if banned_until:
             # Asegurar que banned_until tenga zona horaria UTC si no la tiene
