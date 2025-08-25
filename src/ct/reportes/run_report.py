@@ -45,7 +45,7 @@ combined_stopwords.update(nltk_stopwords)
 
 custom_stopwords = {"mx", "https", "dame", "hola", "quiero", "puedes", "gustaría",
                     "interesan", "opción", "opciones", "opcion", "favor", "sirve",
-                    "diste", "fijar", "debería", "viene", "palabra", "qué", "necesito"}
+                    "diste", "fijar", "debería", "viene", "palabra", "qué", "necesito","hi"}
 combined_stopwords.update(custom_stopwords)
 
 if nlp:
@@ -542,8 +542,6 @@ if data:
     
     
         if not df_bot_answers.empty:
-            st.subheader("Análisis de respuestas del asistente")
-    
             if df_bot_answers['word_count_answer'].sum() > 0:
                 fig = px.histogram(
                     df_bot_answers,
