@@ -1,7 +1,4 @@
-import os
 from ct.ETL.load import Load
-from ct.ETL.transform import Transform
-from ct.settings.config import PRODUCTS_VECTOR_PATH, SALES_PRODUCTS_VECTOR_PATH
 
 def run_etl_pipeline():
     """
