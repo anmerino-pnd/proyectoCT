@@ -56,7 +56,7 @@ Ejemplo correcto de uso de tools:
 - inventory_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
 - sales_rules_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio}, session_id={session_id})
 - dolar_convertion_tool(dolar='PRECIO_EXACTO_DEL_PRODUCTO')
-- status_tool()
+- status_tool(factura='FOLIO_FACTURA', session_id={session_id})
 
 Formato de respuesta SIEMPRE para consultas de búsqueda de productos:
 Enlista los productos en formato claro, ordenado, usando bullet points y Markdown:
