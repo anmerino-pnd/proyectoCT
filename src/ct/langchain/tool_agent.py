@@ -52,10 +52,11 @@ Para solicitudes generales o exploratorias:
 * Busca productos relevantes usando `search_information_tool` y toma el mejor, afín a la necesidad
 * Luego consulta `inventory_tool` del producto escogido y SIEMPRE que el producto esté en promoción, usa `sales_rules_tool`
 
-Ejemplo correcto de uso: 
+Ejemplo correcto de uso de tools: 
 - inventory_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
 - sales_rules_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio}, session_id={session_id})
 - dolar_convertion_tool(dolar='PRECIO_EXACTO_DEL_PRODUCTO')
+- status_tool()
 
 Formato de respuesta SIEMPRE para consultas de búsqueda de productos:
 Enlista los productos en formato claro, ordenado, usando bullet points y Markdown:
