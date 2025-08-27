@@ -17,6 +17,13 @@ user: str = os.getenv('user')
 pwd: str = os.getenv('pwd')
 database: str = os.getenv('db')
 
+# Credenciales de la empresa dev
+ip_dev: str = os.getenv('ip_dev')
+port_dev: int = os.getenv('port_dev')
+user_dev: str = os.getenv('user_dev')
+pwd_dev: str = os.getenv('pwd_dev')
+database_dev: str = os.getenv('db_dev')
+
 # Información del servicio
 url: str = os.getenv('url')
 tokenapi: str = os.getenv('Token-api')
