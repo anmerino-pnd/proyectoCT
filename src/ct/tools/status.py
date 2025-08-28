@@ -12,6 +12,7 @@ from ct.settings.clients import (
     user,
     pwd,
     database)
+from pymongo import ASCENDING
 import pymysql
 pymysql.install_as_MySQLdb()
 
@@ -38,8 +39,10 @@ def descargas_enviadas(factura: str):
             host=ip, port=port, user=user, password=pwd, database=database,
             read_timeout=60, write_timeout=15
         )
-        cursor = cnx.cursor(query, (factura))
+        cursor = cnx.cursor()
+        cursor.execute(query, (factura,))
         result = cursor.fetchone()
+
 
         if result:
             return result[0]
@@ -61,9 +64,10 @@ def status_tool(factura: str, session_id: str) -> str:
         # Vendedores internos -> pueden ver todos
         pedido = pedidos.find_one(
             {"pedido.encabezado.folio": factura},
-            {"_id": 0, "estatus": 1, "pedido.detalle.producto":1, "pedido.esd":1}
+            {"_id": 0, "estatus": 1, 
+             "pedido.detalle.producto": 1},
+             sort=[("pedido.fecha", ASCENDING)] 
         )
-        print(pedido)
         validacion = pedido is not None
     else:
         # Clientes normales -> solo ven sus pedidos
@@ -72,9 +76,10 @@ def status_tool(factura: str, session_id: str) -> str:
                 "pedido.encabezado.folio": factura,
                 "pedido.encabezado.cliente": cliente
             },
-            {"_id": 0, "estatus": 1, "pedido.detalle.producto":1, "pedido.esd":1}
+            {"_id": 0, "estatus": 1, 
+             "pedido.detalle.producto":1}
+             
         )
-        print(pedido)
         validacion = pedido is not None
 
     if not validacion:
@@ -95,7 +100,7 @@ def status_tool(factura: str, session_id: str) -> str:
         case "Terminado" | "FacturaESDActualizada":
             productos = pedido['pedido']['detalle']['producto']
             total = sum(producto['cantidad'] for producto in productos)
-            return f"Descargas totales: {total}, total enviados: {descargas_enviadas(factura)}"
+            return f"ESD totales: {total}, total de descargas enviadas: {descargas_enviadas(factura)}"
         case "Preautorizado" | "Autorizado":
             return "Procesando tu pedido"
         case "Transito":
