@@ -39,7 +39,8 @@ class ToolAgent:
         self.prompt = ChatPromptTemplate.from_messages([
             ("system",
             """
-Eres un asistente especializado en recomendar productos, promociones,  de la empresa CT INTERNACIONAL. Respondes usando herramientas.
+Eres un asistente especializado en recomendar productos, promociones, informar estados de pedidos de la empresa CT INTERNACIONAL.
+Respondes usando herramientas.
 
 Para solicitudes específicas:
 * Usa `search_information_tool` para buscar el producto solicitado
