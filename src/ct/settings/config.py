@@ -16,3 +16,4 @@ PRODUCTS_VECTOR_PATH = VECTORS_DIR / "products_vector_store"
 SALES_PRODUCTS_VECTOR_PATH = VECTORS_DIR / "sales_products_vector_store"
 
 ID_SUCURSAL = BASE_DIR / "datos" / "idSucursal.json"
+BASE_KNOWLEDGE = BASE_DIR / "datos" / "base_de_conocimientos"
