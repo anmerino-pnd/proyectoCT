@@ -1,6 +1,5 @@
 .env
 
-.venv/
 archivos_clave/
 data_pipeline/
 datos/
