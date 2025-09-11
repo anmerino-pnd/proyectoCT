@@ -38,7 +38,7 @@ llm = ChatOllama(model="gpt-oss:latest", temperature=0.0)
 
 chain = prompt_template | llm
 
-def consultar_garantia(query: str):
+def check_warranty(query: str):
     """
     Consulta en los vectores de procedimientos, términos, políticas, etc.
     y responde a la pregunta usando un modelo LLM.
@@ -46,6 +46,11 @@ def consultar_garantia(query: str):
 
     results1 = retriever1.invoke(query)
     results2 = retriever2.invoke(query)
+
+    print(results1, flush=True)
+    print(results2, flush=True)
+
+
     context_text = "\n\n".join([doc.page_content for doc in results1 + results2])
 
     response = chain.invoke({"context": context_text, "question": query})
