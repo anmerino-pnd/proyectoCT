@@ -5,11 +5,15 @@ format:
          page-layout: article
 toc: false
 author: 
-    - Angel Merino Cedeño
-    - Gerardo Leyva Conde
-    - Roberto Navarro Bartolini
-    - Abraham Rojo Salazar
-    - Oscar Esquer Vazquez
+  - name: "Angel Merino Cedeño"
+    email: "acedeno00@gmail.com"     # Aparece un icono de correo
+    url: "https://www.linkedin.com/in/anmerino-pnd"          # Aparece icono de web si quieres
+    affiliations:
+        - name : "[📄 CV](https://unisonmx-my.sharepoint.com/:w:/g/personal/a218204710_unison_mx/EYLVn5p-js9Hh7hr8HmUKOgBZq5L1wHwtZzyjEZG_SeUGA?e=Q7U9pP)"
+  - name: "Gerardo Leyva Conde"
+  - name: "Roberto Navarro Bartolini"
+  - name: "Abraham Rojo Salazar"
+  - name: "Oscar Esquer Vazquez"
 date: last-modified
 date-format: long
 lang: es
