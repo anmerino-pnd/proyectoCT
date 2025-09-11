@@ -11,7 +11,7 @@ def guide_creation(folder_path: str):
     ]
     image_paths.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
 
-    full_answer = []
+    full_answer = ''
     total_batches = (len(image_paths) + 2) // 3
 
     for batch_num, i in enumerate(range(0, len(image_paths), 3), start=1):
@@ -45,7 +45,7 @@ def guide_creation(folder_path: str):
             options={"temperature": 0},
         )
 
-        full_answer.append(response['message']['content'])
+        full_answer += response['message']['content']
 
     # Normalizar nombre del archivo
     nombre = os.path.basename(os.path.normpath(folder_path)).strip().replace(" ", "_")
