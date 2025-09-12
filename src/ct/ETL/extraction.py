@@ -42,8 +42,8 @@ class Extraction():
       ON pro.idProductos = e.idProductos
     JOIN precio pre 
       ON pro.idProductos = pre.idProducto
-    WHERE e.cantidad > 0
-    AND pro.idProductos > 0
+    WHERE pro.idProductos > 0
+    AND pro.activo = 1
     ;
     """
     return query
