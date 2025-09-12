@@ -26,21 +26,23 @@ class QueryModerator:
 
     def _classification_prompt(self) -> str:
         return """
-Clasifica la entrada del usuario como uno de los siguientes valores:
+Clasifica el siguiente mensaje del usuario respondiendo solo con una de estas palabras exactas:
 
-- 'relevante' si el mensaje trata exclusivamente sobre búsqueda o recomendación de productos o marcas de tecnología o cómputo, como laptops, computadoras, servidores, impresoras, monitores, teléfonos, cámaras, accesorios tecnológicos (teclados, mouse, mochilas para laptop, audífonos), redes, software, licencias, dispositivos inteligentes (como asistentes de voz, enchufes inteligentes, cerraduras electrónicas), sistemas de seguridad o vigilancia (como cámaras de seguridad, alarmas, sensores, videovigilancia, kits de monitoreo), automatización del hogar o cualquier otro producto relacionado con tecnología.
+- 'relevante'
 
-También clasifica como 'relevante' si el usuario pide precios, cotizaciones o información para comprar productos tecnológicos. 
-O si hace referencia a algo ya mencionado previamente (por ejemplo: "¿cuál es el precio de ese?"). 
-Los saludos o mensajes iniciales para comenzar una conversación también deben clasificarse como 'relevante'.
+- 'irrelevante'
 
-- 'irrelevante' si el mensaje NO está relacionado con productos tecnológicos. Esto incluye alimentos, ropa, perfumes, artículos de cuidado personal, muebles, mascotas, deportes, celebridades, electrodomésticos del hogar (lavadoras, refrigeradores, estufas), política, religión, salud, chistes, temas personales o cualquier otra conversación casual no relacionada con tecnología.
+- 'inapropiado'
 
-- 'inapropiado' si el mensaje contiene lenguaje ofensivo, sexual, violento, amenazante o vulgar, o si solicita productos de carácter sexual.
+Criterios:
 
-Ejemplos irrelevantes: "Quiero una hamburguesa", "Tienen pañales para bebé?", "Qué opinas de Messi?", "Me siento triste", "Dónde queda Cancún", "Quiero comprar una blusa".
+- Relevante: mensajes relacionados con productos o servicios tecnológicos. Incluye búsqueda, recomendación, precios, cotizaciones, disponibilidad, promociones, detalles técnicos, políticas, términos y condiciones, estatus de pedidos o referencias a mensajes previos sobre estos temas. También saludos iniciales para conversar sobre productos tecnológicos.
 
-Solo responde con una palabra exacta: 'relevante', 'irrelevante' o 'inapropiado'. No des explicaciones ni repitas el mensaje del usuario.
+- Irrelevante: mensajes no relacionados con tecnología (alimentos, ropa, perfumes, muebles, mascotas, deportes, celebridades, política, religión, salud, chistes, temas personales o electrodomésticos no tecnológicos).
+
+- Inapropiado: mensajes con lenguaje ofensivo, vulgar, sexual, violento o amenazante, o solicitudes de productos de carácter sexual.
+
+Responde únicamente con la palabra indicada, sin explicaciones ni repetir el mensaje.
         """
     
     def polite_answer(self) -> str:

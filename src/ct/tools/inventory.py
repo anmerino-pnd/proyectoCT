@@ -15,6 +15,8 @@ SELECT pro.clave,
        SUM(e.cantidad) AS existencias, 
        pre.precio, 
        pre.idMoneda AS moneda,
+       pro.modelo,
+       pro.activo,
        CASE WHEN EXISTS(SELECT 1 FROM promociones WHERE producto = pro.clave) 
             THEN 'Sí' ELSE 'No' END AS en_promocion
 FROM productos pro
@@ -26,7 +28,7 @@ GROUP BY pro.idProductos, pre.precio, pre.idMoneda;
 
 # 2. La función ahora es una función Python normal, sin el decorador @tool
 def inventory_tool(clave: str, listaPrecio: int) -> str:
-    lista_precio = listaPrecio # Use the directly passed listaPrecio
+    lista_precio = listaPrecio
     cnx = None
     cursor = None
     try:
@@ -38,8 +40,34 @@ def inventory_tool(clave: str, listaPrecio: int) -> str:
         cursor.execute(query, (lista_precio, clave))
         result = cursor.fetchone()
         if result:
-            moneda = "MXN" if result[3] == 1 else "USD"
-            return f"{result[0]}: precio original: ${result[2]} {moneda}, {result[1]} unidades disponibles, ¿en promoción?: {result[4]}"
+            # result indexes según tu SELECT:
+            # 0 = clave
+            # 1 = existencias
+            # 2 = precio
+            # 3 = idMoneda
+            # 4 = modelo
+            # 5 = activo
+            # 6 = en_promocion
+            clave_prod = result[0]
+            existencias = result[1]
+            precio = result[2]
+            id_moneda = result[3]
+            modelo = result[4]
+            activo = result[5]
+            en_promocion = result[6]
+
+            moneda = "MXN" if id_moneda == 1 else "USD"
+
+            # lógica ESD
+            if modelo == "ESD" and activo == 1:
+                disponibilidad = "sí hay disponibles"
+            else:
+                disponibilidad = f"{existencias} unidades disponibles"
+
+            return (
+                f"{clave_prod}: precio original: ${precio} {moneda}, "
+                f"{disponibilidad}, ¿en promoción?: {en_promocion}"
+            )
         return "No se encontró el producto o no tiene existencias."
     except mysql.connector.Error as err:
         return f"Error de base de datos: {err}"
