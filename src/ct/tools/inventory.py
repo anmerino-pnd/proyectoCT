@@ -62,7 +62,10 @@ def inventory_tool(clave: str, listaPrecio: int) -> str:
             if modelo == "ESD" and activo == 1:
                 disponibilidad = "sí hay disponibles"
             else:
-                disponibilidad = f"{existencias} unidades disponibles"
+                if existencias == 0:
+                    disponibilidad = f"disponibilidad sobre pedido"
+                else:
+                    disponibilidad = f"{existencias} unidades disponibles"
 
             return (
                 f"{clave_prod}: precio original: ${precio} {moneda}, "

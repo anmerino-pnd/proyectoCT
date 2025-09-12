@@ -17,7 +17,7 @@ class QueryModerator:
             options={
                 "temperature": 0,       # Valor de 0 lo hace determinista
                 "top_p": 0.8,           # Distribución de probabilidad
-                "num_predict": 20,      # Cantidad de palabras que devuelve al contestar
+                "num_predict": 5,      # Cantidad de palabras que devuelve al contestar
                 "num_ctx": 36000,       # Cantidad de tokens de entrada, modelo gemma3 tiene 128k de entrada máximo
                 "top_k": 3              # Prioridad de la cantidad de palabras 
             }
@@ -26,7 +26,7 @@ class QueryModerator:
 
     def _classification_prompt(self) -> str:
         return """
-Clasifica el siguiente mensaje del usuario respondiendo solo con una de estas palabras exactas:
+Clasificas mensajes de usuarios, respondes solo con una de estas palabras exactas:
 
 - 'relevante'
 
@@ -38,9 +38,10 @@ Criterios:
 
 - Relevante: mensajes relacionados con productos o servicios tecnológicos. Incluye búsqueda, recomendación, precios, cotizaciones, disponibilidad, promociones, detalles técnicos, políticas, términos y condiciones, estatus de pedidos o referencias a mensajes previos sobre estos temas. También saludos iniciales para conversar sobre productos tecnológicos.
 
-- Irrelevante: mensajes no relacionados con tecnología (alimentos, ropa, perfumes, muebles, mascotas, deportes, celebridades, política, religión, salud, chistes, temas personales o electrodomésticos no tecnológicos).
+- Irrelevante: mensajes no relacionados con tecnología o productos tecnológicos (alimentos, ropa, perfumes, muebles, mascotas, deportes, celebridades, política, religión, salud, chistes, temas o usos personales o electrodomésticos no tecnológicos o tutoriales).
 
 - Inapropiado: mensajes con lenguaje ofensivo, vulgar, sexual, violento o amenazante, o solicitudes de productos de carácter sexual.
+
 
 Responde únicamente con la palabra indicada, sin explicaciones ni repetir el mensaje.
         """
