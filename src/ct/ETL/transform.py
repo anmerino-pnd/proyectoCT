@@ -104,21 +104,21 @@ class Transform:
         for col in cols_to_clean:
             products[col] = products[col].fillna('').astype(str).replace('0', '').str.strip()
 
-        products['detalles'] = products['descripcion'].str.cat(
-            products[['descripcion_corta', 'palabrasClave']],
+        products['informacion'] = products['descripcion'].str.cat(
+            products[['descripcion_corta', 'palabrasClave', 'categoria', 'tipo', 'marca']],
             sep=' '
         ).str.strip()
         
-        cols_info = ['nombre', 'categoria', 'marca', 'tipo', 'modelo']
+        cols_info = ['nombre', 'modelo']
         for col in cols_info:
             products[col] = products[col].fillna('').astype(str)
 
-        products['informacion'] = products[cols_info[0]].str.cat(
+        products['contexto'] = products[cols_info[0]].str.cat(
             products[cols_info[1:]],
             sep=', '
         ).str.strip()
 
-        final_cols = ['clave', 'informacion', 'detalles']
+        final_cols = ['clave', 'contexto', 'informacion']
         return products[final_cols].copy()
     
     def clean_products(self) -> dict:
@@ -138,12 +138,12 @@ class Transform:
             clave = row['clave']
             
             # La información clave que queremos repetir en cada chunk
-            informacion_contexto = row['informacion']
+            informacion_contexto = row['contexto']
             
             contenido_parts = []
 
-            if row['detalles']:
-                contenido_parts.append(f"{row['detalles']}")
+            if row['informacion']:
+                contenido_parts.append(f"{row['informacion']}")
 
             ficha = all_fichas_tecnicas.get(clave)
             if ficha:
@@ -155,13 +155,13 @@ class Transform:
                 
                 detalles_ficha = ficha.get('fichaTecnica', {})
                 if detalles_ficha:
-                    detalles_str = "; ".join([f"{k}: {v}" for k, v in detalles_ficha.items()])
+                    detalles_str = ", ".join([f"{k}: {v}" for k, v in detalles_ficha.items()])
                     contenido_parts.append(f"{detalles_str}.")
 
             # Guardamos el contexto y el contenido por separado
             documentos_finales[clave] = {
-                "informacion": informacion_contexto,
-                "contenido": " ".join(contenido_parts)
+                "contexto": informacion_contexto,
+                "informacion": " ".join(contenido_parts)
             }
             
         return documentos_finales
@@ -178,21 +178,21 @@ class Transform:
         for col in cols_detalles:
             sales_raw[col] = sales_raw[col].fillna('').astype(str).replace('0', '').str.strip()
         
-        sales_raw['detalles'] = sales_raw['descripcion'].str.cat(
-            sales_raw[['descripcion_corta', 'palabrasClave']], 
+        sales_raw['informacion'] = sales_raw['descripcion'].str.cat(
+            sales_raw[['descripcion_corta', 'palabrasClave', 'categoria', 'tipo', 'marca']], 
             sep=' '
         ).str.strip()
 
-        cols_info = ['nombre', 'categoria', 'marca', 'tipo', 'modelo']
+        cols_info = ['nombre', 'modelo']
         for col in cols_info:
             sales_raw[col] = sales_raw[col].fillna('').astype(str)
 
-        sales_raw['informacion'] = sales_raw[cols_info[0]].str.cat(
+        sales_raw['contexto'] = sales_raw[cols_info[0]].str.cat(
             sales_raw[cols_info[1:]], 
             sep=', '
         ).str.strip()
 
-        final_cols = ['clave', 'informacion', 'detalles']
+        final_cols = ['clave', 'contexto', 'informacion']
         return sales_raw[final_cols].copy()
 
     def clean_sales(self) -> dict:
@@ -211,11 +211,11 @@ class Transform:
         for index, row in sales.iterrows():
             clave = row['clave']
             
-            informacion_contexto = row['informacion']
+            informacion_contexto = row['contexto']
             contenido_parts = [] 
 
-            if row['detalles']:
-                contenido_parts.append(f"{row['detalles']}.")
+            if row['informacion']:
+                contenido_parts.append(f"{row['informacion']}.")
 
             ficha = all_fichas_tecnicas.get(clave)
             if ficha:
@@ -227,12 +227,12 @@ class Transform:
                 
                 detalles_ficha = ficha.get('fichaTecnica', {})
                 if detalles_ficha:
-                    detalles_str = "; ".join([f"{k}: {v}" for k, v in detalles_ficha.items()])
+                    detalles_str = ", ".join([f"{k}: {v}" for k, v in detalles_ficha.items()])
                     contenido_parts.append(f"{detalles_str}.")
 
             documentos_finales[clave] = {
-                "informacion": informacion_contexto,
-                "contenido": " ".join(contenido_parts)
+                "contexto": informacion_contexto,
+                "informacion": " ".join(contenido_parts)
             }
             
         return documentos_finales

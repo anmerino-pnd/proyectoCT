@@ -12,10 +12,11 @@ from langchain.agents import create_openai_functions_agent, AgentExecutor
 
 from langchain.tools import Tool, StructuredTool 
 from ct.tools.status import status_tool, StatusInput
-from ct.tools.search_information import search_information_tool
 from ct.tools.moneda_api import dolar_convertion_tool, DolarInput
 from ct.tools.inventory import inventory_tool, InventoryInput 
 from ct.tools.sales_rules_tool import sales_rules_tool, SalesInput
+from ct.tools.search_information import search_information_tool, search_by_key_tool, ClaveInput
+
 
 from ct.settings.clients import openai_api_key
 from ct.settings.tokens import TokenCostProcess, CostCalcAsyncHandler
@@ -53,7 +54,7 @@ Para solicitudes generales o exploratorias:
 * Busca productos relevantes usando `search_information_tool` y toma el mejor, afín a la necesidad
 * Luego consulta `inventory_tool` del producto escogido y SIEMPRE que el producto esté en promoción, usa `sales_rules_tool`
 
-Siempre corrobora el producto con search_information_tool, solo para saber qué tipo de producto es.
+Siempre corrobora el producto con search_information_tool y utilizala con suficientes palabras que sirvan de contexto para obtener buenos resultados, solo para más sobre el producto que es.
 
 Ejemplo correcto de uso de tools: 
 - inventory_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
@@ -74,6 +75,8 @@ Enlista los productos en formato claro, ordenado, usando bullet points y Markdow
 Para seguir ofreciendo ayuda solo pregunta:
 - ¿Hay algo más en lo que te pueda ayudar?
 
+Si no sabes algo, preguntale al usuario hasta tener claro lo que debes hacer, buscar, responder.
+
 Historial:
 {chat_history}
             """
@@ -85,8 +88,8 @@ Historial:
         self.tools = [
             Tool(
                 name='search_information_tool',
-                func=search_information_tool,
-                description="Busca productos, o información de productos mencionados"
+                func=search_information_tool.invoke,
+                description="Busca productos, o información de productos mencionados, una búsqueda más general"
             ),
             StructuredTool.from_function(
                 func=inventory_tool,
@@ -95,23 +98,30 @@ Historial:
                 args_schema=InventoryInput 
             ),
             StructuredTool.from_function(
-            func=sales_rules_tool,
-            name='sales_rules_tool',
-            description="Aplica reglas de promoción, devuelve el precio final y mensaje para mostrar al usuario",
-            args_schema=SalesInput
+                func=sales_rules_tool,
+                name='sales_rules_tool',
+                description="Aplica reglas de promoción, devuelve el precio final y mensaje para mostrar al usuario",
+                args_schema=SalesInput
         ),
             StructuredTool.from_function(
-            func=dolar_convertion_tool,
-            name='dolar_convertion_tool',
-            description="Solo usa la tool para convertir el precio de un producto de USD a MXN y hacer cuentas",
-            args_schema=DolarInput
+                func=dolar_convertion_tool,
+                name='dolar_convertion_tool',
+                description="Solo usa la tool para convertir el precio de un producto de USD a MXN y hacer cuentas",
+                args_schema=DolarInput
         ),
             StructuredTool.from_function(
                 func=status_tool,
                 name='status_tool',
                 description="Cuando pregunten por el estatus de algún pedido hecho, pide la factura y busca dicho estatus y no ofrezcas más detalles, solo los regresados por la tool",
                 args_schema=StatusInput
+        ),
+            StructuredTool.from_function(
+                func=search_by_key_tool,
+                name="search_by_key_tool",
+                description="Busca en el docstore un producto o promoción EXACTA usando su clave CT, una sola clave en mayusculas. Búsqueda más específica",
+                args_schema=ClaveInput
             )
+
 ]
 
         self.executor = None
