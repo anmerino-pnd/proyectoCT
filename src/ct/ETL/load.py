@@ -1,8 +1,7 @@
-from pymongo import MongoClient
 from langchain.schema import Document
 from ct.ETL.transform import Transform
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS, Chroma
 # Importamos la clase para dividir texto
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from ct.settings.config import PRODUCTS_VECTOR_PATH, SALES_PRODUCTS_VECTOR_PATH
@@ -13,10 +12,6 @@ class Load:
     def __init__(self):
         self.clean_data = Transform()
         self.embeddings = OpenAIEmbeddings(api_key=api_key)
-
-        self.client = MongoClient("mongodb://localhost:27017")
-        self.db = self.client[mongo_db]
-        self.specifications_collection = self.db[mongo_collection_specifications]
         
         # Inicializamos el divisor de texto con los parámetros que necesitas
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -24,6 +19,7 @@ class Load:
             chunk_overlap=10,  # Este es el 'padding' o solapamiento
             length_function=len,
             add_start_index=True, # Ayuda a identificar la posición del chunk
+            strip_whitespace = True
         )
 
     def _create_documents_with_context(self, data: dict, collection_name: str) -> list[Document]:
@@ -36,15 +32,15 @@ class Load:
             return all_docs
 
         for clave, content in data.items():
-            contexto = content.get("informacion", "")
-            texto_principal = content.get("contenido", "")
+            contexto = content.get("contexto", "")
+            texto_principal = content.get("informacion", "")
 
             # Dividimos el contenido principal en chunks
             chunks = self.text_splitter.split_text(texto_principal)
 
             for chunk in chunks:
                 # A cada chunk le anteponemos la información de contexto
-                page_content_with_context = f"{contexto}. {chunk}"
+                page_content_with_context = f"{clave} {contexto} {chunk}"
                 
                 doc = Document(
                     page_content=page_content_with_context,
