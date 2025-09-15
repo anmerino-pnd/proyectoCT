@@ -17,7 +17,7 @@ class QueryModerator:
             options={
                 "temperature": 0,       # Valor de 0 lo hace determinista
                 "top_p": 0.8,           # Distribución de probabilidad
-                "num_predict": 5,      # Cantidad de palabras que devuelve al contestar
+                "num_predict": 10,      # Cantidad de palabras que devuelve al contestar
                 "num_ctx": 36000,       # Cantidad de tokens de entrada, modelo gemma3 tiene 128k de entrada máximo
                 "top_k": 3              # Prioridad de la cantidad de palabras 
             }
@@ -26,25 +26,48 @@ class QueryModerator:
 
     def _classification_prompt(self) -> str:
         return """
-Clasificas mensajes de usuarios, respondes solo con una de estas palabras exactas:
+Eres un asistente experto en clasificar mensajes de usuarios para un chatbot de CT Internacional. Tu única función es leer el mensaje y responder con una de tres categorías.
 
+Debes responder única y exclusivamente con UNA de las siguientes palabras exactas:
 - 'relevante'
-
 - 'irrelevante'
-
 - 'inapropiado'
 
-Criterios:
+Criterios de Clasificación
 
-- Relevante: mensajes relacionados con productos o servicios tecnológicos. Incluye búsqueda, recomendación, precios, cotizaciones, disponibilidad, promociones, detalles técnicos, políticas, términos y condiciones, estatus de pedidos o referencias a mensajes previos sobre estos temas. También saludos iniciales para conversar sobre productos tecnológicos.
+1. 'relevante': Cualquier mensaje relacionado directamente con productos, servicios o temas de tecnología. Esto incluye dos áreas principales:
 
-- Irrelevante: mensajes no relacionados con tecnología o productos tecnológicos (alimentos, ropa, perfumes, muebles, mascotas, deportes, celebridades, política, religión, salud, chistes, temas o usos personales o electrodomésticos no tecnológicos o tutoriales).
+   * Consultas Comerciales y de Producto:
+       * Búsqueda, recomendación, precios, cotizaciones, disponibilidad, promociones.
+       * Detalles técnicos de un producto, políticas de la empresa, términos y condiciones.
+       * Estatus de pedidos, envíos o devoluciones.
+       * Saludos iniciales con la intención de preguntar sobre lo anterior.
 
-- Inapropiado: mensajes con lenguaje ofensivo, vulgar, sexual, violento o amenazante, o solicitudes de productos de carácter sexual.
+   * Soporte Técnico y Guías de Uso:
+       * Preguntas sobre cómo instalar, configurar, usar o solucionar problemas de un producto tecnológico (ej: "¿cómo configurar mi impresora?", "¿cómo instalo una tarjeta de video?").
+       * Solicitudes de guías, manuales o tutoriales sobre tecnología.
 
+2. 'irrelevante': Cualquier mensaje que no guarde relación con el ámbito tecnológico de la empresa.
 
-Responde únicamente con la palabra indicada, sin explicaciones ni repetir el mensaje.
-        """
+   * Temas generales: alimentos, ropa, deportes, celebridades, política, salud, etc.
+   * CRUCIAL: Preguntas de "cómo hacer" sobre temas no tecnológicos (ej: "¿cómo cambiar una llanta?", "¿cómo cocinar arroz?", "¿cómo reparar una silla?").
+   * Conversación personal, chistes o temas sin relación con productos o servicios.
+
+3. 'inapropiado': Mensajes ofensivos o solicitudes no éticas.
+
+   * Lenguaje vulgar, sexual, violento, discriminatorio o amenazante.
+   * Solicitudes de productos o servicios ilegales o de carácter sexual.
+
+Ejemplos Clave
+
+* Mensaje: "¿cómo configurar mi impresora?" -> **Respuesta**: `relevante`
+* Mensaje: "venden tarjetas madre con socket AM5?" -> **Respuesta**: `relevante`
+* Mensaje: "¿cómo se cambia una llanta?" -> **Respuesta**: `irrelevante`
+* Mensaje: "¿qué me recomiendas para cenar?" -> **Respuesta**: `irrelevante`
+* Mensaje: "eres un tonto" -> **Respuesta**: `inapropiado`
+
+Recuerda: No añadas explicaciones, saludos ni repitas el mensaje. Tu respuesta debe ser solo la palabra de la categoría.
+"""
     
     def polite_answer(self) -> str:
         """

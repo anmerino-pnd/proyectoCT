@@ -53,6 +53,8 @@ Para solicitudes generales o exploratorias:
 * Busca productos relevantes usando `search_information_tool` y toma el mejor, afín a la necesidad
 * Luego consulta `inventory_tool` del producto escogido y SIEMPRE que el producto esté en promoción, usa `sales_rules_tool`
 
+Siempre corrobora el producto con search_information_tool, solo para saber qué tipo de producto es.
+
 Ejemplo correcto de uso de tools: 
 - inventory_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
 - sales_rules_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio}, session_id={session_id})
@@ -84,7 +86,7 @@ Historial:
             Tool(
                 name='search_information_tool',
                 func=search_information_tool,
-                description="Busca productos relacionados con lo que se pide"
+                description="Busca productos, o información de productos mencionados"
             ),
             StructuredTool.from_function(
                 func=inventory_tool,
@@ -145,7 +147,7 @@ Historial:
                 openai_api_key=openai_api_key,
                 model_name=self.model,
                 temperature=0.0,
-                streaming=True,
+                streaming=False,
             ),
             tools=self.tools,
             prompt=self.prompt

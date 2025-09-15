@@ -62,40 +62,17 @@ class Transform:
                         print(f"Advertencia: La clave {clave_producto} no tiene un formato esperado y será omitida.")
         return fichas_tecnicas
     
-    def transform_products(self) -> pd.DataFrame:
+    def _get_all_specifications(self, claves: list) -> dict:
         """
-        Transforma los datos brutos de productos en un DataFrame limpio.
+        Método privado para obtener fichas técnicas, tanto de la BD como nuevas.
         """
-        products : pd.DataFrame = self.data.get_products()
-        
-        products['descripcion'] = products['descripcion'].fillna('').astype(str).replace('0', '').str.strip()
-        products['descripcion_corta'] = products['descripcion_corta'].fillna('').astype(str).replace('0', '').str.strip()
-        products['palabrasClave'] = products['palabrasClave'].fillna('').astype(str).replace('0', '').str.strip()
-        products['detalles'] = products['descripcion'] + ' ' + products['descripcion_corta'] + ' ' + products['palabrasClave']
-        products['detalles'] = products['detalles'].str.strip()
-        
-        columns = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
-                   'modelo', 'detalles']
-        data_products = products[columns].copy()
-        for col in data_products.columns:
-            data_products[col] = data_products[col].astype(str)
-        return data_products
-    
-    def clean_products(self) -> dict:
-        """
-        Limpia los datos de productos, obteniendo las fichas técnicas de MongoDB
-        o extrayéndolas si no existen. Si no se encuentra o falla, se guarda una ficha vacía.
-        """
-        products = self.transform_products()
-        claves = products['clave'].unique().tolist()
-
         claves_a_buscar = []
         fichas_tecnicas_existentes = {}
 
         for clave in claves:
             ficha_existente = self.specifications_collection.find_one({"clave": clave})
             if ficha_existente:
-                fichas_tecnicas_existentes[clave] = ficha_existente['data']
+                fichas_tecnicas_existentes[clave] = ficha_existente.get('data', {})
             else:
                 claves_a_buscar.append(clave)
 
@@ -112,31 +89,82 @@ class Transform:
                     upsert=True
                 )
             print(f"Guardadas {len(new_specs)} fichas técnicas nuevas en MongoDB.")
+        
+        return {**fichas_tecnicas_existentes, **new_specs}
 
-            # Guardar vacías las que fallaron
-            claves_procesadas = set(fichas_tecnicas_existentes.keys()) | set(new_specs.keys())
-            claves_fallidas = set(claves) - claves_procesadas
-            for clave in claves_fallidas:
-                print(f"Advertencia: No se encontró ficha técnica para la clave {clave}. Se añadirá vacía.")
-                self.specifications_collection.update_one(
-                    {"clave": clave},
-                    {"$set": {"clave": clave, "data": {}}},
-                    upsert=True
-                )
+    def transform_products(self) -> pd.DataFrame:
+        """
+        Transforma los datos brutos de productos en un DataFrame limpio y estandarizado.
+        """
+        products = self.data.get_products()
+        if products.empty:
+            return pd.DataFrame()
 
-        # Combinar todo
-        all_fichas_tecnicas = {
-            doc["clave"]: doc.get("data", {})
-            for doc in self.specifications_collection.find({"clave": {"$in": claves}})
-        }
+        cols_to_clean = ['descripcion', 'descripcion_corta', 'palabrasClave']
+        for col in cols_to_clean:
+            products[col] = products[col].fillna('').astype(str).replace('0', '').str.strip()
 
-        products_dict = products.to_dict(orient='records')
-        for producto in products_dict:
-            ficha = all_fichas_tecnicas.get(producto['clave'], {})
-            producto['fichaTecnica'] = ficha.get('fichaTecnica', {})
-            producto['resumen'] = ficha.get('resumen', {})
-        return products_dict
+        products['detalles'] = products['descripcion'].str.cat(
+            products[['descripcion_corta', 'palabrasClave']],
+            sep=' '
+        ).str.strip()
+        
+        cols_info = ['nombre', 'categoria', 'marca', 'tipo', 'modelo']
+        for col in cols_info:
+            products[col] = products[col].fillna('').astype(str)
 
+        products['informacion'] = products[cols_info[0]].str.cat(
+            products[cols_info[1:]],
+            sep=', '
+        ).str.strip()
+
+        final_cols = ['clave', 'informacion', 'detalles']
+        return products[final_cols].copy()
+    
+    def clean_products(self) -> dict:
+        """
+        Limpia los datos, separa la información de contexto del contenido principal
+        y devuelve un diccionario listo para ser procesado y chunked.
+        """
+        products = self.transform_products()
+        if products.empty:
+            return {}
+
+        claves = products['clave'].unique().tolist()
+        all_fichas_tecnicas = self._get_all_specifications(claves)
+
+        documentos_finales = {}
+        for index, row in products.iterrows():
+            clave = row['clave']
+            
+            # La información clave que queremos repetir en cada chunk
+            informacion_contexto = row['informacion']
+            
+            contenido_parts = []
+
+            if row['detalles']:
+                contenido_parts.append(f"{row['detalles']}")
+
+            ficha = all_fichas_tecnicas.get(clave)
+            if ficha:
+                resumen = ficha.get('resumen', {})
+                if resumen:
+                    resumen_texto = f"{resumen.get('ShortSummary', '')} {resumen.get('LongSummary', '')}".strip()
+                    if resumen_texto and resumen_texto != "No disponible":
+                        contenido_parts.append(f"{resumen_texto}")
+                
+                detalles_ficha = ficha.get('fichaTecnica', {})
+                if detalles_ficha:
+                    detalles_str = "; ".join([f"{k}: {v}" for k, v in detalles_ficha.items()])
+                    contenido_parts.append(f"{detalles_str}.")
+
+            # Guardamos el contexto y el contenido por separado
+            documentos_finales[clave] = {
+                "informacion": informacion_contexto,
+                "contenido": " ".join(contenido_parts)
+            }
+            
+        return documentos_finales
 
     def transform_sales(self) -> pd.DataFrame:
         """
@@ -146,77 +174,65 @@ class Transform:
         if sales_raw.empty:
             return pd.DataFrame()
 
-        sales_raw['descripcion'] = sales_raw['descripcion'].fillna('').astype(str).replace('0', '').str.strip()
-        sales_raw['descripcion_corta'] = sales_raw['descripcion_corta'].fillna('').astype(str).replace('0', '').str.strip()
-        sales_raw['palabrasClave'] = sales_raw['palabrasClave'].fillna('').astype(str).replace('0', '').str.strip()
-        sales_raw['detalles'] = sales_raw['descripcion'] + ' ' + sales_raw['descripcion_corta'] + ' ' + sales_raw['palabrasClave']
-        sales_raw['detalles'] = sales_raw['detalles'].str.strip()
-
-        for col in sales_raw.columns:
-                sales_raw[col] = sales_raw[col].astype(str)
-
-        final_columns = ['nombre', 'clave', 'categoria', 'marca', 'tipo',
-            'modelo', 'detalles']
+        cols_detalles = ['descripcion', 'descripcion_corta', 'palabrasClave']
+        for col in cols_detalles:
+            sales_raw[col] = sales_raw[col].fillna('').astype(str).replace('0', '').str.strip()
         
-        existing_cols = [col for col in final_columns if col in sales_raw.columns]
-        data_sales = sales_raw[existing_cols].copy()
+        sales_raw['detalles'] = sales_raw['descripcion'].str.cat(
+            sales_raw[['descripcion_corta', 'palabrasClave']], 
+            sep=' '
+        ).str.strip()
 
-        return data_sales
-        
+        cols_info = ['nombre', 'categoria', 'marca', 'tipo', 'modelo']
+        for col in cols_info:
+            sales_raw[col] = sales_raw[col].fillna('').astype(str)
+
+        sales_raw['informacion'] = sales_raw[cols_info[0]].str.cat(
+            sales_raw[cols_info[1:]], 
+            sep=', '
+        ).str.strip()
+
+        final_cols = ['clave', 'informacion', 'detalles']
+        return sales_raw[final_cols].copy()
+
     def clean_sales(self) -> dict:
         """
-        Limpia los datos de ventas (ofertas), obteniendo las fichas técnicas de MongoDB
-        o extrayéndolas si no existen. Si no se encuentra o falla, se guarda una ficha vacía.
+        Limpia los datos de ventas, separando la información de contexto del contenido,
+        similar a clean_products.
         """
         sales = self.transform_sales()
         if sales.empty:
-            return []
+            return {}
 
         claves = sales['clave'].unique().tolist()
+        all_fichas_tecnicas = self._get_all_specifications(claves)
 
-        claves_a_buscar = []
-        fichas_tecnicas_existentes = {}
+        documentos_finales = {}
+        for index, row in sales.iterrows():
+            clave = row['clave']
+            
+            informacion_contexto = row['informacion']
+            contenido_parts = [] 
 
-        for clave in claves:
-            ficha_existente = self.specifications_collection.find_one({"clave": clave})
-            if ficha_existente:
-                fichas_tecnicas_existentes[clave] = ficha_existente['data']
-            else:
-                claves_a_buscar.append(clave)
+            if row['detalles']:
+                contenido_parts.append(f"{row['detalles']}.")
 
-        new_specs = {}
-        if claves_a_buscar:
-            print(f"Extrayendo {len(claves_a_buscar)} fichas técnicas nuevas para ofertas...")
-            raw_new_specs = self.data.get_specifications(claves_a_buscar)
-            new_specs = self.transform_specifications(raw_new_specs)
+            ficha = all_fichas_tecnicas.get(clave)
+            if ficha:
+                resumen = ficha.get('resumen', {})
+                if resumen:
+                    resumen_texto = f"{resumen.get('ShortSummary', '')} {resumen.get('LongSummary', '')}".strip()
+                    if resumen_texto and resumen_texto != "No disponible":
+                        contenido_parts.append(f"{resumen_texto}")
+                
+                detalles_ficha = ficha.get('fichaTecnica', {})
+                if detalles_ficha:
+                    detalles_str = "; ".join([f"{k}: {v}" for k, v in detalles_ficha.items()])
+                    contenido_parts.append(f"{detalles_str}.")
 
-            for clave, data in new_specs.items():
-                self.specifications_collection.update_one(
-                    {"clave": clave},
-                    {"$set": {"clave": clave, "data": data}},
-                    upsert=True
-                )
-            print(f"Guardadas {len(new_specs)} fichas técnicas nuevas para ofertas en MongoDB.")
-
-            claves_procesadas = set(fichas_tecnicas_existentes.keys()) | set(new_specs.keys())
-            claves_fallidas = set(claves) - claves_procesadas
-            for clave in claves_fallidas:
-                print(f"Advertencia: No se encontró ficha técnica para la clave {clave}. Se añadirá vacía.")
-                self.specifications_collection.update_one(
-                    {"clave": clave},
-                    {"$set": {"clave": clave, "data": {}}},
-                    upsert=True
-                )
-
-        all_fichas_tecnicas = {
-            doc["clave"]: doc.get("data", {})
-            for doc in self.specifications_collection.find({"clave": {"$in": claves}})
-        }
-
-        sales_dict = sales.to_dict(orient='records')
-        for sale in sales_dict:
-            ficha = all_fichas_tecnicas.get(sale['clave'], {})
-            sale['fichaTecnica'] = ficha.get('fichaTecnica', {})
-            sale['resumen'] = ficha.get('resumen', {})
-
-        return sales_dict
+            documentos_finales[clave] = {
+                "informacion": informacion_contexto,
+                "contenido": " ".join(contenido_parts)
+            }
+            
+        return documentos_finales
