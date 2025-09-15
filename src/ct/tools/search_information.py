@@ -1,21 +1,23 @@
 import re
 from langchain.tools import tool
+from langchain.schema import Document
 from ct.settings.clients import openai_api_key
 from langchain_openai import OpenAIEmbeddings
 from ct.langchain.vectorstore import LangchainVectorStore
 from ct.settings.config import SALES_PRODUCTS_VECTOR_PATH
+from collections import defaultdict
+from typing import List
 
 vectorstore = LangchainVectorStore(
-    OpenAIEmbeddings(openai_api_key= openai_api_key),
+    OpenAIEmbeddings(openai_api_key=openai_api_key),
     SALES_PRODUCTS_VECTOR_PATH
-    )
-
+)
 
 retriever_productos = vectorstore.vectorstore.as_retriever(
-    search_type='similarity',  
+    search_type='similarity',
     search_kwargs={
-        "k": 2, 
-        "score_threshold": 0.95,  # alto para filtrar ruido
+        "k": 5,
+        "score_threshold": 0.80,
         "filter": {"collection": "productos"}
     }
 )
@@ -23,29 +25,45 @@ retriever_productos = vectorstore.vectorstore.as_retriever(
 retriever_promociones = vectorstore.vectorstore.as_retriever(
     search_type='similarity',
     search_kwargs={
-        "k": 2, 
-        "score_threshold": 0.95,
+        "k": 5,
+        "score_threshold": 0.80,
         "filter": {"collection": "promociones"}
     }
 )
 
-@tool(description="Busca productos y promociones usando búsqueda semántica.")
-def search_information_tool(query):
-    promociones = retriever_promociones.invoke(query)
-    productos = retriever_productos.invoke(query)
+def _group_docs_by_key(docs: List[Document]) -> dict:
+    """
+    Función auxiliar para agrupar documentos de Langchain por la 'clave'
+    en sus metadatos y unir su contenido.
+    """
+    if not docs:
+        return {}
 
-    def parse_page_content(content):
-        # Separa por '. ' pero ignora los puntos dentro de objetos o listas
-        parts = re.split(r'\.\s+', content.strip())
-        data = {}
-        for part in parts:
-            if ':' in part:
-                key, val = part.split(':', 1)
-                data[key.strip()] = val.strip().strip('.')
-        return data
+    grouped_by_key = defaultdict(list)
+    for doc in docs:
+        clave = doc.metadata.get("clave")
+        grouped_by_key[clave].append(doc.page_content)
+
+    final_results = {
+        clave: " ... ".join(contents)
+        for clave, contents in grouped_by_key.items()
+    }
+    return final_results
+
+
+@tool(description="Busca información detallada de productos y promociones. Agrupa la información por la clave del producto para dar un contexto completo.")
+def search_information_tool(query: str) -> dict:
+    """
+    Realiza una búsqueda semántica y agrupa los resultados por producto.
+    """
+    promociones_docs = retriever_promociones.invoke(query)
+    productos_docs = retriever_productos.invoke(query)
+
+    grouped_promociones = _group_docs_by_key(promociones_docs)
+    grouped_productos = _group_docs_by_key(productos_docs)
 
     return {
-        "Promociones": [parse_page_content(doc.page_content) for doc in promociones],
-        "Productos": [parse_page_content(doc.page_content) for doc in productos]
+        "Promociones": grouped_promociones,
+        "Productos": grouped_productos
     }
 

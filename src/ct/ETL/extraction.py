@@ -173,7 +173,7 @@ GROUP BY
     pros.idProducto 
 ORDER BY 
     pros.importe     ASC,
-    pre.listaPrecio;
+    pre.listaPrecio
         ;"""
       return query 
 

@@ -18,6 +18,7 @@ class ModeratedToolAgent:
             return
 
         label = self.moderator.classify_query(query).strip().lower()
+        print(label)
 
         if label == "relevante":
             async for chunk in self.tool_agent.run(query, session_id, lista_precio=listaPrecio):

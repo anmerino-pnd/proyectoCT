@@ -1,37 +1,58 @@
 from ct.ETL.load import Load
 
-def run_etl_pipeline():
+def update_products():
     """
-    Función principal para ejecutar todo el pipeline de ETL.
-    Extrae, transforma y carga los datos de productos y ventas, creando los vector stores correspondientes.
+    Actualiza únicamente el vector store de productos.
+    Extrae y transforma los productos y actualiza su vector store.
     """
-    print("Iniciando el pipeline ETL...")
-
-    # Instanciar la clase Load
+    print("\n--- Actualizando productos ---")
     load = Load()
-
-    # 1. Cargar y transformar productos
-    print("\n--- Procesando productos ---")
     products_docs = load.load_products()
     if products_docs:
-        # 2. Crear el vector store de productos
         load.products_vs(products_docs)
+        print("✅ Vector store de productos actualizado correctamente.")
     else:
-        print("El pipeline de productos no se pudo completar. Saliendo.")
-        return
+        print("No se pudo actualizar el vector store de productos.")
 
-    # 3. Cargar y transformar ventas (ofertas)
-    print("\n--- Procesando ventas (ofertas) ---")
+
+def update_sales():
+    """
+    Actualiza únicamente el vector store de ventas (ofertas).
+    Carga primero el vector store de productos (si es necesario)
+    y actualiza solo las ofertas.
+    """
+    print("\n--- Actualizando ventas (ofertas) ---")
+    load = Load()
     sales_docs = load.load_sales()
     if sales_docs:
-        # 4. Crear el vector store de ventas, usando el de productos como base
         load.sales_products_vs(sales_docs)
+        print("✅ Vector store de ventas (ofertas) actualizado correctamente.")
     else:
+        print("No se pudo actualizar el vector store de ventas.")
+
+
+def update_all():
+    """
+    Actualiza ambos vector stores (productos y ventas).
+    ⚠️ Nota: esta función puede tardar más tiempo porque procesa todo el pipeline completo.
+    """
+    print("\n=== Actualizando productos y ventas (pipeline completo) ===")
+    load = Load()
+
+    # Productos
+    print("\n--- Procesando productos ---")
+    products_docs = load.load_products()
+    if not products_docs:
+        print("El pipeline de productos no se pudo completar. Saliendo.")
+        return
+    load.products_vs(products_docs)
+
+    # Ventas
+    print("\n--- Procesando ventas (ofertas) ---")
+    sales_docs = load.load_sales()
+    if not sales_docs:
         print("El pipeline de ventas no se pudo completar. Saliendo.")
         return
+    load.sales_products_vs(sales_docs)
 
-    print("\n✅ Pipeline ETL completado exitosamente.")
-
-if __name__ == "__main__":
-    run_etl_pipeline()
-
+    print("\n✅ Pipeline completo (productos y ventas) actualizado exitosamente.")
