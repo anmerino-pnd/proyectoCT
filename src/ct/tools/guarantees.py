@@ -12,13 +12,13 @@ vector_store = FAISS.load_local(
 
 retriever1 = vector_store.as_retriever(
     search_type="mmr",
-    search_kwargs={'k': 1, 'lambda_mult': 0.6,
+    search_kwargs={'k': 1, 'lambda_mult': 0.7,
                     'filter': {'collection': 'Procedimientos Garantía'}}
 )
 
 retriever2 = vector_store.as_retriever(
     search_type="mmr",
-    search_kwargs={'k': 3, 'lambda_mult': 0.6,
+    search_kwargs={'k': 3, 'lambda_mult': 0.7,
                     'filter': {'collection': ['Compra en línea', 'ESD', 'Políticas', 'Términos y Condiciones']}}
 )
 
@@ -30,11 +30,13 @@ Contexto: {context}
 Pregunta: {question}
 
 No ofrezcas más ayuda, solo responde la duda actual.
+
+SIEMPRE contesta en español.
 """,
     input_variables=["context", "question"]
 )
 
-llm = ChatOllama(model="gpt-oss:latest", temperature=0.0)
+llm = ChatOllama(model="qwen3:8b", temperature=0.0)
 
 chain = prompt_template | llm
 
@@ -51,7 +53,7 @@ def check_warranty(query: str):
     print(results2, flush=True)
 
 
-    context_text = "\n\n".join([doc.page_content for doc in results1 + results2])
+    context_text = " ".join([doc.page_content for doc in results1 + results2])
 
     response = chain.invoke({"context": context_text, "question": query})
 
