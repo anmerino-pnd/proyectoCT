@@ -5,15 +5,16 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
 from langchain_openai import ChatOpenAI
+from langchain.tools import Tool, StructuredTool 
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import trim_messages
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
-from langchain.agents import create_openai_functions_agent, AgentExecutor
+from langchain.agents import create_openai_functions_agent, AgentExecutor, create_tool_calling_agent
 
-from langchain.tools import Tool, StructuredTool 
 from ct.tools.status import status_tool, StatusInput
-from ct.tools.moneda_api import dolar_convertion_tool, DolarInput
 from ct.tools.inventory import inventory_tool, InventoryInput 
+from ct.tools.support import get_support_info, SupportInput
+from ct.tools.moneda_api import dolar_convertion_tool, DolarInput
 from ct.tools.sales_rules_tool import sales_rules_tool, SalesInput
 from ct.tools.search_information import search_information_tool, search_by_key_tool, ClaveInput
 
@@ -54,7 +55,8 @@ Para solicitudes generales o exploratorias:
 * Busca productos relevantes usando `search_information_tool` y toma el mejor, afín a la necesidad
 * Luego consulta `inventory_tool` del producto escogido y SIEMPRE que el producto esté en promoción, usa `sales_rules_tool`
 
-Siempre corrobora el producto con search_information_tool y utilizala con suficientes palabras que sirvan de contexto para obtener buenos resultados, solo para más sobre el producto que es.
+Siempre corrobora el producto con `search_information_tool` utiliza SUFICIENTES palabras para obtener resultados más finos, usa tu conocimiento fundamental para esto.
+Con `get_support_info` utiliza suficientes palabras para recuperar la información necesaria.
 
 Ejemplo correcto de uso de tools: 
 - inventory_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
@@ -120,6 +122,12 @@ Historial:
                 name="search_by_key_tool",
                 description="Busca en el docstore un producto o promoción EXACTA usando su clave CT, una sola clave en mayusculas. Búsqueda más específica",
                 args_schema=ClaveInput
+        ),
+            StructuredTool.from_function(
+                func=get_support_info,
+                name="get_support_info",
+                description="Cuando necesites saber sobre cómo hacer compras en líneas, compras y envíos de ESD, políticas, garantías, devoluciones, términos y condiciones.",
+                args_schema=SupportInput
             )
 
 ]
@@ -217,7 +225,7 @@ Historial:
                 except Exception:
                     pass
 
-    def get_session_history(self, session_id: str) -> list[BaseMessage]:
+    def get_session_history(self, session_id: str) -> list[BaseMessage]: 
         messages_data = []
         try:
             session = self.sessions.find_one(
