@@ -5,7 +5,7 @@ import ollama
 
 
 class QueryModerator:
-    def __init__(self, model: str = "gemma3:4b", assistant : ToolAgent = None):
+    def __init__(self, model: str = "gemma3:12b", assistant : ToolAgent = None):
         self.model = model
         self.assistant = assistant
 
@@ -39,8 +39,9 @@ Criterios de Clasificación
 
    * Consultas Comerciales y de Producto:
        * Búsqueda, recomendación, precios, cotizaciones, disponibilidad, promociones.
-       * Detalles técnicos de un producto, políticas de la empresa, términos y condiciones.
+       * Detalles técnicos de políticas, garantías, devoluciones, términos y condiciones.
        * Estatus de pedidos, envíos o devoluciones.
+       * Dudas sobre compras en línea y, compras y envíos de productos ESD.
        * Saludos iniciales con la intención de preguntar sobre lo anterior.
 
    * Soporte Técnico y Guías de Uso:
