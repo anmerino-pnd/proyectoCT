@@ -94,7 +94,7 @@ class Load:
             print("No hay productos para crear el vector store.")
             return
 
-        batch_size = 150
+        batch_size = 500
         total_docs = len(products)
         
         if total_docs == 0:
@@ -128,7 +128,7 @@ class Load:
             print("No hay documentos de ventas para procesar.")
             return
 
-        batch_size = 150
+        batch_size = 500
         
         try:
             vector_store = FAISS.load_local(folder_path=str(PRODUCTS_VECTOR_PATH), 
