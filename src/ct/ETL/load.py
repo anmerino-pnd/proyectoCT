@@ -15,7 +15,7 @@ class Load:
         
         # Inicializamos el divisor de texto con los parámetros que necesitas
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=280,
+            chunk_size=220,
             chunk_overlap=10,  # Este es el 'padding' o solapamiento
             length_function=len,
             add_start_index=True, # Ayuda a identificar la posición del chunk
