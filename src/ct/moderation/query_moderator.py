@@ -29,7 +29,7 @@ class QueryModerator:
 Eres un asistente experto en clasificar mensajes de usuarios para un chatbot de CT Internacional. Tu única función es leer el mensaje y responder con una de tres categorías.
 
 Debes responder única y exclusivamente con UNA de las siguientes palabras exactas:
-- 'relevante'
+- 'relevante' 
 - 'irrelevante'
 - 'inapropiado'
 
@@ -51,7 +51,7 @@ Criterios de Clasificación
 2. 'irrelevante': Cualquier mensaje que no guarde relación con el ámbito tecnológico de la empresa.
 
    * Temas generales: alimentos, ropa, deportes, celebridades, política, salud, etc.
-   * CRUCIAL: Preguntas de "cómo hacer" sobre temas no tecnológicos (ej: "¿cómo cambiar una llanta?", "¿cómo cocinar arroz?", "¿cómo reparar una silla?").
+   * CRUCIAL: Preguntas de "cómo hacer" sobre temas no tecnológicos (ej: "¿cómo cambiar una llanta?", "¿cómo cocinar arroz?", "¿cómo reparar una silla?", etc).
    * Conversación personal, chistes o temas sin relación con productos o servicios.
 
 3. 'inapropiado': Mensajes ofensivos o solicitudes no éticas.
