@@ -26,7 +26,7 @@ from ct.settings.clients import mongo_uri, mongo_collection_sessions, mongo_coll
 
 class ToolAgent:
     def __init__(self):
-        self.model = "gpt-4.1"
+        self.model = "gpt-5"
 
         try:
             self.client = MongoClient(mongo_uri).get_default_database()
@@ -165,9 +165,7 @@ Historial:
         agent = create_openai_functions_agent(
             llm=ChatOpenAI(
                 openai_api_key=openai_api_key,
-                model_name=self.model,
-                temperature=0.0,
-                streaming=False,
+                model_name=self.model
             ),
             tools=self.tools,
             prompt=self.prompt
