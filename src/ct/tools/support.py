@@ -11,7 +11,7 @@ from ct.settings.config import SUPPORT_INFO_VECTOR_PATH
 
 # Define los filtros disponibles usando Literal para que el agente los conozca.
 # Esto es más robusto que solo mencionarlos en el prompt, ya que forma parte del "schema" de la herramienta.
-SupportFilter = Literal['Compra en línea', 'ESD', 'Políticas', 'Términos y Condiciones', 'Procedimientos Garantía']
+SupportFilter = Literal['Compra en línea', 'ESD', 'Terminos, condiciones y políticas', 'Procedimientos Garantía']
 
 class SupportInput(BaseModel):
     """Define la entrada para la herramienta de información de soporte."""
@@ -35,7 +35,7 @@ def get_faiss_retriever(collection_filter: str):
     return vector_store.as_retriever(
         search_type="similarity",
         search_kwargs={
-            'k': 12,
+            'k': 15,
             'filter': {'collection': collection_filter},
         }
     )
