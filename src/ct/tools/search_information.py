@@ -18,7 +18,7 @@ vectorstore = FAISS.load_local(
 retriever_productos = vectorstore.as_retriever(
     search_type='mmr',
     search_kwargs={
-        "k": 6,
+        "k": 8,
         "filter": {"collection": "productos"},
         "lambda_mult": 0.85
     }
@@ -27,7 +27,7 @@ retriever_productos = vectorstore.as_retriever(
 retriever_promociones = vectorstore.as_retriever(
     search_type='mmr',
     search_kwargs={
-        "k": 6,
+        "k": 10,
         "filter": {"collection": "promociones"},
         "lambda_mult": 0.85
     }
