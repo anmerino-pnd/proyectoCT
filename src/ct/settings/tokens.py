@@ -23,6 +23,10 @@ MODEL_COST_PER_1K_TOKENS = {
     "gpt-5" :{
         "input": 0.00125,
         "output": 0.01
+    },
+    "o4-mini-2025-04-16" :{
+        "input": 0.0011,
+        "output": 0.0044
     }
 }
 
