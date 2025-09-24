@@ -8,6 +8,7 @@ from langchain_openai import ChatOpenAI
 from langchain.tools import Tool, StructuredTool 
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import trim_messages
+from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 from langchain.agents import create_openai_functions_agent, AgentExecutor, create_tool_calling_agent
 
@@ -26,8 +27,19 @@ from ct.settings.clients import mongo_uri, mongo_collection_sessions, mongo_coll
 
 class ToolAgent:
     def __init__(self):
-        self.model = "gpt-5"
+        self.model = "gpt-4.1"
+        
+        self.rate_limiter = InMemoryRateLimiter(
+            requests_per_second=0.1,
+            check_every_n_seconds=0.1,
+            max_bucket_size=100,
+        )
 
+        self.llm = ChatOpenAI(
+            openai_api_key=openai_api_key,
+            model_name=self.model,
+            rate_limiter=self.rate_limiter
+            )
         try:
             self.client = MongoClient(mongo_uri).get_default_database()
             self.sessions = self.client[mongo_collection_sessions]
@@ -56,7 +68,7 @@ Para solicitudes generales o exploratorias:
 * Luego consulta `inventory_tool` del producto escogido y SIEMPRE que el producto esté en promoción, usa `sales_rules_tool`
 
 Recomendaciones para herramientas específicas:
-- `search_information_tool`: Corrobora los productos con esta herramienta. SIEMPRE utiliza tu conocimiento fundamental, para agregar SUFICIENTES palabras clave, descriptivas, a la búsqueda para obtener resultados más finos aunque el usuario no haya usado tantas, y si el resultado obtenido no es exactamente lo que pidió, escoge los más cercanos u opciones alternativas.
+- `search_information_tool`: Corrobora los productos con esta herramienta. SIEMPRE utiliza tu conocimiento fundamental, para AGREGAR SUFICIENTES palabras claves, descriptivas, a la búsqueda y obtener resultados más finos aunque el usuario no las haya mencionado, y si el resultado obtenido no es exactamente lo que pidió, escoge los más cercanos u opciones alternativas.
 - `get_support_info`: Para dudas sobre políticas, garantías, devoluciones, etc., DEBES determinar el filtro correcto basado en la consulta. Los filtros disponibles son: ['Compra en línea', 'ESD', 'Políticas', 'Términos y Condiciones', 'Procedimientos Garantía']. Por ejemplo, si preguntan sobre devolver un producto, los filtros 'Políticas' y 'Procedimientos Garantía' son relevantes.
     * Con get_support_info debe explayar las ideas, el uso de esta tool es de explicar detalladamente para que cualquier persona sin experiencia pueda entender qué debe hacer. Considera casi en su totalidad la información proveída por la tool.
 
@@ -93,7 +105,7 @@ Historial:
             Tool(
                 name='search_information_tool',
                 func=search_information_tool.invoke,
-                description="Busca productos, o información de productos mencionados, una búsqueda más general"
+                description="Busca productos, o información de productos mencionados, una búsqueda más general de lo que se puede encontrar en la empresa"
             ),
             StructuredTool.from_function(
                 func=inventory_tool,
@@ -162,11 +174,8 @@ Historial:
         return self.sessions.find_one({"session_id": session_id}) or {}
 
     def build_executor(self):
-        agent = create_openai_functions_agent(
-            llm=ChatOpenAI(
-                openai_api_key=openai_api_key,
-                model_name=self.model
-            ),
+        agent = create_tool_calling_agent(
+            llm=self.llm,
             tools=self.tools,
             prompt=self.prompt
         )
@@ -174,7 +183,8 @@ Historial:
             agent=agent,
             tools=self.tools,
             verbose=True,
-            max_iterations=40
+            max_iterations=40,
+            return_intermediate_steps=True
         )
 
     async def run(self, query: str, session_id: str, lista_precio: int):
@@ -259,7 +269,7 @@ Historial:
                         "last_messages": {
                             "$each": [short_msg],
                             "$sort": {"timestamp": 1},
-                            "$slice": -24  # Cambia este número según lo que quieras conservar
+                            "$slice": -24  
                         }
                     }
                 }
