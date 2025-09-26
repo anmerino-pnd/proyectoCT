@@ -45,7 +45,7 @@ combined_stopwords.update(nltk_stopwords)
 
 custom_stopwords = {"mx", "https", "dame", "hola", "quiero", "puedes", "gustaría",
                     "interesan", "opción", "opciones", "opcion", "favor", "sirve",
-                    "diste", "fijar", "debería", "viene", "palabra", "qué", "necesito","hi"}
+                    "diste", "fijar", "debería", "viene", "palabra", "qué", "necesito","hi", "buscar"}
 combined_stopwords.update(custom_stopwords)
 
 if nlp:
