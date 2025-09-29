@@ -17,7 +17,7 @@ class ModeratedToolAgent:
             yield ban_message
             return
 
-        label = self.moderator.classify_query(query).strip().lower()
+        label = self.moderator.classify_query(query, session_id=session_id).strip().lower()
         print(label)
 
         if label == "relevante":

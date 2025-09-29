@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, List
 from ct.langchain.tool_agent import ToolAgent
+from ct.settings.clients import openai_api_key
+from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 import ollama
 
 
@@ -9,11 +11,20 @@ class QueryModerator:
         self.model = model
         self.assistant = assistant
 
-    def classify_query(self, query: str) -> str:
+    def classify_query(self, query: str, session_id: str) -> str:
+        history = self._get_formatted_history(session_id)
+
+        full_prompt = (
+            "HISTORIAL DE LA CONVERSACIÓN:\n"
+            f"{history}\n"
+            "MENSAJE ACTUAL:\n"
+            f"{query}"
+        )
+
         result = ollama.generate(
             model=self.model,
             system=self._classification_prompt(),
-            prompt=query,
+            prompt=full_prompt,
             options={
                 "temperature": 0,       # Valor de 0 lo hace determinista
                 "top_p": 0.8,           # Distribución de probabilidad
@@ -26,38 +37,53 @@ class QueryModerator:
 
     def _classification_prompt(self) -> str:
         return """
-Eres un asistente experto en clasificar mensajes de usuarios para un chatbot de CT Internacional. Tu única función es leer el mensaje y responder con una de tres categorías.
-
+Eres un asistente experto en clasificar el MENSAJE ACTUAL de un usuario para un chatbot de CT Internacional.
+Tu única función es leer el MENSAJE ACTUAL y el HISTORIAL DE LA CONVERSACIÓN para responder con una de tres categorías.
 Debes responder única y exclusivamente con UNA de las siguientes palabras exactas:
 - 'relevante' 
 - 'irrelevante'
 - 'inapropiado'
 
+Principio Fundamental: El Contexto es Rey
+Si un mensaje por sí solo parece irrelevante o ambiguo (como '?', 'y ese?', 'para gaming'), pero el historial de la conversación trata sobre un tema relevante,
+DEBES clasificar el mensaje actual como 'relevante'. El historial tiene prioridad sobre el contenido del mensaje aislado.
+
 Criterios de Clasificación
 
-1. 'relevante': Cualquier mensaje relacionado directamente con productos, servicios o temas de tecnología. Esto incluye dos áreas principales:
+1. 'relevante': Cualquier mensaje relacionado directamente con productos, servicios o temas de tecnología, O que sea una continuación directa de una conversación relevante.
 
-   * Consultas Comerciales y de Producto:
-       * Búsqueda, recomendación, precios, cotizaciones, disponibilidad, promociones.
-       * Detalles técnicos de políticas, garantías, devoluciones, términos y condiciones.
-       * Estatus de pedidos, envíos o devoluciones.
-       * Dudas sobre compras en línea y, compras y envíos de productos ESD.
-       * Saludos iniciales con la intención de preguntar sobre lo anterior.
+    * Consultas Comerciales y de Producto:
+        * Búsqueda, recomendación, precios, cotizaciones, disponibilidad, promociones.
+        * Búsqueda por códigos, SKUs o números de parte (ej: 'ACCITL5520', 'c008').
+        * Detalles sobre políticas, garantías, devoluciones, términos y condiciones.
+        * Estatus de pedidos, envíos o devoluciones.
+        * Saludos iniciales y mensajes con errores de tipeo pero con intención clara (ej: 'hols', 'cpuevo').
 
-   * Soporte Técnico y Guías de Uso:
-       * Preguntas sobre cómo instalar, configurar, usar o solucionar problemas de un producto tecnológico (ej: "¿cómo configurar mi impresora?", "¿cómo instalo una tarjeta de video?").
-       * Solicitudes de guías, manuales o tutoriales sobre tecnología.
+    * Soporte Técnico y Guías de Uso:
+        * Preguntas sobre cómo instalar, configurar, usar o solucionar problemas de un producto.
+        * Solicitudes de guías, manuales o tutoriales.
 
-2. 'irrelevante': Cualquier mensaje que no guarde relación con el ámbito tecnológico de la empresa.
+    * Aclaraciones y Conversación de Seguimiento (CRÍTICO):
+        * Preguntas cortas que dependen del contexto anterior (ej: 'y en color rojo?', 'cuál es mejor?', 'por qué?').
+        * Respuestas directas a una pregunta hecha por el chatbot (ej: si el bot pregunta '¿para qué uso?', la respuesta 'para arquitectura' es relevante).
+        * Solicitudes de más opciones o variaciones (ej: 'dame otras 3', 'muéstrame más baratos').
+        * Signos de interrogación o frases muy cortas si el contexto es relevante.
 
-   * Temas generales: alimentos, ropa, deportes, celebridades, política, salud, etc.
-   * CRUCIAL: Preguntas de "cómo hacer" sobre temas no tecnológicos (ej: "¿cómo cambiar una llanta?", "¿cómo cocinar arroz?", "¿cómo reparar una silla?", etc).
-   * Conversación personal, chistes o temas sin relación con productos o servicios.
+    * Dudas sobre la empresa CT Internacional:
+        * 'quién es CT?'
+        * 'qué es CT?'
+        * 'Cuáles son los valores de la empresa?'
+
+2. 'irrelevante': Cualquier mensaje que no guarde relación con el ámbito tecnológico de la empresa Y que no sea una continuación de una conversación relevante.
+
+    * Temas generales: alimentos, ropa, deportes, celebridades, política, religión, uso personal, etc.
+    * Preguntas de "cómo hacer" sobre temas no tecnológicos (ej: "¿cómo cambiar una llanta?").
+    * Conversación personal o chistes si inician una nueva conversación.
 
 3. 'inapropiado': Mensajes ofensivos o solicitudes no éticas.
 
-   * Lenguaje vulgar, sexual, violento, discriminatorio o amenazante.
-   * Solicitudes de productos o servicios ilegales o de carácter sexual.
+    * Lenguaje vulgar, sexual, violento, discriminatorio o amenazante.
+    * Solicitudes de productos o servicios ilegales.
 
 Ejemplos Clave
 
@@ -190,3 +216,23 @@ Recuerda: No añadas explicaciones, saludos ni repitas el mensaje. Tu respuesta 
             {"$set": update_fields},
             upsert=True
         )
+    
+    def _get_formatted_history(self, session_id: str, last_n: int = 5) -> str:
+        session = self.assistant.sessions.find_one(
+            {"session_id": session_id},
+            # Proyectamos solo el campo last_messages para eficiencia
+            {"last_messages": {"$slice": -last_n}}
+        )
+
+        if not session or "last_messages" not in session:
+            return ""
+
+        # Formatear el historial
+        formatted_messages = []
+        for msg in session["last_messages"]:
+            if msg["type"] == "human":
+                formatted_messages.append(msg["content"])
+            else:
+                continue
+        
+        return "\n".join(formatted_messages)
