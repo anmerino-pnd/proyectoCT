@@ -12,30 +12,6 @@ class QueryModerator:
         self.client = OpenAI()
         self.assistant = assistant
 
-    def classify_query(self, query: str, session_id: str) -> str:
-        history = self._get_formatted_history(session_id)
-
-        full_prompt = (
-            "HISTORIAL DE LA CONVERSACIÓN:\n"
-            f"{history}\n"
-            "MENSAJE ACTUAL:\n"
-            f"{query}"
-        )
-
-        result = ollama.generate(
-            model="gemma3:12b",
-            system=self._classification_prompt(),
-            prompt=full_prompt,
-            options={
-                "temperature": 0,       # Valor de 0 lo hace determinista
-                "top_p": 0.8,           # Distribución de probabilidad
-                "num_predict": 10,      # Cantidad de palabras que devuelve al contestar
-                "num_ctx": 36000,       # Cantidad de tokens de entrada, modelo gemma3 tiene 128k de entrada máximo
-                "top_k": 3              # Prioridad de la cantidad de palabras 
-            }
-        )
-        return result.response.strip().lower()
-    
     # def classify_query(self, query: str, session_id: str) -> str:
     #     history = self._get_formatted_history(session_id)
 
@@ -46,18 +22,42 @@ class QueryModerator:
     #         f"{query}"
     #     )
 
-    #     response = self.client.chat.completions.create(
-    #         model="gpt-5",
-    #         messages=[
-    #             {"role": "system", "content": self._classification_prompt()},
-    #             {"role": "user", "content": full_prompt},
-    #         ],
-    #         temperature=0,   # determinista
-    #         top_p=0.8,
-    #         max_tokens=10,   # equivalente a num_predict
+    #     result = ollama.generate(
+    #         model="gemma3:12b",
+    #         system=self._classification_prompt(),
+    #         prompt=full_prompt,
+    #         options={
+    #             "temperature": 0,       # Valor de 0 lo hace determinista
+    #             "top_p": 0.8,           # Distribución de probabilidad
+    #             "num_predict": 10,      # Cantidad de palabras que devuelve al contestar
+    #             "num_ctx": 36000,       # Cantidad de tokens de entrada, modelo gemma3 tiene 128k de entrada máximo
+    #             "top_k": 3              # Prioridad de la cantidad de palabras 
+    #         }
     #     )
+    #     return result.response.strip().lower()
+    
+    def classify_query(self, query: str, session_id: str) -> str:
+        history = self._get_formatted_history(session_id)
 
-    #     return response.choices[0].message.content.strip().lower()
+        full_prompt = (
+            "HISTORIAL DE LA CONVERSACIÓN:\n"
+            f"{history}\n"
+            "MENSAJE ACTUAL:\n"
+            f"{query}"
+        )
+
+        response = self.client.chat.completions.create(
+            model="gpt-4.1",
+            messages=[
+                {"role": "system", "content": self._classification_prompt()},
+                {"role": "user", "content": full_prompt},
+            ],
+            temperature=0,   # determinista
+            top_p=0.8,
+            max_tokens=10,   # equivalente a num_predict
+        )
+
+        return response.choices[0].message.content.strip().lower()
 
     def _classification_prompt(self) -> str:
         return """
