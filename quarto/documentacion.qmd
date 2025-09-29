@@ -191,8 +191,6 @@ python3 -c "from ct.ETL.pipeline import update_sales; update_sales()"
 python3 -c "from ct.ETL.pipeline import update_all; update_all()"
 ```
 
-  Cada uno de estos comandos ejecuta la función indicada dentro de pipeline.py y va mostrando en la consola los mensajes de progreso correspondientes.
-
   3. **Verificar logs (opcional)**:
   Si el pipeline se ejecuta en segundo plano o si deseas verificar su estado y posibles errores, puedes revisar los logs generados.
 
@@ -200,7 +198,7 @@ python3 -c "from ct.ETL.pipeline import update_all; update_all()"
 tail -f nohup.out # Si estás usando nohup para el pipeline o el backend
 ```
 
-Se recomienda programar la ejecución de este pipeline de forma regular (semanal o mensualmente) mediante *uncron job* en sistemas Linux o una tarea programada en Windows, para mantener la base de conocimientos del chatbot siempre actualizada.
+Se recomienda programar la ejecución de este pipeline de forma regular (mensualmente) mediante *uncron job* en sistemas Linux o una tarea programada en Windows, para mantener la base de conocimientos del chatbot siempre actualizada.
 
 ### 1.7 Notas adicionales
 
