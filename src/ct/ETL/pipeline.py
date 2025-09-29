@@ -56,3 +56,4 @@ def update_all():
     load.sales_products_vs(sales_docs)
 
     print("\n✅ Pipeline completo (productos y ventas) actualizado exitosamente.")
+

@@ -175,13 +175,15 @@ source .venv/bin/activate # Para Linux/macOS
 ```
 
   2. **Ejecutar el pipeline ETL**:
-  Una vez activado el entorno, puedes ejecutar el script `pipeline.py`. Este script se encargará de todo el proceso de extracción, transformación y carga, incluyendo la actualización de las fichas técnicas en MongoDB y la reconstrucción de los vector stores.
+  Una vez activado el entorno, puedes ejecutar una de las funciones dentro del script `pipeline.py`.
 
 ```bash
-python -m ct.ETL.pipeline
+python3 -c "from ct.ETL.pipeline import update_products; update_products()"
+python3 -c "from ct.ETL.pipeline import update_sales; update_sales()"
+python3 -c "from ct.ETL.pipeline import update_all; update_all()"
 ```
 
-  Este comando ejecutará la función `run_etl_pipeline()` definidad en `pipeline.py`, mostrando mensajes de progreso en la consola.
+  Cada uno de estos comandos ejecuta la función indicada dentro de pipeline.py y va mostrando en la consola los mensajes de progreso correspondientes.
 
   3. **Verificar logs (opcional)**:
   Si el pipeline se ejecuta en segundo plano o si deseas verificar su estado y posibles errores, puedes revisar los logs generados.
