@@ -369,10 +369,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="sourceCode" id="cb9"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .venv/bin/activate <span class="co"># Para Linux/macOS</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># o `.venv/Scripts/activate` para Windows</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ol start="2" type="1">
-<li><strong>Ejecutar el pipeline ETL</strong>: Una vez activado el entorno, puedes ejecutar el script <code>pipeline.py</code>. Este script se encargará de todo el proceso de extracción, transformación y carga, incluyendo la actualización de las fichas técnicas en MongoDB y la reconstrucción de los vector stores.</li>
+<li><strong>Ejecutar el pipeline ETL</strong>: Una vez activado el entorno, puedes ejecutar una de las funciones dentro del script <code>pipeline.py</code>.</li>
 </ol>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> ct.ETL.pipeline</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Este comando ejecutará la función <code>run_etl_pipeline()</code> definidad en <code>pipeline.py</code>, mostrando mensajes de progreso en la consola.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-c</span> <span class="st">"from ct.ETL.pipeline import update_products; update_products()"</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-c</span> <span class="st">"from ct.ETL.pipeline import update_sales; update_sales()"</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-c</span> <span class="st">"from ct.ETL.pipeline import update_all; update_all()"</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Cada uno de estos comandos ejecuta la función indicada dentro de pipeline.py y va mostrando en la consola los mensajes de progreso correspondientes.</p>
 <ol start="3" type="1">
 <li><strong>Verificar logs (opcional)</strong>: Si el pipeline se ejecuta en segundo plano o si deseas verificar su estado y posibles errores, puedes revisar los logs generados.</li>
 </ol>
