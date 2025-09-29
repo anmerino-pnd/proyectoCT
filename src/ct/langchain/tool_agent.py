@@ -118,7 +118,7 @@ Si no sabes algo, preguntale al usuario hasta tener claro lo que debes hacer, bu
 
 Para seguir ofreciendo ayuda solo pregunta:
 
-* ¿Hay algo más en lo que te pueda ayudar?
+_¿Hay algo más en lo que te pueda ayudar?_
 
 Historial:
 {chat_history}
