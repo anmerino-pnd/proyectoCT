@@ -1,14 +1,15 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List
 from ct.langchain.tool_agent import ToolAgent
+from openai import OpenAI
 from ct.settings.clients import openai_api_key
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 import ollama
 
 
 class QueryModerator:
-    def __init__(self, model: str = "gemma3:12b", assistant : ToolAgent = None):
-        self.model = model
+    def __init__(self, assistant : ToolAgent = None):
+        self.client = OpenAI()
         self.assistant = assistant
 
     def classify_query(self, query: str, session_id: str) -> str:
@@ -22,7 +23,7 @@ class QueryModerator:
         )
 
         result = ollama.generate(
-            model=self.model,
+            model="gemma3:12b",
             system=self._classification_prompt(),
             prompt=full_prompt,
             options={
@@ -34,6 +35,29 @@ class QueryModerator:
             }
         )
         return result.response.strip().lower()
+    
+    # def classify_query(self, query: str, session_id: str) -> str:
+    #     history = self._get_formatted_history(session_id)
+
+    #     full_prompt = (
+    #         "HISTORIAL DE LA CONVERSACIÓN:\n"
+    #         f"{history}\n"
+    #         "MENSAJE ACTUAL:\n"
+    #         f"{query}"
+    #     )
+
+    #     response = self.client.chat.completions.create(
+    #         model="gpt-5",
+    #         messages=[
+    #             {"role": "system", "content": self._classification_prompt()},
+    #             {"role": "user", "content": full_prompt},
+    #         ],
+    #         temperature=0,   # determinista
+    #         top_p=0.8,
+    #         max_tokens=10,   # equivalente a num_predict
+    #     )
+
+    #     return response.choices[0].message.content.strip().lower()
 
     def _classification_prompt(self) -> str:
         return """
