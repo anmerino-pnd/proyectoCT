@@ -60,31 +60,28 @@ def descargas_enviadas(factura: str):
 def status_tool(factura: str, session_id: str) -> str:
     cliente = session_id.split('_')[0]
     
-    if re.match(r"^(\d{2})CTIN", session_id):
-        # Vendedores internos -> pueden ver todos
-        pedido = pedidos.find_one(
-            {"pedido.encabezado.folio": factura},
-            {"_id": 0, "estatus": 1, 
-             "pedido.detalle.producto": 1},
-             sort=[("pedido.fecha", ASCENDING)] 
-        )
-        validacion = pedido is not None
+    if re.match(r"^W..-", factura):
+        # Si coincide, es un folio de PEDIDO.
+        campo_de_busqueda = "pedido.encabezado.folio"
     else:
-        # Clientes normales -> solo ven sus pedidos
-        pedido = pedidos.find_one(
-            {
-                "pedido.encabezado.folio": factura,
-                "pedido.encabezado.cliente": cliente
-            },
-            {"_id": 0, "estatus": 1, 
-             "pedido.detalle.producto":1}
-             
-        )
-        validacion = pedido is not None
+        # Si no coincide, asumimos que es un folio de FACTURA.
+        campo_de_busqueda = "estatus.Facturado.folioFactura"
 
-    if not validacion:
-        return "No se encontró el pedido."
+    filtro_de_consulta = {campo_de_busqueda: factura}
 
+    if not re.match(r"^(\d{2})CTIN", session_id):
+        # Si es un cliente, solo puede ver sus propios pedidos.
+        filtro_de_consulta["pedido.encabezado.cliente"] = cliente
+
+    pedido = pedidos.find_one(
+        filtro_de_consulta,
+        {"_id": 0, "estatus": 1, "pedido.detalle.producto": 1},
+        sort=[("pedido.fecha", ASCENDING)]  # Asumo que ASCENDING está definido
+    )
+
+    if not pedido:
+        return "¿El folio es correcto?, si es correcto, no se encontró el pedido."
+    
     # Obtener el último estatus
     ultimo_estatus = list(pedido["estatus"])[-1]
 
