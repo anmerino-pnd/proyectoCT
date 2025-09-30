@@ -224,7 +224,7 @@ Historial:
         full_history = self.get_session_history(session_id)
         chat_history = trim_messages(
             full_history,
-            token_counter=lambda messages: sum(len(m.content.split()) for m in messages),
+            token_counter=ChatOpenAI(model=self.model),
             max_tokens=800,
             strategy="last",
             start_on="human",
