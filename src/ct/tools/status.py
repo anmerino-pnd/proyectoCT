@@ -59,12 +59,10 @@ def descargas_enviadas(factura: str):
 
 def status_tool(factura: str, session_id: str) -> str:
     cliente = session_id.split('_')[0]
-    
-    if re.match(r"^W..-", factura):
-        # Si coincide, es un folio de PEDIDO.
+
+    if re.match(r"^W[A-Z0-9]{2}-", factura):
         campo_de_busqueda = "pedido.encabezado.folio"
     else:
-        # Si no coincide, asumimos que es un folio de FACTURA.
         campo_de_busqueda = "estatus.Facturado.folioFactura"
 
     filtro_de_consulta = {campo_de_busqueda: factura}
