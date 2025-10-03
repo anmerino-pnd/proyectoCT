@@ -1,11 +1,15 @@
+from typing import Optional
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List
-from ct.langchain.tool_agent import ToolAgent
-from openai import OpenAI
-from ct.settings.clients import openai_api_key
-from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
-import ollama
 
+from ct.settings.config import DATA_DIR
+from ct.langchain.tool_agent import ToolAgent
+from ct.settings.clients import openai_api_key
+
+from openai import OpenAI
+from langchain.globals import set_llm_cache
+from langchain_community.cache import SQLiteCache
+
+set_llm_cache(SQLiteCache(database_path=f"{DATA_DIR}/moderator_cache.db"))
 
 class QueryModerator:
     def __init__(self, assistant : ToolAgent = None):

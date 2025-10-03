@@ -11,6 +11,7 @@ dependencies = [
     "fastapi[standard]>=0.115.11",
     "fitz>=0.0.1.dev2",
     "forex-python>=1.9.2",
+    "gptcache>=0.1.44",
     "langchain>=0.3.19",
     "langchain-cli>=0.0.36",
     "langchain-community>=0.3.18",

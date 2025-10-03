@@ -1,10 +1,15 @@
+import re
 import time
 from datetime import datetime, timezone
 
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
+import langchain
+from cachetools import TTLCache
 from langchain_openai import ChatOpenAI
+from langchain.cache import InMemoryCache, SQLiteCache, GPTCache
+from langchain.globals import set_llm_cache
 from langchain.tools import Tool, StructuredTool 
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import trim_messages
@@ -20,11 +25,26 @@ from ct.tools.moneda_api import dolar_convertion_tool, DolarInput
 from ct.tools.sales_rules_tool import sales_rules_tool, SalesInput
 from ct.tools.search_information import search_information_tool, search_by_key_tool, ClaveInput
 
-
 from ct.settings.clients import openai_api_key
 from ct.settings.tokens import TokenCostProcess, CostCalcAsyncHandler
 from ct.settings.clients import mongo_uri, mongo_collection_sessions, mongo_collection_message_backup
 
+ttl_cache = TTLCache(maxsize=10000, ttl=600) # 600s = 10 minutos
+
+# class TTLInMemoryCache(InMemoryCache):
+#     def __init__(self, ttl_cache):
+#         self.ttl_cache = ttl_cache
+
+#     def lookup(self, prompt, llm_string):
+#         return self.ttl_cache.get((prompt, llm_string))
+
+#     def update(self, prompt, llm_string, result):
+#         self.ttl_cache[(prompt, llm_string)] = result
+
+# Activar cache temporal en LangChain
+#set_llm_cache(TTLInMemoryCache(ttl_cache))
+#set_llm_cache(SQLiteCache(database_path=f"{DATA_DIR}/langchain_cache.db"))
+set_llm_cache(GPTCache(ttl_cache))
 
 class ToolAgent:
     def __init__(self):
@@ -122,7 +142,6 @@ _¿Hay algo más en lo que te pueda ayudar?_
 
 Historial:
 {chat_history}
-
             """
             ),
             ("user", "{input}"),
@@ -217,7 +236,7 @@ Historial:
             tools=self.tools,
             verbose=True,
             max_iterations=40,
-            return_intermediate_steps=True
+            return_intermediate_steps=False
         )
 
     async def run(self, query: str, session_id: str, lista_precio: int):
