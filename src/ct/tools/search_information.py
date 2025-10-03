@@ -9,6 +9,11 @@ from pydantic import BaseModel, Field
 from collections import defaultdict
 from typing import List
 
+from cachetools import TTLCache
+from functools import lru_cache
+
+query_cache = TTLCache(maxsize=2000, ttl=600)
+
 vectorstore = FAISS.load_local(
     folder_path=str(SALES_PRODUCTS_VECTOR_PATH),
     embeddings=OpenAIEmbeddings(openai_api_key=openai_api_key),
@@ -53,40 +58,39 @@ def _group_docs_by_key(docs: List[Document]) -> dict:
 
 @tool(description="Busca información detallada de productos y promociones. Agrupa la información por la clave del producto para dar un contexto completo.")
 def search_information_tool(query: str) -> dict:
-    """
-    Realiza una búsqueda semántica y agrupa los resultados por producto.
-    """
+    if query in query_cache:
+        return query_cache[query]
+
     promociones_docs = retriever_promociones.invoke(query)
     productos_docs = retriever_productos.invoke(query)
 
     grouped_promociones = _group_docs_by_key(promociones_docs)
     grouped_productos = _group_docs_by_key(productos_docs)
 
-    return {
-        "Promociones": grouped_promociones,
-        "Productos": grouped_productos
-    }
+    result = {"Promociones": grouped_promociones, "Productos": grouped_productos}
+    query_cache[query] = result
+    return result
 
 class ClaveInput(BaseModel):
     clave: str = Field(description="Clave del producto en MAYUSCULAS")
 
 docstore_dict = vectorstore.docstore._dict
+
+key_cache = TTLCache(maxsize=500, ttl=600)
 def search_by_key_tool(clave: str) -> dict:
-    """
-    Obtiene todos los documentos que coinciden EXACTAMENTE con una clave de producto
-    buscando directamente en el docstore de FAISS.
-    """
+    if clave in key_cache:
+        return key_cache[clave]
+
     docs_encontrados = []
     for doc_id, doc in docstore_dict.items():
         if doc.metadata.get("clave") == clave:
             docs_encontrados.append(doc)
 
     if not docs_encontrados:
-        # Si está vacía, devolvemos el mensaje de error.
-        return "producto no encontrado o clave CT incorrecta"
+        result = "producto no encontrado o clave CT incorrecta"
+    else:
+        result = _group_docs_by_key(docs_encontrados)
 
-    # 2. Si se encontraron documentos, el proceso continúa como antes.
-    grouped_results = _group_docs_by_key(docs_encontrados)
-    
-    return grouped_results
+    key_cache[clave] = result
+    return result
     

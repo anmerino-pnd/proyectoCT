@@ -62,9 +62,6 @@ WHERE
     AND pre.idMoneda IS NOT NULL
     AND pros.producto = %s
     AND pros.sucursal_promo = %s
-GROUP BY 
-    pros.idProducto, 
-    pros.fecha_inicio
 ORDER BY 
     pros.fecha_inicio DESC
 
