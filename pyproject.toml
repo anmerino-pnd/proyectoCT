@@ -38,6 +38,7 @@ dependencies = [
     "pytz>=2025.1",
     "quarto>=0.1.0",
     "rapidfuzz>=3.13.0",
+    "redis>=6.4.0",
     "requests>=2.32.3",
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",

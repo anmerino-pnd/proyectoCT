@@ -5,16 +5,16 @@ from datetime import datetime, timezone
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-import langchain
+import redis
 from cachetools import TTLCache
-from langchain_openai import ChatOpenAI
-from langchain.cache import InMemoryCache, SQLiteCache, GPTCache
 from langchain.globals import set_llm_cache
 from langchain.tools import Tool, StructuredTool 
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import trim_messages
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
+from langchain.cache import InMemoryCache, SQLiteCache, GPTCache, RedisCache, RedisSemanticCache
 from langchain.agents import create_openai_functions_agent, AgentExecutor, create_tool_calling_agent
 
 from ct.tools.ct_info import who_are_we
@@ -25,26 +25,30 @@ from ct.tools.moneda_api import dolar_convertion_tool, DolarInput
 from ct.tools.sales_rules_tool import sales_rules_tool, SalesInput
 from ct.tools.search_information import search_information_tool, search_by_key_tool, ClaveInput
 
-from ct.settings.config import DATA_DIR
 from ct.settings.clients import openai_api_key
 from ct.settings.tokens import TokenCostProcess, CostCalcAsyncHandler
 from ct.settings.clients import mongo_uri, mongo_collection_sessions, mongo_collection_message_backup
 
-ttl_cache = TTLCache(maxsize=6000, ttl=600) # 600s = 10 minutos
+embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
 
-class TTLInMemoryCache(InMemoryCache):
-    def __init__(self, ttl_cache):
-        self.ttl_cache = ttl_cache
+class TTLRedisSemanticCache(RedisSemanticCache):
+    def __init__(self, redis_url, embedding, ttl_seconds=600, score_threshold=0.2):
+        super().__init__(redis_url=redis_url, embedding=embedding, score_threshold=score_threshold)
+        import redis
+        self.redis = redis.from_url(redis_url)
+        self.ttl_seconds = ttl_seconds
+    def update(self, prompt, llm_string, return_val):
+        key = self._key(prompt, llm_string)
+        serialized = self.dumps(return_val)
+        self.redis.setex(key, self.ttl_seconds, serialized)
 
-    def lookup(self, prompt, llm_string):
-        return self.ttl_cache.get((prompt, llm_string))
-
-    def update(self, prompt, llm_string, result):
-        self.ttl_cache[(prompt, llm_string)] = result
-
-set_llm_cache(TTLInMemoryCache(ttl_cache))
-#set_llm_cache(SQLiteCache(database_path=f"{DATA_DIR}/langchain_cache.db"))
-#set_llm_cache(GPTCache(ttl_cache))
+# redis_client = redis.Redis(host="localhost", port=6379, db=0)
+semantic_cache = TTLRedisSemanticCache(
+    redis_url="redis://localhost:6379/0",
+    embedding=embeddings,
+    ttl_seconds=600  # 10 minutos
+)
+set_llm_cache(semantic_cache)
 
 class ToolAgent:
     def __init__(self):
@@ -234,7 +238,7 @@ Historial:
         self.executor = AgentExecutor.from_agent_and_tools(
             agent=agent,
             tools=self.tools,
-            verbose=True,
+            verbose=False,
             max_iterations=40,
             return_intermediate_steps=False
         )

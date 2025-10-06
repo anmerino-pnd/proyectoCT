@@ -7,10 +7,29 @@ from ct.settings.clients import openai_api_key
 
 from openai import OpenAI
 from langchain.globals import set_llm_cache
-from langchain_community.cache import SQLiteCache
+from langchain_community.cache import RedisSemanticCache
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
-set_llm_cache(SQLiteCache(database_path=f"{DATA_DIR}/moderator_cache.db"))
+embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
 
+class TTLRedisSemanticCache(RedisSemanticCache):
+    def __init__(self, redis_url, embedding, ttl_seconds=600, score_threshold=0.2):
+        super().__init__(redis_url=redis_url, embedding=embedding, score_threshold=score_threshold)
+        import redis
+        self.redis = redis.from_url(redis_url)
+        self.ttl_seconds = ttl_seconds
+    def update(self, prompt, llm_string, return_val):
+        key = self._key(prompt, llm_string)
+        serialized = self.dumps(return_val)
+        self.redis.setex(key, self.ttl_seconds, serialized)
+
+# redis_client = redis.Redis(host="localhost", port=6379, db=0)
+semantic_cache = TTLRedisSemanticCache(
+    redis_url="redis://localhost:6379/0",
+    embedding=embeddings,
+    ttl_seconds=600  # 10 minutos
+)
+set_llm_cache(semantic_cache)
 class QueryModerator:
     def __init__(self, assistant : ToolAgent = None):
         self.client = OpenAI()
