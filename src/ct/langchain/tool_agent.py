@@ -14,7 +14,7 @@ from langchain_core.messages import trim_messages
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
-from langchain.cache import InMemoryCache, SQLiteCache, GPTCache, RedisCache, RedisSemanticCache
+from langchain_community.cache import InMemoryCache, SQLiteCache, GPTCache, RedisCache, RedisSemanticCache
 from langchain.agents import create_openai_functions_agent, AgentExecutor, create_tool_calling_agent
 
 from ct.tools.ct_info import who_are_we

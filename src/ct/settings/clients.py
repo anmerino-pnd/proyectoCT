@@ -25,6 +25,7 @@ pwd_dev: str = os.getenv('pwd_dev')
 database_dev: str = os.getenv('db_dev')
 
 # Información del servicio
+sucursales_url : str = os.getenv('sucursales_url')
 url: str = os.getenv('url')
 tokenapi: str = os.getenv('Token-api')
 tokenct: str = os.getenv('Token-ct')
