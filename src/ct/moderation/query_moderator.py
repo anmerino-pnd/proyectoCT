@@ -1,3 +1,4 @@
+import redis
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 
@@ -10,55 +11,16 @@ from langchain.globals import set_llm_cache
 from langchain_community.cache import RedisSemanticCache
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
-embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
-
-class TTLRedisSemanticCache(RedisSemanticCache):
-    def __init__(self, redis_url, embedding, ttl_seconds=600, score_threshold=0.2):
-        super().__init__(redis_url=redis_url, embedding=embedding, score_threshold=score_threshold)
-        import redis
-        self.redis = redis.from_url(redis_url)
-        self.ttl_seconds = ttl_seconds
-    def update(self, prompt, llm_string, return_val):
-        key = self._key(prompt, llm_string)
-        serialized = self.dumps(return_val)
-        self.redis.setex(key, self.ttl_seconds, serialized)
-
-# redis_client = redis.Redis(host="localhost", port=6379, db=0)
-semantic_cache = TTLRedisSemanticCache(
-    redis_url="redis://localhost:6379/0",
-    embedding=embeddings,
-    ttl_seconds=600  # 10 minutos
-)
-set_llm_cache(semantic_cache)
 class QueryModerator:
-    def __init__(self, assistant : ToolAgent = None):
-        self.client = OpenAI()
+    def __init__(self, assistant=None):
         self.assistant = assistant
-
-    # def classify_query(self, query: str, session_id: str) -> str:
-    #     history = self._get_formatted_history(session_id)
-
-    #     full_prompt = (
-    #         "HISTORIAL DE LA CONVERSACIÓN:\n"
-    #         f"{history}\n"
-    #         "MENSAJE ACTUAL:\n"
-    #         f"{query}"
-    #     )
-
-    #     result = ollama.generate(
-    #         model="gemma3:12b",
-    #         system=self._classification_prompt(),
-    #         prompt=full_prompt,
-    #         options={
-    #             "temperature": 0,       # Valor de 0 lo hace determinista
-    #             "top_p": 0.8,           # Distribución de probabilidad
-    #             "num_predict": 10,      # Cantidad de palabras que devuelve al contestar
-    #             "num_ctx": 36000,       # Cantidad de tokens de entrada, modelo gemma3 tiene 128k de entrada máximo
-    #             "top_k": 3              # Prioridad de la cantidad de palabras 
-    #         }
-    #     )
-    #     return result.response.strip().lower()
-    
+        self.llm = ChatOpenAI(
+            openai_api_key=openai_api_key,
+            model="gpt-4.1",
+            temperature=0,
+            cache=True  # ✅ usa el TTLRedisSemanticCache
+        )
+        
     def classify_query(self, query: str, session_id: str) -> str:
         history = self._get_formatted_history(session_id)
 
@@ -69,18 +31,12 @@ class QueryModerator:
             f"{query}"
         )
 
-        response = self.client.chat.completions.create(
-            model="gpt-4.1",
-            messages=[
-                {"role": "system", "content": self._classification_prompt()},
-                {"role": "user", "content": full_prompt},
-            ],
-            temperature=0,   # determinista
-            top_p=0.8,
-            max_tokens=10,   # equivalente a num_predict
-        )
+        response = self.llm.invoke([
+            {"role": "system", "content": self._classification_prompt()},
+            {"role": "user", "content": full_prompt},
+        ])
 
-        return response.choices[0].message.content.strip().lower()
+        return response.content.strip().lower()
 
     def _classification_prompt(self) -> str:
         return """
