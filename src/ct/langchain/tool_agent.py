@@ -5,7 +5,6 @@ from datetime import datetime, timezone
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-import redis
 from cachetools import TTLCache
 from langchain.globals import set_llm_cache
 from langchain.tools import Tool, StructuredTool 
@@ -13,42 +12,25 @@ from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import trim_messages
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.rate_limiters import InMemoryRateLimiter
+from langchain_community.utilities.sql_database import SQLDatabase
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
+from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
 from langchain_community.cache import InMemoryCache, SQLiteCache, GPTCache, RedisCache, RedisSemanticCache
 from langchain.agents import create_openai_functions_agent, AgentExecutor, create_tool_calling_agent
 
 from ct.tools.ct_info import who_are_we
 from ct.tools.status import status_tool, StatusInput
-from ct.tools.inventory import inventory_tool, InventoryInput 
 from ct.tools.support import get_support_info, SupportInput
+from ct.tools.inventory import inventory_tool, InventoryInput 
 from ct.tools.moneda_api import dolar_convertion_tool, DolarInput
 from ct.tools.sales_rules_tool import sales_rules_tool, SalesInput
+from ct.tools.sucursales import get_sucursales_info, SucursalesInput
 from ct.tools.search_information import search_information_tool, search_by_key_tool, ClaveInput
 
+from ct.settings.config import DATA_DIR
 from ct.settings.clients import openai_api_key
 from ct.settings.tokens import TokenCostProcess, CostCalcAsyncHandler
 from ct.settings.clients import mongo_uri, mongo_collection_sessions, mongo_collection_message_backup
-
-embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
-
-class TTLRedisSemanticCache(RedisSemanticCache):
-    def __init__(self, redis_url, embedding, ttl_seconds=600, score_threshold=0.2):
-        super().__init__(redis_url=redis_url, embedding=embedding, score_threshold=score_threshold)
-        import redis
-        self.redis = redis.from_url(redis_url)
-        self.ttl_seconds = ttl_seconds
-    def update(self, prompt, llm_string, return_val):
-        key = self._key(prompt, llm_string)
-        serialized = self.dumps(return_val)
-        self.redis.setex(key, self.ttl_seconds, serialized)
-
-# redis_client = redis.Redis(host="localhost", port=6379, db=0)
-semantic_cache = TTLRedisSemanticCache(
-    redis_url="redis://localhost:6379/0",
-    embedding=embeddings,
-    ttl_seconds=600  # 10 minutos
-)
-set_llm_cache(semantic_cache)
 
 class ToolAgent:
     def __init__(self):
@@ -63,7 +45,8 @@ class ToolAgent:
         self.llm = ChatOpenAI(
             openai_api_key=openai_api_key,
             model_name=self.model,
-            rate_limiter=self.rate_limiter
+            rate_limiter=self.rate_limiter,
+            cache=True
             )
         try:
             self.client = MongoClient(mongo_uri).get_default_database()
@@ -152,6 +135,10 @@ Historial:
             ("placeholder", "{agent_scratchpad}")
         ])
 
+        self.db_uri = f"sqlite:///{DATA_DIR}/ctonline2.db"
+        self.db = SQLDatabase.from_uri(
+            self.db_uri)
+        self.toolkit = SQLDatabaseToolkit(db=self.db, llm=self.llm)
         self.tools = [
             Tool(
                 name='search_information_tool',
@@ -199,8 +186,7 @@ Historial:
                 name="who_are_we",
                 description="SIEMPRE que te pregunten por CT y quién es, qué es, valores, etc., usa esta herramienta.",
         )
-
-]
+] + self.toolkit.get_tools()
 
         self.executor = None
 
@@ -238,7 +224,7 @@ Historial:
         self.executor = AgentExecutor.from_agent_and_tools(
             agent=agent,
             tools=self.tools,
-            verbose=False,
+            verbose=True,
             max_iterations=40,
             return_intermediate_steps=False
         )

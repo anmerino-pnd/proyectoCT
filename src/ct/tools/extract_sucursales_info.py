@@ -1,5 +1,6 @@
 import time
 import json
+import sqlite3
 import cloudscraper
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -128,7 +129,7 @@ for suc in sucursales:
 driver.quit()
 
 
-columns = ['sucursal', 'ubicacion', 'telefono', 'horario', 'directorio']
+columns = ['sucursal', 'ubicacion', 'direccion' ,'telefono', 'horario', 'directorio']
 
 df = pd.DataFrame(columns=columns)
 
@@ -137,6 +138,7 @@ for sucursal, info in resultados.items():
     fila = pd.DataFrame([{
         "sucursal": sucursal,
         "ubicacion": info.get("ubicacion", ""),
+        "direccion": info.get("direccion", ""),
         "telefono": info.get("telefono", ""),
         "horario": info.get("horario", ""),
         "directorio": info.get("directorio", [])
@@ -145,3 +147,12 @@ for sucursal, info in resultados.items():
     # Concatenar al df principal
     df = pd.concat([df, fila], ignore_index=True)
 
+df.to_csv(f"{DATA_DIR}/sucursales.csv", index=False)
+
+df['directorio'] = df['directorio'].apply(lambda x: json.dumps(x, ensure_ascii=False) if isinstance(x, (list, dict)) else x)
+
+conn = sqlite3.connect(f"{DATA_DIR}/ctonline2.db")
+df.to_sql('sucursales', conn, if_exists='replace', index=False)
+conn.close()
+
+print("✅ Guardado en SQLite")
