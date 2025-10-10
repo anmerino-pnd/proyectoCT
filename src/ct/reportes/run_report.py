@@ -355,7 +355,7 @@ if data:
             st.metric(f"Consultas totales en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}",
                       df_human_questions.shape[0])
         with col2:
-            st.metric(f"Promedio de consultas por usuarios en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}", round(consultas_mean, 2))
+            st.metric(f"Promedio de consultas por usuario único en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}", round(consultas_mean, 2))
     
         if time_filter_mode == 'Análisis por mes':
             df_time = (
@@ -445,7 +445,7 @@ if data:
                     x=df_time['date'],
                     y=[mean] * len(df_time),
                     mode='lines',
-                    name='Media',
+                    name='Media diaria',
                     line=dict(dash='dash', color='red')
                 ))
     
