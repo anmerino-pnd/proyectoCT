@@ -1,6 +1,7 @@
 import time
 import json
 import sqlite3
+import unicodedata
 import cloudscraper
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -13,6 +14,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.chrome.options import Options 
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
 scraper = cloudscraper.create_scraper()
 resp = scraper.get(sucursales_url)
 soup = BeautifulSoup(resp.text, "html.parser")
@@ -20,9 +22,10 @@ soup = BeautifulSoup(resp.text, "html.parser")
 sucursales = []
 for opt in soup.select("#select_sucursal option"):
     value = opt.get("value")
-    name = opt.text.strip()
+    name = unicodedata.normalize('NFKD', opt.text.strip().lower())
+    name_no_accent = "".join([c for c in name if not unicodedata.combining(c)])
     if value and value.isdigit():
-        sucursales.append({"nombre": name, "idSucursal": value})
+        sucursales.append({"nombre": name_no_accent, "idSucursal": value})
 
 print(f"Encontradas {len(sucursales)} sucursales")
 
@@ -41,8 +44,20 @@ driver.get(sucursales_url)
 time.sleep(3)
 
 
-resultados = {}
+chrome_options = Options()
+chrome_options.add_argument("--headless=new")  # Modo headless moderno
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+chrome_options.add_argument("--window-size=1920,1080")
+chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
+driver = webdriver.Chrome(options=chrome_options)
+driver.get("https://ctonline.mx/empresa/sucursales")
+
+# Esperar a que cargue completamente la página inicial
+time.sleep(3)
+filas = []
 for suc in sucursales:
     max_intentos = 3
     for intento in range(max_intentos):
@@ -70,7 +85,7 @@ for suc in sucursales:
                 direccion = ""
                 
             try:
-                ubicacion = driver.find_element(By.CSS_SELECTOR, ".col-md-7").text
+                ubicacion = driver.find_element(By.CSS_SELECTOR, ".col-md-7").text.lower()
             except:
                 ubicacion = ""
 
@@ -84,16 +99,16 @@ for suc in sucursales:
             except:
                 horario = ""
             
-            # Extraer directorio
-            directorio = []
+            # Extraer directorio como lista
+            directorio_contactos = []
             try:
                 tabla = driver.find_element(By.ID, "table_directorio")
-                filas = tabla.find_elements(By.TAG_NAME, "tr")[1:]
+                filas_tabla = tabla.find_elements(By.TAG_NAME, "tr")[1:]
                 
-                for fila in filas:
+                for fila in filas_tabla:
                     cols = fila.find_elements(By.TAG_NAME, "td")
                     if len(cols) == 3:
-                        directorio.append({
+                        directorio_contactos.append({
                             "puesto": cols[0].text.strip(),
                             "nombre": cols[1].text.strip(),
                             "correo": cols[2].text.strip()
@@ -101,27 +116,43 @@ for suc in sucursales:
             except Exception as e:
                 print(f"  ⚠️ Error al extraer tabla: {e}")
             
-            resultados[suc['nombre']] = {
-                "ubicacion": ubicacion,
-                "direccion": direccion,
-                "telefono": telefono,
-                "horario": horario,
-                "directorio": directorio
-            }
-
+            # 👇 Crear una fila por cada contacto
+            if directorio_contactos:
+                for contacto in directorio_contactos:
+                    filas.append({
+                        "sucursal": suc['nombre'],
+                        "ubicacion": ubicacion,
+                        "direccion": direccion,
+                        "telefono": telefono,
+                        "horario": horario,
+                        "puesto": contacto["puesto"],
+                        "nombre": contacto["nombre"],
+                        "correo": contacto["correo"]
+                    })
+            else:
+                # Si no hay contactos, guardar solo info de sucursal
+                filas.append({
+                    "sucursal": suc['nombre'],
+                    "ubicacion": ubicacion,
+                    "direccion": direccion,
+                    "telefono": telefono,
+                    "horario": horario,
+                    "puesto": "",
+                    "nombre": "",
+                    "correo": ""
+                })
             
-            print(f"✅ {suc['nombre']}: {len(directorio)} contactos")
-            break  # Si funcionó, salir del loop de intentos
+            print(f"✅ {suc['nombre']}: {len(directorio_contactos)} contactos")
+            break
             
         except Exception as e:
             print(f"⚠️ Intento {intento+1}/{max_intentos} en {suc['nombre']}")
-            print(f"   Error completo: {str(e)[:200]}")  # Mostrar parte del error
+            print(f"   Error: {str(e)[:200]}")
             
             if intento == max_intentos - 1:
                 print(f"❌ Falló definitivamente {suc['nombre']}")
             else:
-                # Reintentar recargando la página
-                driver.get("https://ctonline.mx/empresa/sucursales")
+                driver.get(sucursales_url)
                 time.sleep(3)
     
     time.sleep(1.5)
@@ -129,30 +160,6 @@ for suc in sucursales:
 driver.quit()
 
 
-columns = ['sucursal', 'ubicacion', 'direccion' ,'telefono', 'horario', 'directorio']
-
-df = pd.DataFrame(columns=columns)
-
-for sucursal, info in resultados.items():
-    # Convertir la fila a DataFrame temporal
-    fila = pd.DataFrame([{
-        "sucursal": sucursal,
-        "ubicacion": info.get("ubicacion", ""),
-        "direccion": info.get("direccion", ""),
-        "telefono": info.get("telefono", ""),
-        "horario": info.get("horario", ""),
-        "directorio": info.get("directorio", [])
-    }])
-    
-    # Concatenar al df principal
-    df = pd.concat([df, fila], ignore_index=True)
-
+df = pd.DataFrame(filas)
 df.to_csv(f"{DATA_DIR}/sucursales.csv", index=False)
-
-df['directorio'] = df['directorio'].apply(lambda x: json.dumps(x, ensure_ascii=False) if isinstance(x, (list, dict)) else x)
-
-conn = sqlite3.connect(f"{DATA_DIR}/ctonline2.db")
-df.to_sql('sucursales', conn, if_exists='replace', index=False)
-conn.close()
-
-print("✅ Guardado en SQLite")
+print(f"✅ {len(df)} registros guardados en CSV")

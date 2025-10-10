@@ -1,39 +1,54 @@
+import sys
+import json
 import pandas as pd
+from io import StringIO
 from pydantic import BaseModel, Field
 from ct.settings.config import DATA_DIR
-from ct.settings.clients import openai_api_key
-
-from langchain.agents.agent_types import AgentType
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
-
 
 class SucursalesInput(BaseModel):
-    query: str = Field(description="Consulta del usuario para encontrar información sobre sucursales")
+    code: str = Field(description="Código Python para analizar el DataFrame 'df' con información de las sucursales. Debe usar print() para mostrar resultados o asignar el resultado a la variable 'result'.")
 
+# Cargar DataFrame
 df = pd.read_csv(f"{DATA_DIR}/sucursales.csv")
-agent = create_pandas_dataframe_agent(
-    ChatOpenAI(
-        temperature=0, 
-        model="gpt-4.1", 
-        api_key=openai_api_key,
-        cache=True,
-        max_tokens=None,
-        timeout=None,
-        max_retries=2),
-    df,
-    verbose=True,
-    agent_type=AgentType.OPENAI_FUNCTIONS,
-    allow_dangerous_code=True
-)
 
-def get_sucursales_info(query: str) -> str:
-    return agent.invoke(
-        f"""
-Utiliza la tabla para buscar información y contestar la consulta del usuario.
-Las sucursales siempre mencionalas tal y como aparecen en la tabla.
+if 'directorio' in df.columns:
+    def safe_json_loads(x):
+        """Intenta deserializar JSON, retorna lista vacía si falla"""
+        if pd.isna(x) or x == '' or x == 'nan':
+            return []
+        try:
+            return json.loads(x)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            # Si no es JSON válido, retornar como string
+            return str(x)
+    df['directorio'] = df['directorio'].apply(safe_json_loads)
 
-columnas: {df.columns}
-consulta: {query}
-"""       
-        )['output']
+def get_sucursales_info(code: str) -> str:
+    localenv = {"df": df.copy(), "pd": pd, "json": json, "result": None}
+    
+    try:
+        # Capturar prints
+        old_stdout = sys.stdout
+        sys.stdout = captured_output = StringIO()
+        
+        # Ejecutar código
+        exec(code, {"__builtins__": __builtins__, "pd": pd, "json": json}, localenv)
+        
+        # Restaurar stdout
+        sys.stdout = old_stdout
+        
+        # Obtener resultado
+        printed_output = captured_output.getvalue()
+        result_value = localenv.get("result")
+        
+        # Retornar lo que haya disponible
+        if result_value is not None:
+            return str(result_value)
+        elif printed_output:
+            return printed_output.strip()
+        else:
+            return "Código ejecutado correctamente pero no retornó ningún resultado. Use print() o asigne a 'result'."
+            
+    except Exception as e:
+        sys.stdout = old_stdout
+        return f"Error ejecutando código: {str(e)}"

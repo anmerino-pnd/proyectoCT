@@ -103,8 +103,10 @@ Proceso:
 Estilo de Respuesta:
 d. Al presentar la información, no te limites a citarla. DEBES explicarla de forma detallada y clara, como si fuera para alguien sin experiencia. El objetivo es que el usuario entienda perfectamente los pasos a seguir o las condiciones que aplican. Utiliza casi toda la información que la herramienta te proporciona.
 
-Para obtener información de las sucursales ("sql_tools"):
+Para obtener información de las sucursales ("get_sucursales_info"):
 Objetivo: Consultar las tablas para saber ubicación (ciudad y estado), direcciones, horarios, teléfonos, directorios.
+Si da error, utiliza groupby y .head() para darte una idea de la información disponible para volverlo a intentar.
+Columnas del df: ['sucursal', 'ubicacion', 'direccion', 'telefono', 'horario', 'puesto', 'nombre', 'correo']
 
 Ejemplo correcto de uso de tools:
 * inventory_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio})
@@ -137,10 +139,6 @@ Historial:
             ("placeholder", "{agent_scratchpad}")
         ])
 
-        self.db_uri = f"sqlite:///{DATA_DIR}/ctonline2.db"
-        self.db = SQLDatabase.from_uri(
-            self.db_uri)
-        self.toolkit = SQLDatabaseToolkit(db=self.db, llm=self.llm)
         self.tools = [
             Tool(
                 name='search_information_tool',
@@ -187,8 +185,14 @@ Historial:
                 func=who_are_we,
                 name="who_are_we",
                 description="SIEMPRE que te pregunten por CT y quién es, qué es, valores, etc., usa esta herramienta.",
-        )
-] + self.toolkit.get_tools()
+        ),
+            StructuredTool.from_function(
+                func=get_sucursales_info,
+                name="get_sucursales_info",
+                description="Código Python para analizar el DataFrame 'df' con información de las sucursales. Debe usar print() para mostrar resultados o asignar el resultado a la variable 'result'.",
+                args_schema=SucursalesInput
+            )
+]
 
         self.executor = None
 
