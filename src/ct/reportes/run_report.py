@@ -15,7 +15,6 @@ from nltk.corpus import stopwords as nltk_stopwords
 from sklearn.feature_extraction.text import CountVectorizer
 from ct.settings.clients import mongo_uri, mongo_collection_message_backup
 
-# Descargar recursos de NLTK si no están disponibles
 nltk_needed = ['wordnet', 'punkt', 'stopwords']
 for resource in nltk_needed:
     try:
@@ -23,10 +22,8 @@ for resource in nltk_needed:
     except LookupError:
         nltk.download(resource)
 
-# Cargar modelo de spaCy
 @st.cache_resource
 def load_spacy_model():
-    """Load the Spanish spaCy model."""
     try:
         return spacy.load("es_core_news_lg")
     except OSError:
@@ -34,7 +31,6 @@ def load_spacy_model():
    
 nlp = load_spacy_model()
 
-# Configurar stopwords
 combined_stopwords = set()
 if nlp:
     spacy_stopwords = nlp.Defaults.stop_words
@@ -56,20 +52,15 @@ if nlp:
 
 st.title("Análisis de Historial de Conversaciones")
 
-# Conectar a la base de datos de MongoDB
 @st.cache_resource
 def get_mongo_collection():
-    """Establishes MongoDB connection and returns the collection."""
     client = MongoClient(mongo_uri)
     db = client.get_default_database()
     return db[mongo_collection_message_backup]
 
 coleccion = get_mongo_collection()
 
-# Obtener años disponibles
 def get_available_years_from_db(_coleccion):
-    """Fetches distinct years from the MongoDB collection using aggregation.
-       Assumes 'timestamp' field is an ISODate object in MongoDB."""
     try:
         pipeline = [
             {"$project": {"year": {"$year": "$timestamp"}}},
@@ -77,14 +68,12 @@ def get_available_years_from_db(_coleccion):
             {"$sort": {"_id": 1}}
         ]
         years = [doc['_id'] for doc in _coleccion.aggregate(pipeline)]
-        return sorted(list(set(years))) # Ensure unique and sorted
+        return sorted(list(set(years)))
     except Exception as e:
         st.error(f"Error al obtener años disponibles de la base de datos: {e}")
         return []
     
-# Obtener meses disponibles
 def get_available_months_from_db(_coleccion, year):
-    """Fetches distinct months for a given year from the MongoDB collection."""
     try:
         hermosillo_tz = pytz.timezone("America/Hermosillo")
 
@@ -103,7 +92,7 @@ def get_available_months_from_db(_coleccion, year):
             {"$sort": {"_id": 1}}
         ]
         months = [doc['_id'] for doc in _coleccion.aggregate(pipeline)]
-        return sorted(list(set(months)))  # Ensure unique and sorted
+        return sorted(list(set(months)))
     except Exception as e:
         st.error(f"Error al obtener meses disponibles de la base de datos: {e}")
         return []
@@ -140,14 +129,14 @@ if time_filter_mode == 'Análisis por mes':
 
         if available_months:
             available_months_names = [month_names_map[m] for m in available_months]
-            selected_month = st.sidebar.selectbox(
+            selected_month_name = st.sidebar.selectbox(
                 "Selecciona un Mes",
                 options=available_months_names,
                 index=len(available_months_names) - 1
             )
             selected_month = {
                 v: k for k, v in month_names_map.items()
-            }.get(selected_month, None)
+            }.get(selected_month_name, None)
 
 start_date_dt = None
 end_date_dt = None
@@ -165,15 +154,14 @@ if selected_year:
         else:
             end_date_dt = hermosillo_tz.localize(datetime(selected_year, selected_month + 1, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
 
-query_filter = {
-    "timestamp": {
-        "$gte": start_date_dt,
-        "$lt": end_date_dt
+if start_date_dt and end_date_dt:
+    query_filter = {
+        "timestamp": {
+            "$gte": start_date_dt,
+            "$lt": end_date_dt
+        }
     }
-}
 
-# --- FILTROS DE USUARIO NUEVOS ---
-# Obtener una lista de todos los 'session_id' únicos para el filtro de usuario
 try:
     all_users = coleccion.distinct('session_id', query_filter)
 except Exception as e:
@@ -192,19 +180,15 @@ user_filter_mode = st.sidebar.radio(
     index=0
 )
 
-# Aplicar el filtro de usuario a la consulta
 if selected_users:
     if user_filter_mode == 'Excluir':
-        query_filter['session_id'] = {'$nin': selected_users}
+        query_filter.setdefault('session_id', {})['$nin'] = selected_users
     else:
-        query_filter['session_id'] = {'$in': selected_users}
-# --- FIN DE FILTROS DE USUARIO NUEVOS ---
+        query_filter.setdefault('session_id', {})['$in'] = selected_users
 
 def fetch_messages_from_db(_coleccion, query_filter):
-    """Fetches messages from the MongoDB collection based on the provided query filter."""
     try:
-        # Asegurarse de que el filtro de timestamp no sea nulo
-        if query_filter.get("timestamp", {}).get("$gte") is None or query_filter.get("timestamp", {}).get("$lt") is None:
+        if not query_filter.get("timestamp"):
              st.warning("No se ha seleccionado un rango de fechas válido. Por favor, elige un año y/o mes.")
              return []
 
@@ -224,16 +208,16 @@ if data:
         for doc in _docs:
             row_data = {
                 'session_id': doc.get('session_id'),
-                'question': doc.get('question'), # Directly get 'question'
-                'answer': doc.get('answer'),     # Directly get 'answer'
+                'question': doc.get('question'),
+                'answer': doc.get('answer'),
                 'timestamp': doc.get('timestamp'),
                 'input_tokens': doc.get('input_tokens', 0),
                 'output_tokens': doc.get('output_tokens', 0),
                 'total_tokens': doc.get('total_tokens', 0),
-                'cost': doc.get('estimated_cost', 0.0), # 'estimated_cost' for cost
-                'response_time': doc.get('duration_seconds', 0.0), # 'duration_seconds' for response time
+                'cost': doc.get('estimated_cost', 0.0),
+                'response_time': doc.get('duration_seconds', 0.0),
                 'tokens_per_second': doc.get('tokens_per_second', 0.0),
-                'model': doc.get('model_used') # 'model_used' for model
+                'model': doc.get('model_used')
             }
             processed_docs.append(row_data)
         df = pd.DataFrame(processed_docs)
@@ -263,7 +247,6 @@ if data:
     st.sidebar.markdown("[Análisis de respuestas del asistente](#anlisis-de-respuestas-del-asistente)")
 
     def preprocess(corpus):
-        """Preprocesses the corpus by tokenizing, lemmatizing (español) y removiendo stopwords."""
         processed_corpus = []
         for text in corpus:
             if isinstance(text, str):
@@ -296,20 +279,15 @@ if data:
             st.error(f"Error al obtener los tópicos: {e}")
             return []
 
-    # --- INICIO DE LA SECCIÓN DE LA TABLA CON EL NUEVO FILTRO ---
     st.header("Tabla de Conversaciones")
 
-    # Filtra solo preguntas no vacías
     df_conversations = df[df['question'].notna() & df['question'].str.strip().astype(bool)].copy()
 
-    # Campo de texto para búsqueda
     search_term = st.text_input("Filtrar por palabra clave en la pregunta (vacío para mostrar todo)")
 
-    # Slider para umbral de similitud
     threshold = 90
 
     if search_term:
-        # Aplica búsqueda difusa
         df_filtered = df_conversations[
             df_conversations['question'].apply(
                 lambda x: fuzz.partial_ratio(search_term.lower(), str(x).lower()) >= threshold
@@ -324,8 +302,6 @@ if data:
         st.dataframe(df_display, use_container_width=True)
     else:
         st.info("No hay conversaciones para mostrar con los filtros seleccionados.")
-
-    # --- FIN DE LA SECCIÓN DE LA TABLA CON EL NUEVO FILTRO ---
 
     st.header("Tópicos más frecuentes")
     
@@ -347,9 +323,11 @@ if data:
                 fig.update_layout(yaxis={'categoryorder':'total ascending'})
                 st.plotly_chart(fig, use_container_width=True)
     
-    
         st.header("Consultas en el tiempo")
-        consultas_mean = df_human_questions.shape[0] / df_human_questions['session_id'].nunique()
+        
+        unique_users_count = df_human_questions['session_id'].nunique()
+        consultas_mean = df_human_questions.shape[0] / unique_users_count if unique_users_count > 0 else 0
+
         col1, col2 = st.columns(2)
         with col1:
             st.metric(f"Consultas totales en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}",
@@ -379,17 +357,21 @@ if data:
             df_time['date'] = df_time['date'].dt.to_timestamp()
             date_format = "%Y-%m"
             title_suffix = f"a lo largo del año"
-    
+            
+        promedio_diario_real = 0
+        if start_date_dt and end_date_dt:
+            num_dias_en_periodo = (end_date_dt.date() - start_date_dt.date()).days
+            if num_dias_en_periodo > 0:
+                promedio_diario_real = df_human_questions.shape[0] / num_dias_en_periodo
+
         if not df_time.empty:
-            mean = df_time['count'].mean()
+            mean = promedio_diario_real
             std = df_time['count'].std()
     
-            # Decide si usar media móvil
             usar_media_movil = time_filter_mode == "Análisis por mes" and len(df_time) >= 14
     
             fig = go.Figure()
     
-            # Línea principal: cantidad de consultas
             fig.add_trace(go.Scatter(
                 x=df_time['date'],
                 y=df_time['count'],
@@ -416,12 +398,11 @@ if data:
                     mode='lines',
                     name='Media Móvil + STD',
                     fill='tonexty',
-                    fillcolor='rgba(31, 119, 180, 0.1)',  # sombra azul
+                    fillcolor='rgba(31, 119, 180, 0.1)',
                     line=dict(width=0),
                     showlegend=False
                 ))
             elif len(df_time) > 1 and std > 0:
-                # Sombra alrededor del promedio global
                 fig.add_trace(go.Scatter(
                     x=df_time['date'],
                     y=df_time['count'] + std,
@@ -440,12 +421,12 @@ if data:
                     showlegend=False
                 ))
     
-            if mean is not None and not np.isnan(mean):
+            if mean is not None and not np.isnan(mean) and mean > 0:
                 fig.add_trace(go.Scatter(
                     x=df_time['date'],
                     y=[mean] * len(df_time),
                     mode='lines',
-                    name='Media diaria',
+                    name='Media Diaria Real',
                     line=dict(dash='dash', color='red')
                 ))
     
@@ -508,7 +489,7 @@ if data:
                     y=df_hourly['count'] - std,
                     mode='lines',
                     fill='tonexty',
-                    fillcolor='rgba(31, 119, 180, 0.1)',  # sombra azul
+                    fillcolor='rgba(31, 119, 180, 0.1)',
                     line=dict(width=0),
                     showlegend=False
                 ))
@@ -519,8 +500,12 @@ if data:
                      mode='lines',
                      name='Media',
                      line=dict(dash='dash', color='red')))
+            
+            periodo_str = "del mes" if time_filter_mode == 'Análisis por mes' else "del año"
+            title = f"Distribución de consultas por hora ({periodo_str})"
+            
             fig.update_layout(
-                title = f"Consultas por hora {'todo el día' if time_filter_mode == 'Análisis por mes' else 'del año'}",
+                title = title,
                 xaxis_title = "Hora del día",
                 yaxis_title = "Cantidad de Consultas",
                 xaxis = dict(
@@ -542,14 +527,13 @@ if data:
     
         df_bot_answers = df[df['answer'].notna() & df['answer'].str.strip().astype(bool)].copy()
     
-    
         if not df_bot_answers.empty:
             if df_bot_answers['word_count_answer'].sum() > 0:
                 fig = px.histogram(
                     df_bot_answers,
                     x='word_count_answer',
                     nbins=30,
-                    title="Distribución de la cantidad de palabras en las respuestas del asistente",
+                    title="Distribución de la cantidad de palabras en las respuestas",
                     labels={'word_count_answer': 'Cantidad de Palabras'},
                     color_discrete_sequence=["#6BAED6"]
                 )
@@ -586,9 +570,9 @@ if data:
             if 'total_tokens' in df_bot_answers.columns and df_bot_answers['total_tokens'].sum() > 0:
                 st.subheader("Tokens y costos")
     
-                total_tokens = df_bot_answers['total_tokens'].sum()
+                total_tokens_periodo = df_bot_answers['total_tokens'].sum()
     
-                st.metric(f"Tokens totales en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}", f"{round(total_tokens):,.0f}")
+                st.metric(f"Tokens totales en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}", f"{round(total_tokens_periodo):,.0f}")
     
                 if time_filter_mode == 'Análisis por mes':
                     df_tokens = (
@@ -603,7 +587,6 @@ if data:
                     )
                     df_tokens['date'] = pd.to_datetime(df_tokens['date'])
                     tokens_date_format = "%Y-%m-%d"
-                    tokens_cost_suffix = f"por día en el mes"
                     token_label = "Mensual"
                 else:
                     df_bot_answers['year_month'] = df_bot_answers['full_date'].dt.strftime('%Y-%m')
@@ -619,12 +602,16 @@ if data:
                     
                     df_tokens['date'] = pd.to_datetime(df_tokens['year_month'] + '-01')
                     tokens_date_format = '%Y-%m'
-                    tokens_cost_suffix = f'en el año'
                     token_label = 'Mensual'
-    
+                
+                promedio_diario_tokens = 0
+                if start_date_dt and end_date_dt:
+                    num_dias_en_periodo = (end_date_dt.date() - start_date_dt.date()).days
+                    if num_dias_en_periodo > 0:
+                        promedio_diario_tokens = total_tokens_periodo / num_dias_en_periodo
+
                 if not df_tokens.empty:
-    
-                    avg_tokens = df_tokens['total_tokens'].mean()
+                    avg_tokens_real = promedio_diario_tokens
                     std_tokens = df_tokens['total_tokens'].std()
     
                     fig1 = go.Figure()
@@ -656,17 +643,18 @@ if data:
                             showlegend=False
                         ))
     
-                    if avg_tokens is not None and not np.isnan(avg_tokens):
+                    if avg_tokens_real > 0 and not np.isnan(avg_tokens_real):
                         fig1.add_trace(go.Scatter(
                             x=df_tokens['date'],
-                            y=[avg_tokens] * len(df_tokens),
+                            y=[avg_tokens_real] * len(df_tokens),
                             mode='lines',
-                            name='Media',
+                            name='Media Diaria Real',
                             line=dict(dash='dash', color='red')
                         ))
                     
+                    periodo_grafico_tokens = "por día" if time_filter_mode == "Análisis por mes" else "por mes"
                     fig1.update_layout(
-                        title= f'Tokens de respuestas {tokens_cost_suffix}',
+                        title= f'Evolución de Tokens Totales {periodo_grafico_tokens}',
                         xaxis_title='Fecha',
                         yaxis_title='Cantidad de Tokens',
                         xaxis=dict(
@@ -684,20 +672,29 @@ if data:
     
                     st.plotly_chart(fig1, use_container_width=True)
                     
+                    unidad_temporal = "diario" if time_filter_mode == "Análisis por mes" else "mensual"
+                    avg_tokens_agrupado = df_tokens['total_tokens'].mean()
                     min_tokens = df_tokens['total_tokens'].min()
                     max_tokens = df_tokens['total_tokens'].max()
     
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        st.metric(f"Promedio de tokens", f"{round(avg_tokens):,.0f}")
+                        st.metric(f"Promedio {unidad_temporal} de tokens", f"{round(avg_tokens_agrupado):,.0f}")
                     with col2:
-                        st.metric(f"Mínimo de tokens", f"{min_tokens:,.0f}")
+                        st.metric(f"Mínimo {unidad_temporal} de tokens", f"{min_tokens:,.0f}")
                     with col3:
-                        st.metric(f"Máximo de tokens", f"{max_tokens:,.0f}")
+                        st.metric(f"Máximo {unidad_temporal} de tokens", f"{max_tokens:,.0f}")
     
             if 'cost' in df_bot_answers.columns and df_bot_answers['cost'].sum() > 0:
                 
-                avg_cost = df_tokens['cost'].mean()
+                total_cost_periodo = df_bot_answers['cost'].sum()
+                promedio_diario_costo = 0
+                if start_date_dt and end_date_dt:
+                    num_dias_en_periodo = (end_date_dt.date() - start_date_dt.date()).days
+                    if num_dias_en_periodo > 0:
+                        promedio_diario_costo = total_cost_periodo / num_dias_en_periodo
+
+                avg_cost_real = promedio_diario_costo
                 std_cost = df_tokens['cost'].std()
     
                 fig2 = go.Figure()
@@ -729,17 +726,18 @@ if data:
                         showlegend=False
                     ))
                     
-                if avg_cost is not None and not np.isnan(avg_cost):
+                if avg_cost_real > 0 and not np.isnan(avg_cost_real):
                     fig2.add_trace(go.Scatter(
                         x = df_tokens['date'],
-                        y = [avg_cost] * len(df_tokens),
+                        y = [avg_cost_real] * len(df_tokens),
                         mode='lines',
-                        name='Media',
+                        name='Media Diaria Real',
                         line=dict(dash='dash', color='red')
                     ))
     
+                periodo_grafico_costos = "por día" if time_filter_mode == "Análisis por mes" else "por mes"
                 fig2.update_layout(
-                    title= f'Costos de respuesta {tokens_cost_suffix}',
+                    title= f'Evolución de Costos Totales {periodo_grafico_costos}',
                     xaxis_title='Fecha',
                     yaxis_title='Costo apróximado ($USD)',
                     xaxis=dict(
@@ -757,16 +755,16 @@ if data:
     
                 st.plotly_chart(fig2, use_container_width=True)
     
-                max_cost = df_tokens['cost'].max()
-                total_cost= df_tokens['cost'].sum()
+                max_cost_agrupado = df_tokens['cost'].max()
+                avg_cost_agrupado = df_tokens['cost'].mean()
     
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.metric(f"Costo total en el {"mes" if time_filter_mode == "Análisis por mes" else "año"}", f"${total_cost:.4f}")
+                    st.metric(f"Costo total en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}", f"${total_cost_periodo:.4f}")
                 with col2:
-                    st.metric(f"Costo promedio", f"${avg_cost:.4f}")
+                    st.metric(f"Costo promedio {unidad_temporal}", f"${avg_cost_agrupado:.4f}")
                 with col3:
-                    st.metric(f"Costo máximo", f"${max_cost:.4f}")
+                    st.metric(f"Costo máximo {unidad_temporal}", f"${max_cost_agrupado:.4f}")
     
                 cost_by_conversation = df_bot_answers.groupby('session_id')['cost'].sum().reset_index()
     
@@ -807,7 +805,7 @@ if data:
     
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        st.metric(f"Usuarios totales en el {"mes" if time_filter_mode == "Análisis por mes" else "año"}", f"{cost_by_conversation.shape[0]}")
+                        st.metric(f"Usuarios totales en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}", f"{cost_by_conversation.shape[0]}")
                     with col2: 
                         st.metric("Costo promedio por usuario", f"${avg_cost_conv:.4f}")
                     with col3:
