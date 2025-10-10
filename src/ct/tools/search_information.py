@@ -12,7 +12,7 @@ from typing import List
 from cachetools import TTLCache
 from functools import lru_cache
 
-query_cache = TTLCache(maxsize=2000, ttl=600)
+query_cache = TTLCache(maxsize=5000, ttl=600)
 
 vectorstore = FAISS.load_local(
     folder_path=str(SALES_PRODUCTS_VECTOR_PATH),
