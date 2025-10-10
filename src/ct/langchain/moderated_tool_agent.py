@@ -3,6 +3,7 @@ from ct.settings.cache import set_llm_cache
 from ct.langchain.tool_agent import ToolAgent
 from ct.moderation.query_moderator import QueryModerator
 
+
 class ModeratedToolAgent:
     def __init__(self):
         self.tool_agent = ToolAgent()
@@ -19,7 +20,6 @@ class ModeratedToolAgent:
             return
 
         label = self.moderator.classify_query(query, session_id=session_id).strip().lower()
-        print(label)
 
         if label == "relevante":
             async for chunk in self.tool_agent.run(query, session_id, lista_precio=listaPrecio):
