@@ -333,7 +333,7 @@ if data:
             st.metric(f"Consultas totales en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}",
                       df_human_questions.shape[0])
         with col2:
-            st.metric(f"Promedio de consultas por usuario único en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}", round(consultas_mean, 2))
+            st.metric(f"Promedio de consultas por usuario único", round(consultas_mean, 2))
     
         if time_filter_mode == 'Análisis por mes':
             df_time = (
