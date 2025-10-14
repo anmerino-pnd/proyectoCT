@@ -1,4 +1,3 @@
-
 # Agente Conversacional con RAG y Herramientas para CT Internacional
 
 Este repositorio contiene el código fuente de un avanzado agente conversacional (chatbot) diseñado para CT Internacional. El sistema utiliza una arquitectura de  **Generación Aumentada por Recuperación (RAG)** , un conjunto de herramientas especializadas y un sistema de moderación para ofrecer respuestas precisas y contextualizadas a las consultas de los usuarios sobre productos, promociones, estado de pedidos y más.
@@ -69,8 +68,8 @@ Sigue estos pasos para configurar y ejecutar el backend del proyecto.
 ### 1. Clonar el Repositorio
 
 ```
-git clone [https://github.com/tu-usuario/tu-repositorio.git](https://github.com/tu-usuario/tu-repositorio.git)
-cd tu-repositorio
+git clone [https://github.com/anmerino-pnd/proyectoCT](https://github.com/anmerino-pnd/proyectoCT)
+cd proyectoCT
 
 ```
 
@@ -79,16 +78,11 @@ cd tu-repositorio
 Se recomienda usar `uv` por su velocidad.
 
 ```
-# Instalar uv si no lo tienes
-pip install uv
-
-# Crear y activar el entorno virtual
+pip install uv # En caso de no estar instalado
 uv venv
-source .venv/bin/activate  # En Linux/macOS
-# .venv\Scripts\activate   # En Windows
-
-# Instalar las dependencias
-uv pip install -r requirements.txt
+source .venv/bin/activate  # Para Linux/macOS
+# o `.venv\Scripts\activate` para Windows
+uv pip install -e .
 
 ```
 
@@ -98,21 +92,36 @@ Crea un archivo `.env` en la raíz del proyecto y añade las siguientes credenci
 
 ```
 # Conexión a la base de datos SQL
-DB_IP=
-DB_PORT=
-DB_USER=
-DB_PWD=
-DB_NAME=
+ip=
+port=
+user=
+pwd=
+db=
 
-# Clave de la API de OpenAI
-OPENAI_API_KEY=sk-...
+# Clave de la API de OpenAI para correr sus modelos
+OPENAI_API_KEY=
+
+# Configuración para el servicio de fichas técnicas
+url= '' 
+Token-api=''
+Token-ct=''
+Content-Type=''
+Cookie=''
+
+sucursales_url= ""
+
+dominio=""
+boundary=''
 
 # Conexión a MongoDB
-MONGO_URI="mongodb+srv://..."
-MONGO_COLLECTION_SESSIONS="sessions"
-MONGO_COLLECTION_MESSAGE_BACKUP="message_backup"
-# ... otras colecciones ...
-
+MONGO_URI = "mongodb://" # En la URI debe estar incrustrado el nombre de la DB
+MONGO_DB = ""
+MONGO_COLLECTION_SESSIONS = "tbl_sessions"
+MONGO_COLLECTION_MESSAGE_BACKUP = "tbl_message_backup"
+MONGO_COLLECTION_PRODUCTS = "tbl_productos"
+MONGO_COLLECTION_SALES = "tbl_ofertas"   
+MONGO_COLLECTION_SPECIFICATIONS = "mongo_collection_specifications"
+MONGO_COLLECTION_PEDIDOS="tbl_pedidos"
 ```
 
 ### 4. Ejecutar la Aplicación
@@ -127,8 +136,7 @@ uvicorn ct.main:app --host 0.0.0.0 --port 8000 --reload
 Para producción, se recomienda Gunicorn con workers de Uvicorn:
 
 ```
-gunicorn ct.main:app --workers 4 --bind 0.0.0.0:8000 -k uvicorn.workers.UvicornWorker
-
+nohup gunicorn ct.main:app   --workers 4   --bind 0.0.0.0:8000   --certfile=static/ssl/cert.pem   --keyfile=static/ssl/key.pem   -k uvicorn.workers.UvicornWorker --timeout 120 --access-logfile -   --error-logfile - &
 ```
 
 ## ⚙️ Uso de la API
@@ -155,8 +163,7 @@ La API expone los siguientes endpoints principales:
 Para analizar las conversaciones y visualizar métricas de rendimiento, ejecuta la aplicación de Streamlit:
 
 ```
-streamlit run run_report.py
-
+nohup streamlit run run_report.py --server.fileWatcherType none --server.port 3000 &
 ```
 
 Esto iniciará un servidor web local con el dashboard interactivo.

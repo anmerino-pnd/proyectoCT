@@ -135,6 +135,11 @@ openssl req -x509 -newkey rsa:2048 -nodes -keyout ssl/key.pem -out ssl/cert.pem�
 tail -f nohup.out
 ```
 
+Los logs también se puede analizar 
+```bash
+nohup streamlit run run_report.py --server.fileWatcherType none --server.port 3000 &
+```
+
 ### 1.5 Instalación del frontend (Widget)
 
 1. **Cargar archivos del widget**: Los archivos del *frontend* (principalmente `sdk.js` y cualquier recurso gráfico como `chat.png`) deben ser cargados en el servidor donde reside el *frontend* de la página.
