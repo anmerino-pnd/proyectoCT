@@ -200,7 +200,26 @@ tail -f nohup.out # Si estás usando nohup para el pipeline o el backend
 
 Se recomienda programar la ejecución de este pipeline de forma regular (mensualmente) mediante *uncron job* en sistemas Linux o una tarea programada en Windows, para mantener la base de conocimientos del chatbot siempre actualizada.
 
-### 1.7 Notas adicionales
+### 1.7 Descargas y configuraciones adicionales
+
+Estas configuraciones son necesarios para que no haya problemas dentro del sistema de conversaciones y el sistema de reportes automatizados.
+
+```bash
+python -m spacy download es_core_news_lg
+python -m spacy download es_core_news_sm
+```
+
+```bash
+# Crear un volumen para persistir los datos
+podman volume create cassandra_data
+# Correr Cassandra
+podman run -d   --name cassandra   -p 9042:9042   -v cassandra_data:/var/lib/cassandra   -e CASSANDRA_CLUSTER_NAME=my_cluster   docker.io/cassandra:latest
+# Esperar a que Cassandra esté listo (toma ~30-60 segundos)
+podman logs -f cassandra
+# Cuando veas "Created default superuser role 'cassandra'" está listo
+```
+
+### 1.8 Notas adicionales
 
 * **Problemas de caché**: Es común que los navegadores almacenen versiones antiguas de archivos JS/CSS. Si la interfaz del *widget* no funciona correctamente después de una actualización, instruye a los usuarios a limpiar la caché de su navegador o a realizar un "hard refresh" (Ctrl+F5). Implementar una estrategia de *versioning* para los archivos del *widget* (ej.js?v=1.2.3) puede mitigar esto a futuro.
 * **Rotación de IP para fichas técnicas**: El sistema está diseñado para manejar el bloqueo de IP del servicio de fichas técnicas. Se recomienda monitorear los logs de la extracción (`extraction.py`) para identificar errores 403, lo que indicaría la necesidad de actualizar la IP en el servicio externo.

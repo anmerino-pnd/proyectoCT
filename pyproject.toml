@@ -3,6 +3,7 @@ name = "proyectoct"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
+    "cassio>=0.1.10",
     "cloudscraper>=1.2.71",
     "datasets>=4.0.0",
     "dotenv>=0.9.9",
@@ -40,6 +41,8 @@ dependencies = [
     "quarto>=0.1.0",
     "rapidfuzz>=3.13.0",
     "redis>=6.4.0",
+    "redisearch>=2.0.0",
+    "redisvl>=0.9.1",
     "requests>=2.32.3",
     "scikit-learn>=1.6.1",
     "seaborn>=0.13.2",

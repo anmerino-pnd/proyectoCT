@@ -1,22 +1,30 @@
-from cachetools import TTLCache
-from langchain.globals import set_llm_cache
-from langchain.schema import Generation
-from typing import Optional, List, Any
+import cassio
+from langchain_community.cache import CassandraSemanticCache, OpenSearchSemanticCache
+from langchain_core.globals import set_llm_cache
+from langchain_openai import OpenAIEmbeddings
+from ct.settings.clients import openai_api_key
 
-class TTLInMemoryCache:
-    def __init__(self, maxsize=10000, ttl=600):
-        self.cache = TTLCache(maxsize=maxsize, ttl=ttl)
-    
-    def lookup(self, prompt: str, llm_string: str) -> Optional[List[Generation]]:
-        key = (prompt, llm_string)
-        return self.cache.get(key)
-    
-    def update(self, prompt: str, llm_string: str, return_val: List[Generation]) -> None:
-        key = (prompt, llm_string)
-        self.cache[key] = return_val
-    
-    def clear(self) -> None:
-        self.cache.clear()
+# Conectar a Cassandra en Podman
+cassio.init(
+    contact_points=["localhost"],
+    keyspace="llm_cache"
+)
 
-# Usar el caché personalizado
-set_llm_cache(TTLInMemoryCache(maxsize=10000, ttl=600))
+# Crear el keyspace si no existe
+from cassandra.cluster import Cluster
+cluster = Cluster(['localhost'])
+session = cluster.connect()
+session.execute("""
+    CREATE KEYSPACE IF NOT EXISTS llm_cache
+    WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}
+""")
+
+embedding = OpenAIEmbeddings(api_key=openai_api_key)
+
+set_llm_cache(
+    CassandraSemanticCache(
+        embedding=embedding,
+        table_name="my_semantic_cache",
+        ttl_seconds=600  # 10 minutos
+    )
+)
