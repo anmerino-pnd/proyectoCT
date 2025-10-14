@@ -1,15 +1,8 @@
 import redis
 from typing import Optional
-from datetime import datetime, timedelta, timezone
-
-from ct.settings.config import DATA_DIR
-from ct.langchain.tool_agent import ToolAgent
+from langchain_openai import ChatOpenAI
 from ct.settings.clients import openai_api_key
-
-from openai import OpenAI
-from langchain.globals import set_llm_cache
-from langchain_community.cache import RedisSemanticCache
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from datetime import datetime, timedelta, timezone
 
 class QueryModerator:
     def __init__(self, assistant=None):
@@ -18,7 +11,7 @@ class QueryModerator:
             openai_api_key=openai_api_key,
             model="gpt-4.1",
             temperature=0,
-            cache=True  # ✅ usa el TTLRedisSemanticCache
+            cache=True  
         )
         
     def classify_query(self, query: str, session_id: str) -> str:
@@ -77,24 +70,24 @@ Criterios de Clasificación
         * 'qué es CT?'
         * 'Cuáles son los valores de la empresa?'
 
-2. 'irrelevante': Cualquier mensaje que no guarde relación con el ámbito tecnológico de la empresa Y que no sea una continuación de una conversación relevante.
+2. 'irrelevante': Cualquier mensaje que no guarde relación con el ámbito tecnológico de la empresa y que no sea una continuación de una conversación relevante.
 
     * Temas generales: alimentos, ropa, deportes, celebridades, política, religión, uso personal, etc.
-    * Preguntas de "cómo hacer" sobre temas no tecnológicos (ej: "¿cómo cambiar una llanta?").
-    * Conversación personal o chistes si inician una nueva conversación.
+    * Preguntas de "cómo hacer" sobre temas no tecnológicos (ej: ¿cómo cambiar una llanta?).
+    * Conversación personal o chistes si inician una nueva conversación (ej: ¿cómo estás?, ¿qué haces?, ¿cómo funcionas?, etc.)
 
 3. 'inapropiado': Mensajes ofensivos o solicitudes no éticas.
 
     * Lenguaje vulgar, sexual, violento, discriminatorio o amenazante.
     * Solicitudes de productos o servicios ilegales.
 
-Ejemplos Clave
+Ejemplos Clave:
 
-* Mensaje: "¿cómo configurar mi impresora?" -> **Respuesta**: `relevante`
-* Mensaje: "venden tarjetas madre con socket AM5?" -> **Respuesta**: `relevante`
-* Mensaje: "¿cómo se cambia una llanta?" -> **Respuesta**: `irrelevante`
-* Mensaje: "¿qué me recomiendas para cenar?" -> **Respuesta**: `irrelevante`
-* Mensaje: "eres un tonto" -> **Respuesta**: `inapropiado`
+* "¿cómo configurar mi impresora?" -> **Respuesta**: `relevante`
+* "venden tarjetas madre con socket AM5?" -> **Respuesta**: `relevante`
+* "¿cómo se cambia una llanta?" -> **Respuesta**: `irrelevante`
+* "¿qué me recomiendas para cenar?" -> **Respuesta**: `irrelevante`
+* "eres un tonto" -> **Respuesta**: `inapropiado`
 
 Recuerda: No añadas explicaciones, saludos ni repitas el mensaje. Tu respuesta debe ser solo la palabra de la categoría.
 """
