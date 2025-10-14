@@ -90,16 +90,21 @@ Token-ct=''
 Content-Type=''
 Cookie=''
 
+sucursales_url= ""
+
 dominio=""
 boundary=''
 
 # Conexión a MongoDB
 MONGO_URI = "mongodb://" # En la URI debe estar incrustrado el nombre de la DB
-MONGO_COLLECTION_SESSIONS = ""
-MONGO_COLLECTION_MESSAGE_BACKUP = ""
-MONGO_COLLECTION_PRODUCTS = ""
-MONGO_COLLECTION_SALES = ""         
-MONGO_COLLECTION_SPECIFICATIONS = ""
+MONGO_DB = ""
+MONGO_COLLECTION_SESSIONS = "tbl_sessions"
+MONGO_COLLECTION_MESSAGE_BACKUP = "tbl_message_backup"
+MONGO_COLLECTION_PRODUCTS = "tbl_productos"
+MONGO_COLLECTION_SALES = "tbl_ofertas"         
+MONGO_COLLECTION_SPECIFICATIONS = "mongo_collection_specifications"
+MONGO_COLLECTION_PEDIDOS="tbl_pedidos"
+
 ```
 
 5. Levantar el backend con Gunicorn:
