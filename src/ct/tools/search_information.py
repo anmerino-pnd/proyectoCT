@@ -3,22 +3,18 @@ from langchain.schema import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 
-from ct.settings.config import SALES_PRODUCTS_VECTOR_PATH
-from ct.settings.clients import openai_api_key
-from pydantic import BaseModel, Field
-from collections import defaultdict
 from typing import List
-
-from cachetools import TTLCache
-from functools import lru_cache
-
-query_cache = TTLCache(maxsize=5000, ttl=600)
+from collections import defaultdict
+from pydantic import BaseModel, Field
+from ct.settings.clients import openai_api_key
+from ct.settings.config import SALES_PRODUCTS_VECTOR_PATH
 
 vectorstore = FAISS.load_local(
     folder_path=str(SALES_PRODUCTS_VECTOR_PATH),
     embeddings=OpenAIEmbeddings(openai_api_key=openai_api_key),
     allow_dangerous_deserialization=True  # Necesario para FAISS
 )
+index_por_clave = {doc.metadata["clave"]: doc for doc in vectorstore.docstore._dict.values()}
 
 retriever_productos = vectorstore.as_retriever(
     search_type='mmr',
@@ -58,8 +54,6 @@ def _group_docs_by_key(docs: List[Document]) -> dict:
 
 @tool(description="Busca información detallada de productos y promociones. Agrupa la información por la clave del producto para dar un contexto completo.")
 def search_information_tool(query: str) -> dict:
-    if query in query_cache:
-        return query_cache[query]
 
     promociones_docs = retriever_promociones.invoke(query)
     productos_docs = retriever_productos.invoke(query)
@@ -68,29 +62,28 @@ def search_information_tool(query: str) -> dict:
     grouped_productos = _group_docs_by_key(productos_docs)
 
     result = {"Promociones": grouped_promociones, "Productos": grouped_productos}
-    query_cache[query] = result
     return result
 
 class ClaveInput(BaseModel):
     clave: str = Field(description="Clave del producto en MAYUSCULAS")
 
-docstore_dict = vectorstore.docstore._dict
+docstore_dict = dict(vectorstore.docstore._dict)
 
-key_cache = TTLCache(maxsize=500, ttl=600)
 def search_by_key_tool(clave: str) -> dict:
-    if clave in key_cache:
-        return key_cache[clave]
+    """
+    Busca documentos por clave en el índice ya generado.
+    """
+    doc = index_por_clave.get(clave)
 
-    docs_encontrados = []
-    for doc_id, doc in docstore_dict.items():
-        if doc.metadata.get("clave") == clave:
-            docs_encontrados.append(doc)
+    if not doc:
+        return {
+            "status": "error",
+            "message": "Producto no encontrado actualmente"
+        }
 
-    if not docs_encontrados:
-        result = "producto no encontrado o clave CT incorrecta"
-    else:
-        result = _group_docs_by_key(docs_encontrados)
+    # Si hay más de un documento por clave, puedes adaptar esto:
+    return {
+        "status": "ok",
+        "data": _group_docs_by_key([doc])
+    }
 
-    key_cache[clave] = result
-    return result
-    
