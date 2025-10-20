@@ -23,5 +23,5 @@ ID_SUCURSAL = BASE_DIR / "datos" / "idSucursal.json"
 BASE_KNOWLEDGE = BASE_DIR / "datos" / "base_de_conocimientos"
 
 # 🔥 Crear directorios automáticamente
-for path in [DATA_DIR, VECTORS_DIR, PRODUCTS_VECTOR_PATH, SALES_PRODUCTS_VECTOR_PATH, BASE_KNOWLEDGE, SUPPORT_INFO_VECTOR_PATH]:
+for path in [DATA_DIR, VECTORS_DIR, PRODUCTS_VECTOR_PATH, SALES_VECTOR_PATH, SALES_PRODUCTS_VECTOR_PATH, BASE_KNOWLEDGE, SUPPORT_INFO_VECTOR_PATH]:
     path.mkdir(parents=True, exist_ok=True)
