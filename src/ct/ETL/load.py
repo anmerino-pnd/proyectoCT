@@ -5,7 +5,11 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from ct.ETL.transform import Transform
 from ct.settings.clients import openai_api_key as api_key
-from ct.settings.config import PRODUCTS_VECTOR_PATH, SALES_VECTOR_PATH, SALES_PRODUCTS_VECTOR_PATH
+from ct.settings.config import (
+    PRODUCTS_VECTOR_PATH, 
+    SALES_VECTOR_PATH, 
+    SALES_PRODUCTS_VECTOR_PATH
+    )
 
 
 class Load:
@@ -158,7 +162,7 @@ class Load:
 
         products_vs.merge_from(sales_vs)
         products_vs.save_local(str(SALES_PRODUCTS_VECTOR_PATH))
-        return print("Vector store de productos creado y guardado en disco.")
+        return print("Vector store de productos y ofertas creado y guardado en disco.")
 
     def add_products(self):
         productos_vectorstore = FAISS.load_local(
@@ -172,8 +176,7 @@ class Load:
         new_products = self.clean_data.clean_products(ids_nuevos)
         
         if not new_products:
-            print("Advertencia: No hay productos nuevos para cargar.")
-            return []
+            return print("Advertencia: No hay productos nuevos para cargar.")
         
         docs = self._create_documents_with_context(new_products, 'productos')
 

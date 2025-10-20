@@ -49,3 +49,4 @@ openai_api_key: str = os.getenv("OPENAI_API_KEY")
 openai = openai_api.OpenAI(api_key=openai_api_key)
 
 podman_redis_url: str = os.getenv("PODMAN_REDIS_URL")
+reload_vectors_post : str = os.getenv("reload_vectors_post")
