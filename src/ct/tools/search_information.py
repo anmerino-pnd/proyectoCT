@@ -1,6 +1,7 @@
 from langchain.tools import tool
 from langchain.schema import Document
 from langchain_openai import OpenAIEmbeddings
+from langchain.retrievers import EnsembleRetriever
 from langchain_community.vectorstores import FAISS
 
 from typing import List
@@ -34,35 +35,46 @@ retriever_promociones = vectorstore.as_retriever(
     }
 )
 
+ensemble_retriever = EnsembleRetriever(
+    retrievers=[retriever_productos, retriever_promociones]
+)
+
+def _merge_grouped_docs(grouped_dict):
+    return {k: " ".join(v) for k, v in grouped_dict.items()}
+
 def _group_docs_by_key(docs: List[Document]) -> dict:
     """
     Función auxiliar para agrupar documentos de Langchain por la 'clave'
     en sus metadatos y unir su contenido.
     """
 
-    grouped_by_key = defaultdict(list)
+    productos_grouped_by_key = defaultdict(list)
+    sales_grouped_by_key = defaultdict(list)
     for doc in docs:
-        clave = doc.metadata.get("clave")
-        grouped_by_key[clave].append(doc.page_content)
+        match doc.metadata.get('collection'):
+            case 'productos':
+                clave = doc.metadata.get("clave")
+                productos_grouped_by_key[clave].append(doc.page_content)
+            case 'promociones':
+                clave = doc.metadata.get("clave")
+                sales_grouped_by_key[clave].append(doc.page_content)
 
-    final_results = {
-        clave: " ".join(contents)
-        for clave, contents in grouped_by_key.items()
-    }
-    return final_results
+    productos_final_results = _merge_grouped_docs(productos_grouped_by_key)
+    sales_final_results = _merge_grouped_docs(sales_grouped_by_key)
+        
+    return {
+    "productos": productos_final_results,
+    "promociones": sales_final_results
+}
 
 
 @tool(description="Busca información detallada de productos y promociones. Agrupa la información por la clave del producto para dar un contexto completo.")
-def search_information_tool(query: str) -> dict:
+def search_information_tool(query: str) -> dict[str, dict[str, str]]:
 
-    promociones_docs = retriever_promociones.invoke(query)
-    productos_docs = retriever_productos.invoke(query)
+    docs = ensemble_retriever.invoke(query)
 
-    grouped_promociones = _group_docs_by_key(promociones_docs)
-    grouped_productos = _group_docs_by_key(productos_docs)
+    return _group_docs_by_key(docs)
 
-    result = {"Promociones": grouped_promociones, "Productos": grouped_productos}
-    return result
 
 class ClaveInput(BaseModel):
     clave: str = Field(description="Clave del producto en MAYUSCULAS")

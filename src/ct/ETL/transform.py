@@ -92,14 +92,11 @@ class Transform:
         
         return {**fichas_tecnicas_existentes, **new_specs}
 
-    def transform_products(self) -> pd.DataFrame:
+    def transform_products(self, ids_validos) -> pd.DataFrame:
         """
         Transforma los datos brutos de productos en un DataFrame limpio y estandarizado.
         """
-        products = self.data.get_products()
-        if products.empty:
-            return pd.DataFrame()
-
+        products = self.data.get_products(ids_validos)
         cols_to_clean = ['descripcion', 'descripcion_corta', 'palabrasClave']
         for col in cols_to_clean:
             products[col] = products[col].fillna('').astype(str).replace('0', '').str.strip()
@@ -121,14 +118,12 @@ class Transform:
         final_cols = ['clave', 'contexto', 'informacion']
         return products[final_cols].copy()
     
-    def clean_products(self) -> dict:
+    def clean_products(self, ids_validos) -> dict:
         """
         Limpia los datos, separa la información de contexto del contenido principal
         y devuelve un diccionario listo para ser procesado y chunked.
         """
-        products = self.transform_products()
-        if products.empty:
-            return {}
+        products = self.transform_products(ids_validos)
 
         claves = products['clave'].unique().tolist()
         all_fichas_tecnicas = self._get_all_specifications(claves)
@@ -166,11 +161,10 @@ class Transform:
             
         return documentos_finales
 
-    def transform_sales(self) -> pd.DataFrame:
+    def transform_sales(self, sales_raw: pd.DataFrame) -> pd.DataFrame:
         """
         Transforma los datos brutos de ventas (ofertas) en un DataFrame limpio.
         """
-        sales_raw: pd.DataFrame = self.data.get_current_sales()
         if sales_raw.empty:
             return pd.DataFrame()
 
@@ -195,12 +189,12 @@ class Transform:
         final_cols = ['clave', 'contexto', 'informacion']
         return sales_raw[final_cols].copy()
 
-    def clean_sales(self) -> dict:
+    def clean_sales(self, sales_raw: pd.DataFrame) -> dict:
         """
         Limpia los datos de ventas, separando la información de contexto del contenido,
         similar a clean_products.
         """
-        sales = self.transform_sales()
+        sales = self.transform_sales(sales_raw)
         if sales.empty:
             return {}
 
