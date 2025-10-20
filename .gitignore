@@ -5,5 +5,5 @@ data_pipeline/
 datos/
 notebooks/
 src/proyectoct.egg-info/
-
+static/ssl/
 __pycache__/
