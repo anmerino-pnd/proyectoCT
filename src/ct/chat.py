@@ -1,9 +1,9 @@
+from typing import AsyncGenerator
 from fastapi import HTTPException
+from langchain.schema import HumanMessage
+from ct.settings.clients import QueryRequest
 from fastapi.responses import StreamingResponse
 from ct.langchain.moderated_tool_agent import ModeratedToolAgent
-from langchain.schema import HumanMessage
-from typing import AsyncGenerator
-from ct.settings.clients import QueryRequest
 
 
 assistant = ModeratedToolAgent()
@@ -18,11 +18,9 @@ def get_chat_history(user_id: str):
 
     return [{"role": "user" if isinstance(msg, HumanMessage) else "bot", "content": msg.content} for msg in history]
 
-
 async def async_chat_generator(request: QueryRequest) -> AsyncGenerator[str, None]:
         async for chunk in assistant.run(request.user_query, request.user_id, request.listaPrecio):
             yield chunk  
-
 
 async def async_chat_endpoint(request: QueryRequest):
     return StreamingResponse(async_chat_generator(request), media_type="text/event-stream")
@@ -40,4 +38,3 @@ async def delete_chat_history_endpoint(user_id: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno al eliminar historial: {e}") # Informar al cliente
-
