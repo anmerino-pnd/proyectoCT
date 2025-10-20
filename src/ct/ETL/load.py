@@ -1,11 +1,11 @@
 from langchain.schema import Document
-from ct.ETL.transform import Transform
 from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import FAISS, Chroma
-# Importamos la clase para dividir texto
+from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from ct.settings.config import PRODUCTS_VECTOR_PATH, SALES_PRODUCTS_VECTOR_PATH
-from ct.settings.clients import openai_api_key as api_key, mongo_db, mongo_collection_specifications
+
+from ct.ETL.transform import Transform
+from ct.settings.clients import openai_api_key as api_key
+from ct.settings.config import PRODUCTS_VECTOR_PATH, SALES_VECTOR_PATH, SALES_PRODUCTS_VECTOR_PATH
 
 
 class Load:
@@ -54,7 +54,8 @@ class Load:
         """
         Carga los productos, los divide en chunks y les añade contexto.
         """
-        products_data = self.clean_data.clean_products()
+        ids_validos = self.clean_data.data.get_valid_ids()
+        products_data = self.clean_data.clean_products(ids_validos)
         if not products_data:
             print("Advertencia: No hay productos para cargar.")
             return []
@@ -67,7 +68,8 @@ class Load:
         """
         Carga las ventas (ofertas), las divide en chunks y les añade contexto.
         """
-        sales_data = self.clean_data.clean_sales()
+        sales_raw = self.clean_data.data.get_current_sales()
+        sales_data = self.clean_data.clean_sales(sales_raw)
         if not sales_data:
             print("Advertencia: No hay ofertas para cargar.")
             return []
@@ -115,7 +117,7 @@ class Load:
             print("No se pudo crear el vector store de productos.")
 
 
-    def sales_products_vs(self, sales: list[Document]):
+    def sales_vs(self, sales: list[Document]):
         """
         Crea o actualiza el vector store para ventas/ofertas.
         """
@@ -123,30 +125,60 @@ class Load:
             print("No hay ventas para crear el vector store.")
             return
             
+        batch_size = 500
         total_docs = len(sales)
         if total_docs == 0:
             print("No hay documentos de ventas para procesar.")
             return
 
-        batch_size = 500
+        vector_store = self.vector_store(sales[:batch_size])
+        if vector_store:
+            for i in range(batch_size, total_docs, batch_size):
+                batch = sales[i:i + batch_size]
+                if batch:
+                    vector_store.add_documents(batch)
+                    print(f"Procesados {i + len(batch)} de {total_docs} documentos de productos.")
         
-        try:
-            vector_store = FAISS.load_local(folder_path=str(PRODUCTS_VECTOR_PATH), 
-                                            embeddings=self.embeddings, allow_dangerous_deserialization=True)
-            print("Vector store de productos cargado exitosamente.")
-        except Exception as e:
-            print(f"No se encontró un vector store de productos existente. Se creará uno nuevo solo con las ofertas: {e}")
-            vector_store = self.vector_store(sales[:batch_size])
-            if not vector_store:
-                print("No se pudo crear el vector store de ventas.")
-                return
+            vector_store.save_local(str(SALES_VECTOR_PATH))
+            print("Vector store de productos creado y guardado en disco.")
+        else:
+            print("No se pudo crear el vector store de productos.")
 
-        vector_store.add_documents(sales[:min(batch_size, total_docs)])
-        for i in range(batch_size, total_docs, batch_size):
-            batch = sales[i:i + batch_size]
-            if batch:
-                vector_store.add_documents(batch)
-                print(f"Procesados {i + len(batch)} de {total_docs} documentos de ventas.")
+    def sales_products_vs(self):
+        products_vs = FAISS.load_local(
+            folder_path=str(PRODUCTS_VECTOR_PATH),
+            embeddings=OpenAIEmbeddings(openai_api_key=api_key),
+            allow_dangerous_deserialization=True
+        )
+        sales_vs = FAISS.load_local(
+            folder_path=str(SALES_VECTOR_PATH),
+            embeddings=OpenAIEmbeddings(openai_api_key=api_key),
+            allow_dangerous_deserialization=True
+        )
+
+        products_vs.merge_from(sales_vs)
+        products_vs.save_local(str(SALES_PRODUCTS_VECTOR_PATH))
+        return print("Vector store de productos creado y guardado en disco.")
+
+    def add_products(self):
+        productos_vectorstore = FAISS.load_local(
+            folder_path=str(PRODUCTS_VECTOR_PATH),
+            embeddings=OpenAIEmbeddings(openai_api_key=api_key),
+            allow_dangerous_deserialization=True
+        )
+
+        unique_products = list(set([doc.metadata["clave"] for doc in productos_vectorstore.docstore._dict.values()]))
+        ids_nuevos = self.clean_data.data.update_products(unique_products)
+        new_products = self.clean_data.clean_products(ids_nuevos)
         
-        vector_store.save_local(str(SALES_PRODUCTS_VECTOR_PATH))
-        print("Vector store de ventas creado y guardado en disco.")
+        if not new_products:
+            print("Advertencia: No hay productos nuevos para cargar.")
+            return []
+        
+        docs = self._create_documents_with_context(new_products, 'productos')
+
+        productos_vectorstore.add_documents(docs)
+
+        productos_vectorstore.save_local(str(PRODUCTS_VECTOR_PATH))
+        return f"Cantidad de documentos nuevos agregados: {len(docs)}"
+    

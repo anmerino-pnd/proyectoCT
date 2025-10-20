@@ -36,6 +36,7 @@ toc-depth: 3
 * `mysql-connector-python`: Conector para MySQL, empleado para la extracción de datos de producto, sus detalles y precios desde la base de datos relacional.
 * `faiss-cpu`: Biblioteca para la búsqueda eficiente de similitudes, crucial para la creación y consulta de la base de datos vectorial donde se almacenan los embeddings de productos.
 * `gunicorn`: Servidor WSGI utilizado para desplegar la aplicación FastAPI en producción, gestionando la concurrencia y el rendimiento.
+* `podman`: Herramienta de virtualización y contenedores sin daemon, utilizada para ejecutar la aplicación dentro de entornos aislados (containers) de manera similar a Docker, pero con mayor seguridad y compatibilidad con sistemas Linux. Facilita el despliegue reproducible de la aplicación y sus servicios asociados (como la base de datos o el servidor vectorial).
 * **Otras dependencias**: Todas las demás librerías requeridas se detallan en el archivo `pyproject.toml`. La instalación de este archivo se detalla más adelante.
 
 ### 1.4 Instalación del backend (API)
@@ -58,7 +59,7 @@ source .venv/bin/activate  # Para Linux/macOS
 uv pip install -e .
 ```
 
-3. Asegurarse de estar corriendo Ollama en el ambiente:
+3. Asegurarse de estar corriendo los programas necesarios en el ambiente:
 
    Verifica que el servicio de Ollama esté instalado y activo, y que el modelo `gemma3:12b` esté disponible.
 
@@ -67,6 +68,7 @@ curl -fsSL https://ollama.com/install.sh | sh # Para instalar Ollama
 ollama serve
 ollama list # Para verificar que el modelo gemma3:12b esté descargado y listo
 ollama pull gemma3:12b # Correr esta línea en caso que el modelo no aparezca
+
 ```
 4. Configurar variables de entorno:
 

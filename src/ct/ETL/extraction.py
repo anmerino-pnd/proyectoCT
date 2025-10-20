@@ -99,7 +99,8 @@ class Extraction():
       return query
 
 
-  def get_products(self) -> pd.DataFrame:
+  def get_products(self, ids_validos: list) -> pd.DataFrame:
+    print(ids_validos)
     try:
       cnx = mysql.connector.connect(
           host=self.ip,
@@ -111,7 +112,6 @@ class Extraction():
           write_timeout=15
       )
       cursor = cnx.cursor(buffered=False)
-      ids_validos = self.get_valid_ids()
       filas = []
       for id in ids_validos:
           cursor.execute(self.product_query(id))
@@ -301,3 +301,57 @@ ORDER BY
 
   def get_specifications(self, claves: list) -> dict:
     return self.get_specifications_cloudscraper(claves) 
+
+  def update_products(self, claves_guardadas) -> list:
+      query = """
+      SELECT DISTINCT pro.clave
+      FROM productos pro
+      JOIN existencias e ON pro.idProductos = e.idProductos
+      JOIN precio pre ON pro.idProductos = pre.idProducto
+      WHERE pro.idProductos > 0
+      AND pro.activo = 1;
+      """
+      cnx = None
+      cursor = None
+      try:
+          cnx = mysql.connector.connect(
+              host=self.ip,
+              port=self.port,
+              user=self.user,
+              password=self.pwd,
+              database=self.database,
+              read_timeout=60,
+              write_timeout=15
+          )
+          cursor = cnx.cursor(buffered=False)
+          cursor.execute(query)
+          claves_actuales = [row[0] for row in cursor.fetchall()]
+          claves_nuevas: list = list(set(claves_actuales) - set(claves_guardadas))
+          print(f"Número de nuevas claves: {len(claves_nuevas)}")
+
+          ids_validos = []
+          for clave_nueva in claves_nuevas:
+              print(clave_nueva)
+              cursor.execute(
+                  "SELECT idProductos FROM productos WHERE clave = %s",
+                  (clave_nueva,)
+              )
+              row = cursor.fetchone()
+              if row:
+                  ids_validos.append(row[0])  # ← solo el número, no la tupla
+
+          return ids_validos
+
+      except mysql.connector.Error as err:
+          if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+              print("❌ Error: usuario o contraseña incorrectos.")
+          elif err.errno == errorcode.ER_BAD_DB_ERROR:
+              print("❌ Error: la base de datos no existe.")
+          else:
+              print(f"❌ Error de MySQL: {err}")
+          return [] 
+      finally:
+          if cursor:
+              cursor.close()
+          if cnx:
+              cnx.close()

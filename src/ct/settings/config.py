@@ -15,6 +15,7 @@ BASE_DIR = find_project_root(Path(__file__))
 DATA_DIR = BASE_DIR / "datos"
 VECTORS_DIR = BASE_DIR / "datos" / "vectorstores"
 PRODUCTS_VECTOR_PATH = VECTORS_DIR / "products_vector_store"
+SALES_VECTOR_PATH = VECTORS_DIR / "sales_vector_store"
 SALES_PRODUCTS_VECTOR_PATH = VECTORS_DIR / "sales_products_vector_store"
 SUPPORT_INFO_VECTOR_PATH = VECTORS_DIR / "guarantees_vector_store"
 
