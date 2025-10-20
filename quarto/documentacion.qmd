@@ -222,13 +222,15 @@ python -m spacy download es_core_news_sm
 ```
 
 ```bash
-# Crear un volumen para persistir los datos
-podman volume create cassandra_data
-# Correr Cassandra
-podman run -d   --name cassandra   -p 9042:9042   -v cassandra_data:/var/lib/cassandra   -e CASSANDRA_CLUSTER_NAME=my_cluster   docker.io/cassandra:latest
-# Esperar a que Cassandra esté listo (toma ~30-60 segundos)
-podman logs -f cassandra
-# Cuando veas "Created default superuser role 'cassandra'" está listo
+# Crear un volumen para persistir los datos en cache
+podman run -d \
+  --name redis-semantic \
+  -p 6379:6379 \
+  docker.io/redis:latest
+
+# Verificar que esté corriendo
+podman ps
+podman exec -it redis-semantic redis-cli ping # Debe responder PONG
 ```
 
 ### 1.8 Notas adicionales
