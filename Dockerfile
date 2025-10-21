@@ -1,23 +1,26 @@
-# Usamos Python 3.13 (ajusta si usas otra versión)
+# Usa Python 3.13 slim (puedes bajar a 3.12 si Torch da problemas)
 FROM python:3.13-slim
 
 WORKDIR /app
 
-# Copia archivos de dependencias (incluyendo lockfile si existe)
+# Copiamos el pyproject y lock antes del código (para aprovechar la cache)
 COPY pyproject.toml uv.lock* ./
-COPY src ./src 
 
-# Instala uv
+# Instalamos uv (gestor de dependencias ultrarrápido)
 RUN pip install --no-cache-dir uv
 
-# Sync de dependencias
-RUN uv sync 
+# Copiamos el código fuente
+COPY src ./src
+COPY static ./static
+COPY datos ./datos
 
-# Copiar el resto del código (si tienes otros archivos fuera de src)
-COPY . .
+# Instalamos dependencias (usa el lockfile si existe)
+RUN uv sync --frozen || uv sync
 
+# Exponemos el puerto 8000
 EXPOSE 8000
 
+# Comando de ejecución
 CMD ["uv", "run", "gunicorn", "ct.main:app", \
      "--workers", "4", \
      "--bind", "0.0.0.0:8000", \
