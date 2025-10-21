@@ -10,7 +10,7 @@ COPY pyproject.toml uv.lock* ./
 RUN pip install --no-cache-dir uv
 
 # Sync de dependencias (usa el lockfile)
-RUN uv sync --frozen --no-dev
+RUN uv sync 
 
 # Copia el código
 COPY . .
