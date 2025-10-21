@@ -4,7 +4,8 @@ FROM python:3.13-slim
 WORKDIR /app
 
 # Copia archivos de dependencias (incluyendo lockfile si existe)
-COPY pyproject.toml uv.lock* ./ 
+COPY pyproject.toml uv.lock* ./
+COPY src ./src 
 
 # Instala uv
 RUN pip install --no-cache-dir uv
@@ -12,8 +13,8 @@ RUN pip install --no-cache-dir uv
 # Sync de dependencias
 RUN uv sync 
 
-# Copia el código de la carpeta src (ajustado si está en src/)
-COPY ./src /app/src
+# Copiar el resto del código (si tienes otros archivos fuera de src)
+COPY . .
 
 EXPOSE 8000
 
