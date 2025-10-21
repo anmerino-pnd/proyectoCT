@@ -229,7 +229,7 @@ podman run -d \
   docker.io/redis:latest
 
 # Verificar que esté corriendo
-podman ps
+podman ps -a
 podman exec -it redis-semantic redis-cli ping # Debe responder PONG
 ```
 
