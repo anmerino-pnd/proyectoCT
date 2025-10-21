@@ -173,10 +173,9 @@ class Load:
 
         unique_products = list(set([doc.metadata["clave"] for doc in productos_vectorstore.docstore._dict.values()]))
         ids_nuevos = self.clean_data.data.update_products(unique_products)
-        new_products = self.clean_data.clean_products(ids_nuevos)
-        
-        if not new_products:
+        if ids_nuevos == []:
             return print("Advertencia: No hay productos nuevos para cargar.")
+        new_products = self.clean_data.clean_products(ids_nuevos)
         
         docs = self._create_documents_with_context(new_products, 'productos')
 
