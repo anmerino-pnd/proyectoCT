@@ -1,26 +1,23 @@
 # Usamos Python 3.13 (ajusta si usas otra versión)
 FROM python:3.13-slim
 
-# Establece el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copia los archivos de dependencias
-COPY pyproject.toml ./
+# Copia archivos de dependencias (incluyendo lockfile si existe)
+COPY pyproject.toml uv.lock* ./
 
-# Instala uv para manejar dependencias
+# Instala uv
 RUN pip install --no-cache-dir uv
 
-# Instala las dependencias del proyecto
-RUN uv pip install --system --no-cache -r pyproject.toml
+# Sync de dependencias (usa el lockfile)
+RUN uv sync --frozen --no-dev
 
-# Copia todo el código de tu proyecto
+# Copia el código
 COPY . .
 
-# Puerto que expondrá tu aplicación
 EXPOSE 8000
 
-# Comando para iniciar gunicorn
-CMD ["gunicorn", "ct.main:app", \
+CMD ["uv", "run", "gunicorn", "ct.main:app", \
      "--workers", "4", \
      "--bind", "0.0.0.0:8000", \
      "--certfile", "static/ssl/cert.pem", \
