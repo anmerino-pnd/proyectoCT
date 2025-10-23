@@ -1,7 +1,9 @@
 import json
+import pymysql
 import http.client 
 import pandas as pd
 import mysql.connector
+pymysql.install_as_MySQLdb()
 from mysql.connector import errorcode
 from ct.settings.clients import ip, port, user, pwd, database, url, tokenapi, tokenct, cookie, dominio, boundary
 
