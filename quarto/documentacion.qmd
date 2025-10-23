@@ -189,13 +189,24 @@ source .venv/bin/activate # Para Linux/macOS
   2. **Ejecutar el pipeline ETL**:
   Una vez activado el entorno, puedes ejecutar una de las funciones dentro del script `pipeline.py` dependiendo la necesidad.
 
-  En caso de actualizar la base general de productos, correr este comando. Recomendación, correr cada 2 o 3 meses, ya que la información técnica cambia con poca frecuencia.
+  En caso de cargar la base general de productos, correr este comando. Recomendación, correr cada 2 o 3 meses, ya que la información técnica cambia con poca frecuencia.
+```bash
+python3 -c "from ct.ETL.pipeline import load_products; load_products()"
+```
+
+  Consejo: si ya se tiene una base de datos vectorial de productos, agregar productos nuevos con el siguiente comando.
 ```bash
 python3 -c "from ct.ETL.pipeline import update_products; update_products()"
 ```
-  En caso de actualizar únicamente los productos en promoción, correr este comando. Eficiente para cada mes que hay productos nuevos en promoción.
+
+  En caso de cargar únicamente los productos en promoción, correr este comando. Eficiente para cada mes que hay productos nuevos en promoción.
 ```bash
-python3 -c "from ct.ETL.pipeline import update_sales; update_sales()"
+python3 -c "from ct.ETL.pipeline import load_sales; load_sales()"
+```
+
+  Una vez que ya se tienen las dos bases vectoriales, es necesario combinarlos y cargarlos.
+```bash
+python3 -c "from ct.ETL.pipeline import load_sales_products; load_sales_products()"
 ```
 
   En caso de querer actualizar ambas al mismo tiempo, correr este comando.
