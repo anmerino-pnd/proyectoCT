@@ -68,8 +68,21 @@ curl -fsSL https://ollama.com/install.sh | sh # Para instalar Ollama
 ollama serve
 ollama list # Para verificar que el modelo gemma3:12b esté descargado y listo
 ollama pull gemma3:12b # Correr esta línea en caso que el modelo no aparezca
-
 ```
+
+  Configurar el servicio de Redis el cual se encarga del cache de la información.
+```bash
+# Crear un volumen para persistir los datos en cache
+podman run -d \
+  --name redis-semantic \
+  -p 6379:6379 \
+  docker.io/redis:latest
+
+# Verificar que esté corriendo
+podman ps -a
+podman exec -it redis-semantic redis-cli ping # Debe responder PONG
+```
+
 4. Configurar variables de entorno:
 
    Antes de levantar el *backend*, asegurarse de que el archivo `.env` en la raíz del proyecto contenga las siguientes variables con sus valores correctos. 
@@ -104,7 +117,7 @@ MONGO_COLLECTION_SESSIONS = "tbl_sessions"
 MONGO_COLLECTION_MESSAGE_BACKUP = "tbl_message_backup"
 MONGO_COLLECTION_PRODUCTS = "tbl_productos"
 MONGO_COLLECTION_SALES = "tbl_ofertas"         
-MONGO_COLLECTION_SPECIFICATIONS = "mongo_collection_specifications"
+MONGO_COLLECTION_SPECIFICATIONS = "tbl_mongo_collection_specifications"
 MONGO_COLLECTION_PEDIDOS="tbl_pedidos"
 
 ```
@@ -230,18 +243,6 @@ Estas configuraciones son necesarios para que no haya problemas dentro del siste
 ```bash
 python -m spacy download es_core_news_lg
 python -m spacy download es_core_news_sm
-```
-
-```bash
-# Crear un volumen para persistir los datos en cache
-podman run -d \
-  --name redis-semantic \
-  -p 6379:6379 \
-  docker.io/redis:latest
-
-# Verificar que esté corriendo
-podman ps -a
-podman exec -it redis-semantic redis-cli ping # Debe responder PONG
 ```
 
 ### 1.8 Notas adicionales
