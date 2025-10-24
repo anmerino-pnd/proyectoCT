@@ -207,7 +207,7 @@ source .venv/bin/activate # Para Linux/macOS
 python3 -c "from ct.ETL.pipeline import load_products; load_products()"
 ```
 
-  Consejo: si ya se tiene una base de datos vectorial de productos, agregar productos nuevos con el siguiente comando.
+  Consejo: si ya se tiene una base de datos vectorial de productos, agregar productos nuevos con el siguiente comando. Esto evita tener que extraer, transformar y cargar todos los productos, simplemente va agregando los faltantes.
 ```bash
 python3 -c "from ct.ETL.pipeline import update_products; update_products()"
 ```
@@ -222,7 +222,7 @@ python3 -c "from ct.ETL.pipeline import load_sales; load_sales()"
 python3 -c "from ct.ETL.pipeline import load_sales_products; load_sales_products()"
 ```
 
-  En caso de querer actualizar ambas al mismo tiempo, correr este comando.
+  En caso de querer actualizar ambas al mismo tiempo, correr este comando. Esto elimina productos antiguos que sean innecesarios almacenar.
 ```bash
 python3 -c "from ct.ETL.pipeline import update_all; update_all()"
 ```
