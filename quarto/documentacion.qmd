@@ -83,6 +83,21 @@ podman ps -a
 podman exec -it redis-semantic redis-cli ping # Debe responder PONG
 ```
 
+  Configurar la instancia de Mongo local que almacena las fichas técnicas de los productos.
+```bash
+podman run -d \
+  --name mongo-semantic \
+  -p 27017:27017 \
+  -v mongo-data:/data/db \
+  mongo:latest
+
+podman ps -a
+podman exec -it mongo-semantic mongosh
+use local
+db.createCollection("CT_API_PUBLICA")
+show Collections
+```
+
 4. Configurar variables de entorno:
 
    Antes de levantar el *backend*, asegurarse de que el archivo `.env` en la raíz del proyecto contenga las siguientes variables con sus valores correctos. 
