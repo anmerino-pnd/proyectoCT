@@ -304,7 +304,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Verificar que el contenedor esté corriendo</span></span>
 <span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> ps <span class="at">-a</span></span>
 <span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Copiar el archivo JSON al contenedor</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Copiar el archivo JSON de las fichas técnicas al contenedor</span></span>
 <span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> cp ./datos/CT_API_Publica.tbl_mongo_collection_specifications.json mongo-semantic:/tmp/specs.json</span>
 <span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Importar el JSON (esto crea automáticamente la BD y la colección)</span></span>
@@ -379,7 +379,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ol>
 <p>Al correr la API con <code>nohup</code>, este genera un archivo <code>nohup.out</code>, con el cual podemos ver los logs del sistema, para eso solo hay que ubicarse en donde está dicho archivo y correr lo siguiente:</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-f</span> nohup.out</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Los logs también se puede analizar</p>
+<p>Los logs también se pueden analizar para el reporte automatizado</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nohup</span> streamlit run run_report.py <span class="at">--server.fileWatcherType</span> none <span class="at">--server.port</span> 3000 <span class="kw">&amp;</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="instalación-del-frontend-widget" class="level3">
@@ -434,25 +434,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>En caso de querer actualizar ambas al mismo tiempo, correr este comando. Esto elimina productos antiguos que sean innecesarios almacenar.</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-c</span> <span class="st">"from ct.ETL.pipeline import update_all; update_all()"</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ol start="3" type="1">
-<li><strong>Verificar logs (opcional)</strong>: Si el pipeline se ejecuta en segundo plano o si deseas verificar su estado y posibles errores, puedes revisar los logs generados.</li>
+<li><strong>Crontab del ETL (opcional)</strong>: Se recomienda automatizar la ejecución de este pipeline (por ejemplo, <strong>cada hora entre las 8:30 a 18:30</strong>) para mantener actualizada la base de conocimientos del chatbot.</li>
 </ol>
-<div class="sourceCode" id="cb18"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-f</span> nohup.out <span class="co"># Si estás usando nohup para el pipeline o el backend</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Se recomienda automatizar la ejecución de este pipeline (por ejemplo, <strong>cada hora entre las 8:30 a 18:30</strong>) para mantener actualizada la base de conocimientos del chatbot.<br>
-En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante un <strong>cron job</strong>.</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Crea la carpeta de logs</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> ~/proyectoCT/logs</span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Agregar la tarea al cron</span></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Añade la siguiente línea</span></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="ex">30</span> 8-18 <span class="pp">*</span> <span class="pp">*</span> <span class="pp">*</span> ~/proyectoCT/.venv/bin/python3 ~/proyectoCT/src/ct/ETL/update_vector_stores.py <span class="op">&gt;&gt;</span> ~/proyectoCT/logs/update_vector_stores.log <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar que se hizo correctamente con</span></span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Cuando ya se haya ejecutado el flujo del cron, se puede revisar con</span></span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> ~/proyectoCT/logs/update_vector_stores.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante un <strong>cron job</strong>.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Crea la carpeta de logs</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> ~/proyectoCT/logs</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Agregar la tarea al cron</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Añade la siguiente línea</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="ex">30</span> 8-18 <span class="pp">*</span> <span class="pp">*</span> <span class="pp">*</span> ~/proyectoCT/.venv/bin/python3 ~/proyectoCT/src/ct/ETL/update_vector_stores.py <span class="op">&gt;&gt;</span> ~/proyectoCT/logs/update_vector_stores.log <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar que se hizo correctamente con</span></span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Cuando ya se haya ejecutado el flujo del cron, se puede revisar con</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> ~/proyectoCT/logs/update_vector_stores.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Comandos útiles de <code>cron</code></p>
 <table class="caption-top table">
 <thead>
@@ -485,8 +483,8 @@ En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante 
 <section id="descargas-y-configuraciones-adicionales" class="level3">
 <h3 class="anchored" data-anchor-id="descargas-y-configuraciones-adicionales">1.7 Descargas y configuraciones adicionales</h3>
 <p>Estas configuraciones son necesarios para que no haya problemas dentro del sistema de conversaciones y el sistema de reportes automatizados.</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> spacy download es_core_news_lg</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> spacy download es_core_news_sm</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> spacy download es_core_news_lg</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> spacy download es_core_news_sm</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="notas-adicionales" class="level3">
 <h3 class="anchored" data-anchor-id="notas-adicionales">1.8 Notas adicionales</h3>
@@ -589,11 +587,11 @@ En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante 
 </ul></li>
 <li><code>run</code>:</li>
 </ul>
-<div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> run(</span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> run(</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><strong>Propósito</strong>: Ejecuta una consulta del usuario a través del agente, gestiona el historial de chat, recopila métricas y transmite la respuesta en tiempo real.</li>
 <li><strong>Parámetros</strong>:
@@ -627,11 +625,11 @@ En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante 
 </ul></li>
 <li><code>add_message</code></li>
 </ul>
-<div class="sourceCode" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_message(</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a> message_type: <span class="bu">str</span>, </span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a> content: <span class="bu">str</span>, </span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_message(</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a> message_type: <span class="bu">str</span>, </span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a> content: <span class="bu">str</span>, </span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><strong>Propósito</strong>: Añade un nuevo mensaje (de usuario o asistente) al historial de <code>last_messages</code> de una sesión en MongoDB, manteniendo un tamaño fijo para optimizar el rendimiento.</li>
 <li><strong>Parámetros</strong>:
@@ -647,11 +645,11 @@ En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante 
 </ul></li>
 <li><code>add_message_backup</code></li>
 </ul>
-<div class="sourceCode" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_message_backup(</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a> full_answer: <span class="bu">str</span>, </span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_message_backup(</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a> full_answer: <span class="bu">str</span>, </span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><p><strong>Propósito</strong>: Guarda un respaldo completo de cada interacción (pregunta del usuario y respuesta completa del asistente) junto con métricas detalladas en la colección <code>message_backup</code> de MongoDB para análisis posterior.</p></li>
 <li><p><strong>Parámetros</strong>:</p>
@@ -664,12 +662,12 @@ En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante 
 <li><p><strong>Comportamiento</strong>: Inserta un nuevo documento en <code>message_backup</code> con toda la información relevante para análisis posterior.</p></li>
 <li><p><code>add_irrelevant_message</code></p></li>
 </ul>
-<div class="sourceCode" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_irrelevant_message(</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a> <span class="va">self</span>,</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a> full_answer: <span class="bu">str</span>, </span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> add_irrelevant_message(</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a> <span class="va">self</span>,</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a> full_answer: <span class="bu">str</span>, </span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a> metadata: <span class="bu">dict</span> <span class="op">=</span> <span class="va">None</span>): </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><p><strong>Propósito</strong>: Guarda un mensaje etiquetado como “irrelevante” en la colección <code>message_backup</code>. Esto es útil para el monitoreo y posible re-entrenamiento del clasificador.</p></li>
 <li><p><strong>Parámetros</strong>:</p>
@@ -681,10 +679,10 @@ En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante 
 <li><p><strong>Comportamiento</strong>: Inserta un nuevo documento en <code>message_backup</code> con el campo <code>label</code> establecido en <code>False</code>.</p></li>
 <li><p><code>make_metadata</code></p></li>
 </ul>
-<div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_metadata(</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a> <span class="va">self</span>,</span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a> token_cost_process: TokenCostProcess,</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a> duration: <span class="bu">float</span> <span class="op">=</span> <span class="va">None</span>) <span class="op">-&gt;</span> <span class="bu">dict</span> : </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_metadata(</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a> <span class="va">self</span>,</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a> token_cost_process: TokenCostProcess,</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a> duration: <span class="bu">float</span> <span class="op">=</span> <span class="va">None</span>) <span class="op">-&gt;</span> <span class="bu">dict</span> : </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><strong>Propósito</strong>: Genera un diccionario con metadatos de la interacción, incluyendo información sobre el costo, los tokens utilizados y el tiempo de procesamiento.</li>
 <li><strong>Parámetros</strong>:
@@ -972,11 +970,11 @@ En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante 
 </ul></li>
 <li><code>run</code></li>
 </ul>
-<div class="sourceCode" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> run(</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a> query: <span class="bu">str</span>, </span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>, </span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="cf">async</span> <span class="kw">def</span> run(</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a> query: <span class="bu">str</span>, </span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>, </span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><strong>Propósito</strong>: Ejecuta el flujo completo de una consulta del usuario, desde la verificación de baneo y la clasificación, hasta la generación de la respuesta (relevante, irrelevante, inapropiado) y su <em>streaming</em>.</li>
 <li><strong>Parámetros</strong>:
@@ -1100,11 +1098,11 @@ En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante 
 </ul></li>
 <li><code>get_specifications_cloudscraper</code>:</li>
 </ul>
-<div class="sourceCode" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>get_specifications_cloudscraper(</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>    claves: List[<span class="bu">str</span>],</span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    max_retries: <span class="bu">int</span> <span class="op">=</span> <span class="dv">3</span>,</span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>    sleep_seconds: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.15</span></span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Dict[<span class="bu">str</span>, <span class="bu">dict</span>]</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>get_specifications_cloudscraper(</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    claves: List[<span class="bu">str</span>],</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    max_retries: <span class="bu">int</span> <span class="op">=</span> <span class="dv">3</span>,</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    sleep_seconds: <span class="bu">float</span> <span class="op">=</span> <span class="fl">0.15</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>) <span class="op">-&gt;</span> Dict[<span class="bu">str</span>, <span class="bu">dict</span>]</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 Intenta obtener las fichas técnicas para una lista de claves de productos desde un servicio externo, utilizando <code>cloudscraper</code> para manejar posibles protecciones como Cloudflare.
 <ul>
 <li><strong>Parámetros</strong>:
@@ -1239,11 +1237,11 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 <ul>
 <li><code>ModeratedToolAgent.run</code>:</li>
 </ul>
-<div class="sourceCode" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>ModeratedToolAgent.run(</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  query: <span class="bu">str</span>, </span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  session_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>, </span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>  ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]:</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>ModeratedToolAgent.run(</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  query: <span class="bu">str</span>, </span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  session_id: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span>, </span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  listaPrecio: <span class="bu">str</span> <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]:</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li>Es la función principal que orquesta el glujocompleto de una consulta de usuario.</li>
 <li><strong>Parámetros</strong>:
@@ -1269,11 +1267,11 @@ Intenta obtener las fichas técnicas para una lista de claves de productos desde
 </ol></li>
 <li><code>ToolAgent.run</code>:</li>
 </ul>
-<div class="sourceCode" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>ToolAgent().run(</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span></span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>ToolAgent().run(</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a> session_id: <span class="bu">str</span>, </span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a> question: <span class="bu">str</span>, </span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a> listaPrecio: <span class="bu">str</span></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a> ) <span class="op">-&gt;</span> AsyncGenerator[<span class="bu">str</span>, <span class="va">None</span>]: </span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ul>
 <li><strong>Propósito</strong>: Responde a consultas relevantes de productos, utilizando el agente de LangChain con acceso a herramientas y memoria de conversación. Es la función que el <code>ModeratedToolAgent</code> invoca cuando una consulta es clasificada como relevante.</li>
 <li><strong>Parámetros</strong>:
