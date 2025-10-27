@@ -270,7 +270,37 @@ python3 -c "from ct.ETL.pipeline import update_all; update_all()"
 tail -f nohup.out # Si estás usando nohup para el pipeline o el backend
 ```
 
-Se recomienda programar la ejecución de este pipeline de forma regular (mensualmente) mediante *uncron job* en sistemas Linux o una tarea programada en Windows, para mantener la base de conocimientos del chatbot siempre actualizada.
+Se recomienda automatizar la ejecución de este pipeline (por ejemplo, **cada hora entre las 8:30 a 18:30**) para mantener actualizada la base de conocimientos del chatbot.  
+En sistemas **Linux**, esto se puede realizar fácilmente mediante un **cron job**.
+
+```bash
+# Crea la carpeta de logs
+mkdir -p ~/proyectoCT/logs
+
+# Agregar la tarea al cron
+crontab -e
+
+# Añade la siguiente línea
+30 8-18 * * * /usr/bin/python3 ~/proyectoCT/src/ct/ETL/reload_pipeline.py >> ~/proyectoCT/logs/reload_pipeline.log 2>&1 
+
+# Verificar que se hizo correctamente con
+crontab -l
+
+# Cuando ya se haya ejecutado el flujo del cron, se puede revisar con
+cat ~/proyectoCT/logs/reload_pipeline.log
+```
+
+Comandos útiles de `cron`
+```markdown
+| Acción                  | Comando                            |
+| Ver tareas activas      | `crontab -l`                       |
+| Borrar todas las tareas | `crontab -r`                       |
+| Pausar una tarea        | Editar y comentar la línea con `#` |
+
+Cómo salir del editor
+* **En `nano`** -> `Ctrl + O`, `Enter`, luego `Ctrl + X`
+* **En `vi` o `vim`** -> `I`, editar, `Esc`, luego `:wq` para guardar o `:q!` para salir sin guardar
+```
 
 ### 1.7 Descargas y configuraciones adicionales
 
