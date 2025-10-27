@@ -19,8 +19,8 @@ def update_products():
     """
     Actualiza la lista de productos, insertando los faltantes sin procesar todos los productos ya procesados.
     """
-    load.add_products()
-    return "Vector store actualizado exitosamente"
+    flag = load.add_products()
+    return flag
 
 def load_sales():
     """

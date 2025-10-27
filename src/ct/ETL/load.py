@@ -174,7 +174,8 @@ class Load:
         unique_products = list(set([doc.metadata["clave"] for doc in productos_vectorstore.docstore._dict.values()]))
         ids_nuevos = self.clean_data.data.update_products(unique_products)
         if ids_nuevos == []:
-            return print("Advertencia: No hay productos nuevos para cargar.")
+            print("Advertencia: No hay productos nuevos para cargar.")
+            return False
         new_products = self.clean_data.clean_products(ids_nuevos)
         
         docs = self._create_documents_with_context(new_products, 'productos')
@@ -182,5 +183,6 @@ class Load:
         productos_vectorstore.add_documents(docs)
 
         productos_vectorstore.save_local(str(PRODUCTS_VECTOR_PATH))
-        return f"Cantidad de documentos nuevos agregados: {len(docs)}"
+        print(f"Cantidad de documentos nuevos agregados: {len(docs)}")
+        return True
     
