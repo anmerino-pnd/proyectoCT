@@ -85,17 +85,35 @@ podman exec -it redis-semantic redis-cli ping # Debe responder PONG
 
   Configurar la instancia de Mongo local que almacena las fichas técnicas de los productos.
 ```bash
+# 1. Crear y levantar el contenedor MongoDB
 podman run -d \
   --name mongo-semantic \
   -p 27017:27017 \
   -v mongo-data:/data/db \
   mongo:latest
 
+# 2. Verificar que el contenedor esté corriendo
 podman ps -a
+
+# 3. Copiar el archivo JSON al contenedor
+podman cp ./datos/CT_API_Publica.tbl_mongo_collection_specifications.json mongo-semantic:/tmp/specs.json
+
+# 4. Importar el JSON (esto crea automáticamente la BD y la colección)
+podman exec -it mongo-semantic mongoimport \
+  --db CT_API_Publica \
+  --collection tbl_mongo_collection_specifications \
+  --file /tmp/specs.json \
+  --jsonArray
+
+# 5. Conectar a MongoDB para verificar
 podman exec -it mongo-semantic mongosh
-use local
-db.createCollection("CT_API_PUBLICA")
-show Collections
+
+# 6. Dentro de mongosh, verificar los datos:
+use CT_API_Publica          # Cambiar a la base de datos correcta
+show collections            # Ver las colecciones (debe aparecer tbl_mongo_collection_specifications)
+db.tbl_mongo_collection_specifications.countDocuments()  # Contar documentos
+db.tbl_mongo_collection_specifications.findOne()         # Ver un documento de ejemplo
+exit                        # Salir de mongosh
 ```
 
 4. Configurar variables de entorno:
