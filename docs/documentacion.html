@@ -309,7 +309,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Importar el JSON (esto crea automáticamente la BD y la colección)</span></span>
 <span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> exec <span class="at">-it</span> mongo-semantic mongoimport <span class="dt">\</span></span>
-<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">--db</span> CT_API_PUBLICA <span class="dt">\</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">--db</span> CT_API_Publica <span class="dt">\</span></span>
 <span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">--collection</span> tbl_mongo_collection_specifications <span class="dt">\</span></span>
 <span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">--file</span> /tmp/specs.json <span class="dt">\</span></span>
 <span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">--jsonArray</span></span>
@@ -318,7 +318,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> exec <span class="at">-it</span> mongo-semantic mongosh</span>
 <span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="co"># 6. Dentro de mongosh, verificar los datos:</span></span>
-<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="ex">use</span> CT_API_PUBLICA          <span class="co"># Cambiar a la base de datos correcta</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="ex">use</span> CT_API_Publica          <span class="co"># Cambiar a la base de datos correcta</span></span>
 <span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="ex">show</span> collections            <span class="co"># Ver las colecciones (debe aparecer tbl_mongo_collection_specifications)</span></span>
 <span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="fu">db.tbl_mongo_collection_specifications.countDocuments()</span>  <span class="co"># Contar documentos</span></span>
 <span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="fu">db.tbl_mongo_collection_specifications.findOne()</span>         <span class="co"># Ver un documento de ejemplo</span></span>
@@ -338,26 +338,30 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>OPENAI_API_KEY<span class="op">=</span></span>
 <span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Configuración para el servicio de fichas técnicas</span></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>url<span class="op">=</span> <span class="st">''</span> </span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>Token<span class="op">-</span>api<span class="op">=</span><span class="st">''</span></span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>Token<span class="op">-</span>ct<span class="op">=</span><span class="st">''</span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>Content<span class="op">-</span>Type<span class="op">=</span><span class="st">''</span></span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>Cookie<span class="op">=</span><span class="st">''</span></span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>sucursales_url<span class="op">=</span> <span class="st">""</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>sucursales_url <span class="op">=</span> <span class="st">""</span>  <span class="co"># Url de la sección de sucursales</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>reload_vectors_post <span class="op">=</span> <span class="st">"https://localhost:8000/internal/reload_vectorstores"</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>url<span class="op">=</span> <span class="st">''</span>           <span class="co"># Url del servicio de fichas tecnicas</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>Token<span class="op">-</span>api<span class="op">=</span><span class="st">''</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>Token<span class="op">-</span>ct<span class="op">=</span><span class="st">''</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>Content<span class="op">-</span>Type<span class="op">=</span><span class="st">''</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>Cookie<span class="op">=</span><span class="st">''</span></span>
 <span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>dominio<span class="op">=</span><span class="st">""</span></span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>boundary<span class="op">=</span><span class="st">''</span></span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="co"># Conexión a MongoDB</span></span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>MONGO_URI <span class="op">=</span> <span class="st">"mongodb://"</span> <span class="co"># En la URI debe estar incrustrado el nombre de la DB</span></span>
-<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>MONGO_DB <span class="op">=</span> <span class="st">""</span></span>
-<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_SESSIONS <span class="op">=</span> <span class="st">"tbl_sessions"</span></span>
-<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_MESSAGE_BACKUP <span class="op">=</span> <span class="st">"tbl_message_backup"</span></span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_PRODUCTS <span class="op">=</span> <span class="st">"tbl_productos"</span></span>
-<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_SALES <span class="op">=</span> <span class="st">"tbl_ofertas"</span>         </span>
-<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_SPECIFICATIONS <span class="op">=</span> <span class="st">"tbl_mongo_collection_specifications"</span></span>
-<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_PEDIDOS<span class="op">=</span><span class="st">"tbl_pedidos"</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>sucursales_url<span class="op">=</span> <span class="st">""</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>dominio<span class="op">=</span><span class="st">""</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>boundary<span class="op">=</span><span class="st">''</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="co"># Conexión a MongoDB</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>MONGO_URI <span class="op">=</span> <span class="st">"mongodb://"</span> <span class="co"># En la URI debe estar incrustrado el nombre de la DB</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>MONGO_DB <span class="op">=</span> <span class="st">""</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_SESSIONS <span class="op">=</span> <span class="st">"tbl_sessions"</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_MESSAGE_BACKUP <span class="op">=</span> <span class="st">"tbl_message_backup"</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_PRODUCTS <span class="op">=</span> <span class="st">"tbl_productos"</span></span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_SALES <span class="op">=</span> <span class="st">"tbl_ofertas"</span>         </span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_SPECIFICATIONS <span class="op">=</span> <span class="st">"tbl_mongo_collection_specifications"</span></span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_PEDIDOS<span class="op">=</span><span class="st">"tbl_pedidos"</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>PODMAN_REDIS_URL<span class="op">=</span>redis:<span class="op">//</span>localhost:<span class="dv">6379</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ol start="5" type="1">
 <li>Levantar el backend con Gunicorn:</li>
 </ol>

@@ -132,7 +132,9 @@ db=
 OPENAI_API_KEY=
 
 # Configuración para el servicio de fichas técnicas
-url= '' 
+sucursales_url = ""  # Url de la sección de sucursales
+reload_vectors_post = "https://localhost:8000/internal/reload_vectorstores"
+url= ''           # Url del servicio de fichas tecnicas
 Token-api=''
 Token-ct=''
 Content-Type=''
@@ -153,6 +155,7 @@ MONGO_COLLECTION_SALES = "tbl_ofertas"
 MONGO_COLLECTION_SPECIFICATIONS = "tbl_mongo_collection_specifications"
 MONGO_COLLECTION_PEDIDOS="tbl_pedidos"
 
+PODMAN_REDIS_URL=redis://localhost:6379
 ```
 
 5. Levantar el backend con Gunicorn:

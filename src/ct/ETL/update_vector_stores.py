@@ -7,6 +7,6 @@ if __name__ == "__main__":
     if changed:
         load_sales_products()  # merge de productos y ofertas
         print("Vector store regenerado. Notificando servidor...")
-        requests.post(reload_vectors_post, timeout=10)
+        requests.post(reload_vectors_post, timeout=10, verify=False)
     else:
         print("No hay nuevos productos. Nada que recargar.")
