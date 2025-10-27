@@ -95,7 +95,7 @@ podman run -d \
 # 2. Verificar que el contenedor esté corriendo
 podman ps -a
 
-# 3. Copiar el archivo JSON al contenedor
+# 3. Copiar el archivo JSON de las fichas técnicas al contenedor
 podman cp ./datos/CT_API_Publica.tbl_mongo_collection_specifications.json mongo-semantic:/tmp/specs.json
 
 # 4. Importar el JSON (esto crea automáticamente la BD y la colección)
@@ -186,7 +186,7 @@ openssl req -x509 -newkey rsa:2048 -nodes -keyout ssl/key.pem -out ssl/cert.pem�
 tail -f nohup.out
 ```
 
-Los logs también se puede analizar 
+Los logs también se pueden analizar para el reporte automatizado
 ```bash
 nohup streamlit run run_report.py --server.fileWatcherType none --server.port 3000 &
 ```
@@ -263,15 +263,10 @@ python3 -c "from ct.ETL.pipeline import load_sales_products; load_sales_products
 python3 -c "from ct.ETL.pipeline import update_all; update_all()"
 ```
 
-  3. **Verificar logs (opcional)**:
-  Si el pipeline se ejecuta en segundo plano o si deseas verificar su estado y posibles errores, puedes revisar los logs generados.
+  3. **Crontab del ETL (opcional)**:
+  Se recomienda automatizar la ejecución de este pipeline (por ejemplo, **cada hora entre las 8:30 a 18:30**) para mantener actualizada la base de conocimientos del chatbot.  
 
-```bash
-tail -f nohup.out # Si estás usando nohup para el pipeline o el backend
-```
-
-Se recomienda automatizar la ejecución de este pipeline (por ejemplo, **cada hora entre las 8:30 a 18:30**) para mantener actualizada la base de conocimientos del chatbot.  
-En sistemas **Linux**, esto se puede realizar fácilmente mediante un **cron job**.
+  En sistemas **Linux**, esto se puede realizar fácilmente mediante un **cron job**.
 
 ```bash
 # Crea la carpeta de logs
