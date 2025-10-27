@@ -281,26 +281,28 @@ mkdir -p ~/proyectoCT/logs
 crontab -e
 
 # Añade la siguiente línea
-30 8-18 * * * /usr/bin/python3 ~/proyectoCT/src/ct/ETL/reload_pipeline.py >> ~/proyectoCT/logs/reload_pipeline.log 2>&1 
+30 8-18 * * * ~/proyectoCT/.venv/bin/python3 ~/proyectoCT/src/ct/ETL/update_vector_stores.py >> ~/proyectoCT/logs/update_vector_stores.log 2>&1
 
 # Verificar que se hizo correctamente con
 crontab -l
 
 # Cuando ya se haya ejecutado el flujo del cron, se puede revisar con
-cat ~/proyectoCT/logs/reload_pipeline.log
+cat ~/proyectoCT/logs/update_vector_stores.log
 ```
 
 Comandos útiles de `cron`
-```markdown
+
 | Acción                  | Comando                            |
-| Ver tareas activas      | `crontab -l`                       |
-| Borrar todas las tareas | `crontab -r`                       |
-| Pausar una tarea        | Editar y comentar la línea con `#` |
+|-------------------------|------------------------------------|
+| Ver tareas activas       | `crontab -l`                      |
+| Borrar todas las tareas  | `crontab -r`                      |
+| Pausar una tarea         | Editar y comentar la línea con `#`|
+
 
 Cómo salir del editor
+
 * **En `nano`** -> `Ctrl + O`, `Enter`, luego `Ctrl + X`
 * **En `vi` o `vim`** -> `I`, editar, `Esc`, luego `:wq` para guardar o `:q!` para salir sin guardar
-```
 
 ### 1.7 Descargas y configuraciones adicionales
 
