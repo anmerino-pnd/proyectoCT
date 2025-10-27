@@ -32,9 +32,9 @@
 import redis
 from langchain_community.cache import RedisCache
 from langchain.globals import set_llm_cache
-from ct.settings.cache import redis_client
+from ct.settings.clients import podman_redis_url
 
-redis_client = redis.Redis.from_url(redis_client)
+redis_client = redis.Redis.from_url(podman_redis_url)
 
 set_llm_cache(RedisCache(redis_client, ttl=600))
 
