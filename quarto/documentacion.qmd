@@ -72,18 +72,75 @@ ollama pull gemma3:12b # Correr esta línea en caso que el modelo no aparezca
 
   Configurar el servicio de Redis el cual se encarga del cache de la información.
 ```bash
+mkdir -p ~/proyectoCT/datos/redis_data
+
+chmod 700 ~/proyectoCT/datos/redis_data
+
 # Crear un volumen para persistir los datos en cache
 podman run -d \
   --name redis-semantic \
-  -p 6379:6379 \
-  docker.io/redis:latest
+  -p 6380:6379 \
+  -v redis-data:/data \
+  --restart unless-stopped \
+  redis:latest redis-server --appendonly yes --save ""
+
+#Nota: Se usa puerto **6380** en lugar de 6379 porque el puerto estándar ya está ocupado por el servicio Redis del sistema.
 
 # Verificar que esté corriendo
 podman ps -a
 podman exec -it redis-semantic redis-cli ping # Debe responder PONG
+podman logs redis-semantic
+python3 -c "import redis; r = redis.Redis(host='localhost', port=6380); print(r.ping())"
 ```
 
-  Configurar la instancia de Mongo local que almacena las fichas técnicas de los productos.
+  **NOTA**: En el caso que aparezca este error de Redis en los logs de las conversaciones:
+```
+Redis update failed: Command # 1 (HSET cebdab3b4c033ee7ada24b16b3fc09f0 0 {"lc": 1, "type": "constructor", "id": ["langchain",...) of pipeline caused error: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.
+```
+
+  Seguir estos pasos:
+```bash
+# 1. Detener y eliminar el contenedor actual
+podman stop redis-semantic
+podman rm redis-semantic
+
+# 2. Crear con volumen nombrado (Podman maneja permisos automáticamente)
+podman run -d \
+  --name redis-semantic \
+  -p 6380:6379 \
+  -v redis-data:/data \
+  --restart unless-stopped \
+  redis:latest redis-server --appendonly yes --save ""
+
+# 3. Verificar que esté corriendo
+podman ps
+
+# 4. Probar que funcione
+podman exec -it redis-semantic redis-cli ping
+podman exec -it redis-semantic redis-cli SET test "hello"
+podman exec -it redis-semantic redis-cli GET test
+
+# Verificar que se solucionó
+# Ver logs (no debe haber errores de permisos)
+podman logs redis-semantic
+
+# Probar escritura
+podman exec -it redis-semantic redis-cli
+# Dentro de redis-cli:
+SET mykey "test value"
+GET mykey
+BGSAVE  # Forzar guardado en disco
+exit
+
+# Ver que no haya errores
+podman logs redis-semantic | tail -20
+
+podman exec -it redis-semantic redis-cli CONFIG GET save    # Debería arrojar esto
+# 1) "save"
+# 2) ""
+```
+
+  Configurar la instancia de **Mongo local** que almacena las fichas técnicas de los productos.
 ```bash
 # 1. Crear y levantar el contenedor MongoDB
 podman run -d \
