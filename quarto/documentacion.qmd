@@ -332,13 +332,23 @@ python3 -c "from ct.ETL.pipeline import update_all; update_all()"
   3. **Crontab del ETL (opcional)**:
   Se recomienda automatizar la ejecución de este pipeline (por ejemplo, **cada hora entre las 8:30 a 18:30**) para mantener actualizada la base de conocimientos del chatbot.  
 
-  En sistemas **Linux**, esto se puede realizar fácilmente mediante un **cron job**.
+  En sistemas **Linux**, esto se puede realizar fácilmente mediante un **cron job** y el archivo `reload_all.sh` que:
+
+  - Ejecuta `src/ct/ETL/update_vector_stores.py` usando el `python` del virtualenv del proyecto.
+  - Si detecta que el vector store fue regenerado, envía `SIGHUP` al proceso master de Gunicorn para forzar la recarga de todos los workers.
+  - Registra salida en `logs/reload_cron_wrapper.log`.
 
 ```bash
 # Dar permisos de ejecución al archivo bash
 chmod +x ~/proyectoCT/reload_all.sh
 
-# Agregar la tarea al cron
+# Probar manualmente 
+~/proyectoCT/reload_all.sh
+
+# Revisar el log
+tail -n 200 ~/proyectoCT/logs/reload_cron_wrapper.log
+
+# Si no hubo fallas. Agregar la tarea al cron
 crontab -e
 
 # Añade la siguiente línea
