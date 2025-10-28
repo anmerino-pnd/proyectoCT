@@ -4,10 +4,10 @@ set -euo pipefail
 # CONFIGURACIÓN (ajusta si tus rutas son diferentes)
 PROJECT_DIR="$HOME/proyectoCT"
 VENV_PY="$PROJECT_DIR/.venv/bin/python3"
-ETL_SCRIPT="$PROJECT_DIR/src/ct/ETL/update_vector_stores.py"
+ETL_SCRIPT="$PROJECT_DIR/src/ct/ETL/reload_cron_wrapper.py"
 LOG_DIR="$PROJECT_DIR/logs"
-LOG_FILE="$LOG_DIR/update_vector_stores.log"
-TMP_OUTPUT="$LOG_DIR/update_vector_stores.tmp"
+LOG_FILE="$LOG_DIR/reload_cron_wrapper.log"
+TMP_OUTPUT="$LOG_DIR/reload_cron_wrapper.tmp"
 
 # Asegura directorios
 mkdir -p "$LOG_DIR"
