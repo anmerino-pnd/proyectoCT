@@ -33,7 +33,7 @@ if grep -q -i "Vector store regenerado" "$TMP_OUTPUT" || grep -q -i "Vector stor
     echo "[INFO] Cambios detectados — recargando Gunicorn workers..." | tee -a "$LOG_FILE"
 
     # 3) Encontrar el PID del proceso master de gunicorn y enviar HUP
-    GUN_PID=$(pgrep -f "gunicorn: master" || true)
+    GUN_PID=$(pgrep -f "uvicorn" || true)
 
     if [ -n "$GUN_PID" ]; then
         echo "[INFO] PID master de gunicorn: $GUN_PID" | tee -a "$LOG_FILE"
