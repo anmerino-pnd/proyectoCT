@@ -32,17 +32,9 @@ cat "$TMP_OUTPUT" >> "$LOG_FILE"
 if grep -q -i "Vector store regenerado" "$TMP_OUTPUT" || grep -q -i "Vector store creado" "$TMP_OUTPUT"; then
     echo "[INFO] Cambios detectados — recargando Gunicorn workers..." | tee -a "$LOG_FILE"
 
-    # 3) Encontrar el PID del proceso master de gunicorn y enviar HUP
-    GUN_PID=$(pgrep -f "uvicorn" || true)
-
-    if [ -n "$GUN_PID" ]; then
-        echo "[INFO] PID master de gunicorn: $GUN_PID" | tee -a "$LOG_FILE"
-        kill -HUP "$GUN_PID" && echo "[INFO] Sent HUP to gunicorn master ($GUN_PID)" | tee -a "$LOG_FILE"
-    else
-        # Fallback: enviar HUP a procesos gunicorn (esto hará que master reinicie workers)
-        echo "[WARN] No se encontró 'gunicorn: master' via pgrep. Usando pkill -HUP gunicorn" | tee -a "$LOG_FILE"
-        pkill -HUP -f gunicorn && echo "[INFO] pkill -HUP executed" | tee -a "$LOG_FILE" || echo "[ERROR] pkill falló" | tee -a "$LOG_FILE"
-    fi
+    # 3) Reiniciar el PID del proceso master de gunicorn y enviar HUP
+    echo "[WARN] No se encontró 'gunicorn: master' via pgrep. Usando pkill -HUP gunicorn" | tee -a "$LOG_FILE"
+    pkill -HUP -f gunicorn && echo "[INFO] pkill -HUP executed" | tee -a "$LOG_FILE" || echo "[ERROR] pkill falló" | tee -a "$LOG_FILE"
 else
     echo "[INFO] No se detectaron cambios. No se recarga gunicorn." | tee -a "$LOG_FILE"
 fi
