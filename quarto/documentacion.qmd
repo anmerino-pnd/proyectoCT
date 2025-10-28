@@ -5,7 +5,7 @@ format:
     page-layout: article
 toc-title: "Tabla de Contenidos"
 toc: true
-toc-depth: 3
+toc-depth: 5
 ---
 
 ::: {style="text-align: justify"}
@@ -41,13 +41,14 @@ toc-depth: 3
 
 ### 1.4 Instalación del backend (API)
 
-1. Clonar el repositorio:
+#### 1.4.1 Clonar el repositorio
+
 ```bash
 git clone https://github.com/anmerino-pnd/proyectoCT
 cd proyectoCT
 ```
 
-2. Crear un entorno virtual e instalar dependencias:
+#### 1.4.2. Crear un entorno virtual e instalar dependencias
 
    Se recomienda usar `uv` por su eficiencia.
 
@@ -59,7 +60,7 @@ source .venv/bin/activate  # Para Linux/macOS
 uv pip install -e .
 ```
 
-3. Asegurarse de estar corriendo los programas necesarios en el ambiente:
+#### 1.4.3. Asegurarse de estar corriendo los programas necesarios en el ambiente
 
    Verifica que el servicio de Ollama esté instalado y activo, y que el modelo `gemma3:12b` esté disponible.
 
@@ -94,11 +95,17 @@ python3 -c "import redis; r = redis.Redis(host='localhost', port=6380); print(r.
 ```
 
   **NOTA**: En el caso que aparezca este error de Redis en los logs de las conversaciones:
-```
-Redis update failed: Command # 1 (HSET cebdab3b4c033ee7ada24b16b3fc09f0 0 {"lc": 1, "type": "constructor", "id": ["langchain",...) of pipeline caused error: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.
-```
 
+```console
+Redis update failed: Command # 1 (HSET cebdab3b4c033ee7ada24b16b3fc09f0 0 {"lc": 1, "type":
+"constructor", "id": ["langchain",...) of pipeline caused error: MISCONF Redis is configured to 
+save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the 
+data set are disabled, because this instance is configured to report errors during writes if RDB 
+snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details 
+about the RDB error.
+```
   Seguir estos pasos:
+
 ```bash
 # 1. Detener y eliminar el contenedor actual
 podman stop redis-semantic
@@ -135,7 +142,8 @@ exit
 # Ver que no haya errores
 podman logs redis-semantic | tail -20
 
-podman exec -it redis-semantic redis-cli CONFIG GET save    # Debería arrojar esto
+podman exec -it redis-semantic redis-cli CONFIG GET save    
+# Debería arrojar esto :
 # 1) "save"
 # 2) ""
 ```
@@ -173,7 +181,7 @@ db.tbl_mongo_collection_specifications.findOne()         # Ver un documento de e
 exit                        # Salir de mongosh
 ```
 
-4. Configurar variables de entorno:
+#### 1.4.4. Configurar variables de entorno
 
    Antes de levantar el *backend*, asegurarse de que el archivo `.env` en la raíz del proyecto contenga las siguientes variables con sus valores correctos. 
    
@@ -215,7 +223,7 @@ MONGO_COLLECTION_PEDIDOS="tbl_pedidos"
 PODMAN_REDIS_URL=redis://localhost:6379
 ```
 
-5. Levantar el backend con Gunicorn:
+#### 1.4.5. Levantar el backend con Gunicorn
 
   Este comando inicia la API, especificando el número de *workers*, el *binding* de IP y puerto, y la configuración de SSL/TLS para HTTPS.
 
@@ -225,7 +233,7 @@ nohup gunicorn ct.main:app   --workers 4   --bind 0.0.0.0:8000   --certfile=stat
 
   El uso de `nogup` y `&` asegura que el proceso continúe ejecutándose en segundo plano incluso si la sesión SSH se cierra.
 
-6. Regenerar el certificado SSL (si expira o es necesario):
+#### 1.4.6. Regenerar el certificado SSL (si expira o es necesario)
 
   Si el certificado SSL autofirmado ha expirado o necesitas uno nuevo:
 
@@ -235,7 +243,7 @@ openssl req -x509 -newkey rsa:2048 -nodes -keyout ssl/key.pem -out ssl/cert.pem�
 
   Asegurarse de que los archivos `cert.pem` y `key.pem` estén en la ruta `ssl` dentro de tu proyecto.
 
-7. Verificar logs:
+#### 1.4.7. Verificar logs
 
   Al correr la API con `nohup`, este genera un archivo `nohup.out`, con el cual podemos ver los logs del sistema, para eso solo hay que ubicarse en donde está dicho archivo y correr lo siguiente:
 
@@ -273,6 +281,7 @@ nohup streamlit run run_report.py --server.fileWatcherType none --server.port 30
 </body>
 </html>
 ```
+
 **Notas importantes para el `data-api-base`:**
 
 * Si la API corre en HTTP y el *frontend* en HTTPS, se enfrentarán problemas de "contenido mixto". La solución propuesta fue usar un archivo PHP (*backend* del sitio web) como intermediario, el cual es crucial aquí. La API debe apuntar a este PHP y el PHP a su *frontend* donde se encuentra el widget.
@@ -326,29 +335,29 @@ python3 -c "from ct.ETL.pipeline import update_all; update_all()"
   En sistemas **Linux**, esto se puede realizar fácilmente mediante un **cron job**.
 
 ```bash
-# Crea la carpeta de logs
-mkdir -p ~/proyectoCT/logs
+# Dar permisos de ejecución al archivo bash
+chmod +x ~/proyectoCT/reload_all.sh
 
 # Agregar la tarea al cron
 crontab -e
 
 # Añade la siguiente línea
-30 8-18 * * * ~/proyectoCT/.venv/bin/python3 ~/proyectoCT/src/ct/ETL/update_vector_stores.py >> ~/proyectoCT/logs/update_vector_stores.log 2>&1
+30 8-18 * * * ~/proyectoCT/reload_all.sh && pkill -HUP gunicorn >> ~/proyectoCT/logs/reload_cron_wrapper.log 2>&1
 
 # Verificar que se hizo correctamente con
 crontab -l
 
 # Cuando ya se haya ejecutado el flujo del cron, se puede revisar con
-cat ~/proyectoCT/logs/update_vector_stores.log
+cat ~/proyectoCT/logs/reload_cron_wrapper.log
 ```
 
 Comandos útiles de `cron`
 
-| Acción                  | Comando                            |
-|-------------------------|------------------------------------|
-| Ver tareas activas       | `crontab -l`                      |
-| Borrar todas las tareas  | `crontab -r`                      |
-| Pausar una tarea         | Editar y comentar la línea con `#`|
+| Acción                  | Comando                           |
+|-------------------------|-----------------------------------|
+| Ver tareas activas      | `crontab -l`                      |
+| Borrar todas las tareas | `crontab -r`                      |
+| Pausar una tarea        | Editar y comentar la línea con `#`|
 
 
 Cómo salir del editor
