@@ -502,21 +502,32 @@ about the RDB error.</code></pre>
 <ol start="3" type="1">
 <li><strong>Crontab del ETL (opcional)</strong>: Se recomienda automatizar la ejecución de este pipeline (por ejemplo, <strong>cada hora entre las 8:30 a 18:30</strong>) para mantener actualizada la base de conocimientos del chatbot.</li>
 </ol>
-<p>En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante un <strong>cron job</strong>.</p>
+<p>En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante un <strong>cron job</strong> y el archivo <code>reload_all.sh</code> que:</p>
+<ul>
+<li>Ejecuta <code>src/ct/ETL/update_vector_stores.py</code> usando el <code>python</code> del virtualenv del proyecto.</li>
+<li>Si detecta que el vector store fue regenerado, envía <code>SIGHUP</code> al proceso master de Gunicorn para forzar la recarga de todos los workers.</li>
+<li>Registra salida en <code>logs/reload_cron_wrapper.log</code>.</li>
+</ul>
 <div class="sourceCode" id="cb20"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Dar permisos de ejecución al archivo bash</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">chmod</span> +x ~/proyectoCT/reload_all.sh</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Agregar la tarea al cron</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Probar manualmente </span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="ex">~/proyectoCT/reload_all.sh</span></span>
 <span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Añade la siguiente línea</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="ex">30</span> 8-18 <span class="pp">*</span> <span class="pp">*</span> <span class="pp">*</span> ~/proyectoCT/reload_all.sh <span class="kw">&amp;&amp;</span> <span class="ex">pkill</span> <span class="at">-HUP</span> gunicorn <span class="op">&gt;&gt;</span> ~/proyectoCT/logs/reload_cron_wrapper.log <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Revisar el log</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-n</span> 200 ~/proyectoCT/logs/reload_cron_wrapper.log</span>
 <span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar que se hizo correctamente con</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Si no hubo fallas. Agregar la tarea al cron</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span>
 <span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Cuando ya se haya ejecutado el flujo del cron, se puede revisar con</span></span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> ~/proyectoCT/logs/reload_cron_wrapper.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Añade la siguiente línea</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="ex">30</span> 8-18 <span class="pp">*</span> <span class="pp">*</span> <span class="pp">*</span> ~/proyectoCT/reload_all.sh <span class="kw">&amp;&amp;</span> <span class="ex">pkill</span> <span class="at">-HUP</span> gunicorn <span class="op">&gt;&gt;</span> ~/proyectoCT/logs/reload_cron_wrapper.log <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar que se hizo correctamente con</span></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Cuando ya se haya ejecutado el flujo del cron, se puede revisar con</span></span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> ~/proyectoCT/logs/reload_cron_wrapper.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Comandos útiles de <code>cron</code></p>
 <table class="caption-top table">
 <thead>
