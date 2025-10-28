@@ -171,29 +171,38 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#manual-de-instalación-y-despliegue." id="toc-manual-de-instalación-y-despliegue." class="nav-link active" data-scroll-target="#manual-de-instalación-y-despliegue.">1 Manual de instalación y despliegue.</a>
-  <ul class="collapse">
+  <ul>
   <li><a href="#configuraciones-importantes" id="toc-configuraciones-importantes" class="nav-link" data-scroll-target="#configuraciones-importantes">1.1 Configuraciones importantes</a></li>
   <li><a href="#requisitios-del-sistema" id="toc-requisitios-del-sistema" class="nav-link" data-scroll-target="#requisitios-del-sistema">1.2 Requisitios del sistema</a></li>
   <li><a href="#dependencias-principales-del-sistema" id="toc-dependencias-principales-del-sistema" class="nav-link" data-scroll-target="#dependencias-principales-del-sistema">1.3 Dependencias principales del sistema</a></li>
-  <li><a href="#instalación-del-backend-api" id="toc-instalación-del-backend-api" class="nav-link" data-scroll-target="#instalación-del-backend-api">1.4 Instalación del backend (API)</a></li>
+  <li><a href="#instalación-del-backend-api" id="toc-instalación-del-backend-api" class="nav-link" data-scroll-target="#instalación-del-backend-api">1.4 Instalación del backend (API)</a>
+  <ul>
+  <li><a href="#clonar-el-repositorio" id="toc-clonar-el-repositorio" class="nav-link" data-scroll-target="#clonar-el-repositorio">1.4.1 Clonar el repositorio</a></li>
+  <li><a href="#crear-un-entorno-virtual-e-instalar-dependencias" id="toc-crear-un-entorno-virtual-e-instalar-dependencias" class="nav-link" data-scroll-target="#crear-un-entorno-virtual-e-instalar-dependencias">1.4.2. Crear un entorno virtual e instalar dependencias</a></li>
+  <li><a href="#asegurarse-de-estar-corriendo-los-programas-necesarios-en-el-ambiente" id="toc-asegurarse-de-estar-corriendo-los-programas-necesarios-en-el-ambiente" class="nav-link" data-scroll-target="#asegurarse-de-estar-corriendo-los-programas-necesarios-en-el-ambiente">1.4.3. Asegurarse de estar corriendo los programas necesarios en el ambiente</a></li>
+  <li><a href="#configurar-variables-de-entorno" id="toc-configurar-variables-de-entorno" class="nav-link" data-scroll-target="#configurar-variables-de-entorno">1.4.4. Configurar variables de entorno</a></li>
+  <li><a href="#levantar-el-backend-con-gunicorn" id="toc-levantar-el-backend-con-gunicorn" class="nav-link" data-scroll-target="#levantar-el-backend-con-gunicorn">1.4.5. Levantar el backend con Gunicorn</a></li>
+  <li><a href="#regenerar-el-certificado-ssl-si-expira-o-es-necesario" id="toc-regenerar-el-certificado-ssl-si-expira-o-es-necesario" class="nav-link" data-scroll-target="#regenerar-el-certificado-ssl-si-expira-o-es-necesario">1.4.6. Regenerar el certificado SSL (si expira o es necesario)</a></li>
+  <li><a href="#verificar-logs" id="toc-verificar-logs" class="nav-link" data-scroll-target="#verificar-logs">1.4.7. Verificar logs</a></li>
+  </ul></li>
   <li><a href="#instalación-del-frontend-widget" id="toc-instalación-del-frontend-widget" class="nav-link" data-scroll-target="#instalación-del-frontend-widget">1.5 Instalación del frontend (Widget)</a></li>
   <li><a href="#actualización-de-la-base-de-conocimientos-etl" id="toc-actualización-de-la-base-de-conocimientos-etl" class="nav-link" data-scroll-target="#actualización-de-la-base-de-conocimientos-etl">1.6 Actualización de la base de conocimientos (ETL)</a></li>
   <li><a href="#descargas-y-configuraciones-adicionales" id="toc-descargas-y-configuraciones-adicionales" class="nav-link" data-scroll-target="#descargas-y-configuraciones-adicionales">1.7 Descargas y configuraciones adicionales</a></li>
   <li><a href="#notas-adicionales" id="toc-notas-adicionales" class="nav-link" data-scroll-target="#notas-adicionales">1.8 Notas adicionales</a></li>
   </ul></li>
   <li><a href="#documentación-técnica-del-código" id="toc-documentación-técnica-del-código" class="nav-link" data-scroll-target="#documentación-técnica-del-código">2 Documentación técnica del código</a>
-  <ul class="collapse">
+  <ul>
   <li><a href="#estructura-de-carpetas-y-módulos" id="toc-estructura-de-carpetas-y-módulos" class="nav-link" data-scroll-target="#estructura-de-carpetas-y-módulos">2.1 Estructura de carpetas y módulos</a></li>
   <li><a href="#modelos-llm-utilizados" id="toc-modelos-llm-utilizados" class="nav-link" data-scroll-target="#modelos-llm-utilizados">2.2 Modelos LLM utilizados</a></li>
   <li><a href="#puntos-de-entrada-y-funciones-clave" id="toc-puntos-de-entrada-y-funciones-clave" class="nav-link" data-scroll-target="#puntos-de-entrada-y-funciones-clave">2.3 Puntos de entrada y funciones clave</a></li>
   </ul></li>
   <li><a href="#guía-de-entrenamiento-y-mejora" id="toc-guía-de-entrenamiento-y-mejora" class="nav-link" data-scroll-target="#guía-de-entrenamiento-y-mejora">3 Guía de entrenamiento y mejora</a>
-  <ul class="collapse">
+  <ul>
   <li><a href="#generación-de-la-base-de-datos-vectorial" id="toc-generación-de-la-base-de-datos-vectorial" class="nav-link" data-scroll-target="#generación-de-la-base-de-datos-vectorial">3.1 Generación de la base de datos vectorial</a></li>
   <li><a href="#recomendaciones-para-futura-mejora" id="toc-recomendaciones-para-futura-mejora" class="nav-link" data-scroll-target="#recomendaciones-para-futura-mejora">3.2 Recomendaciones para futura mejora</a></li>
   </ul></li>
   <li><a href="#diagrama-de-arquitectura" id="toc-diagrama-de-arquitectura" class="nav-link" data-scroll-target="#diagrama-de-arquitectura">4 Diagrama de arquitectura</a>
-  <ul class="collapse">
+  <ul>
   <li><a href="#componentes-clave" id="toc-componentes-clave" class="nav-link" data-scroll-target="#componentes-clave">4.1 Componentes clave</a></li>
   <li><a href="#flujo-de-interacción-principal" id="toc-flujo-de-interacción-principal" class="nav-link" data-scroll-target="#flujo-de-interacción-principal">4.2 Flujo de interacción principal</a></li>
   <li><a href="#flujo-de-datos" id="toc-flujo-de-datos" class="nav-link" data-scroll-target="#flujo-de-datos">4.3 Flujo de datos</a></li>
@@ -261,24 +270,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="instalación-del-backend-api" class="level3">
 <h3 class="anchored" data-anchor-id="instalación-del-backend-api">1.4 Instalación del backend (API)</h3>
-<ol type="1">
-<li>Clonar el repositorio:</li>
-</ol>
+<section id="clonar-el-repositorio" class="level4">
+<h4 class="anchored" data-anchor-id="clonar-el-repositorio">1.4.1 Clonar el repositorio</h4>
 <div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/anmerino-pnd/proyectoCT</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> proyectoCT</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<ol start="2" type="1">
-<li><p>Crear un entorno virtual e instalar dependencias:</p>
-<p>Se recomienda usar <code>uv</code> por su eficiencia.</p></li>
-</ol>
+</section>
+<section id="crear-un-entorno-virtual-e-instalar-dependencias" class="level4">
+<h4 class="anchored" data-anchor-id="crear-un-entorno-virtual-e-instalar-dependencias">1.4.2. Crear un entorno virtual e instalar dependencias</h4>
+<p>Se recomienda usar <code>uv</code> por su eficiencia.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install uv <span class="co"># En caso de no estar instalado</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> venv</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .venv/bin/activate  <span class="co"># Para Linux/macOS</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># o `.venv\Scripts\activate` para Windows</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> pip install <span class="at">-e</span> .</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<ol start="3" type="1">
-<li><p>Asegurarse de estar corriendo los programas necesarios en el ambiente:</p>
-<p>Verifica que el servicio de Ollama esté instalado y activo, y que el modelo <code>gemma3:12b</code> esté disponible.</p></li>
-</ol>
+</section>
+<section id="asegurarse-de-estar-corriendo-los-programas-necesarios-en-el-ambiente" class="level4">
+<h4 class="anchored" data-anchor-id="asegurarse-de-estar-corriendo-los-programas-necesarios-en-el-ambiente">1.4.3. Asegurarse de estar corriendo los programas necesarios en el ambiente</h4>
+<p>Verifica que el servicio de Ollama esté instalado y activo, y que el modelo <code>gemma3:12b</code> esté disponible.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> https://ollama.com/install.sh <span class="kw">|</span> <span class="fu">sh</span> <span class="co"># Para instalar Ollama</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ollama</span> serve</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ollama</span> list <span class="co"># Para verificar que el modelo gemma3:12b esté descargado y listo</span></span>
@@ -304,7 +312,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> logs redis-semantic</span>
 <span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-c</span> <span class="st">"import redis; r = redis.Redis(host='localhost', port=6380); print(r.ping())"</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>NOTA</strong>: En el caso que aparezca este error de Redis en los logs de las conversaciones:</p>
-<pre><code>Redis update failed: Command # 1 (HSET cebdab3b4c033ee7ada24b16b3fc09f0 0 {"lc": 1, "type": "constructor", "id": ["langchain",...) of pipeline caused error: MISCONF Redis is configured to save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the data set are disabled, because this instance is configured to report errors during writes if RDB snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details about the RDB error.</code></pre>
+<pre class="console"><code>Redis update failed: Command # 1 (HSET cebdab3b4c033ee7ada24b16b3fc09f0 0 {"lc": 1, "type":
+"constructor", "id": ["langchain",...) of pipeline caused error: MISCONF Redis is configured to 
+save RDB snapshots, but it's currently unable to persist to disk. Commands that may modify the 
+data set are disabled, because this instance is configured to report errors during writes if RDB 
+snapshotting fails (stop-writes-on-bgsave-error option). Please check the Redis logs for details 
+about the RDB error.</code></pre>
 <p>Seguir estos pasos:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Detener y eliminar el contenedor actual</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> stop redis-semantic</span>
@@ -341,9 +354,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a><span class="co"># Ver que no haya errores</span></span>
 <span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> logs redis-semantic <span class="kw">|</span> <span class="fu">tail</span> <span class="at">-20</span></span>
 <span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> exec <span class="at">-it</span> redis-semantic redis-cli CONFIG GET save    <span class="co"># Debería arrojar esto</span></span>
-<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a><span class="co"># 1) "save"</span></span>
-<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a><span class="co"># 2) ""</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> exec <span class="at">-it</span> redis-semantic redis-cli CONFIG GET save    </span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a><span class="co"># Debería arrojar esto :</span></span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a><span class="co"># 1) "save"</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a><span class="co"># 2) ""</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Configurar la instancia de <strong>Mongo local</strong> que almacena las fichas técnicas de los productos.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Crear y levantar el contenedor MongoDB</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> run <span class="at">-d</span> <span class="dt">\</span></span>
@@ -374,10 +388,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="fu">db.tbl_mongo_collection_specifications.countDocuments()</span>  <span class="co"># Contar documentos</span></span>
 <span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="fu">db.tbl_mongo_collection_specifications.findOne()</span>         <span class="co"># Ver un documento de ejemplo</span></span>
 <span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="bu">exit</span>                        <span class="co"># Salir de mongosh</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<ol start="4" type="1">
-<li><p>Configurar variables de entorno:</p>
-<p>Antes de levantar el <em>backend</em>, asegurarse de que el archivo <code>.env</code> en la raíz del proyecto contenga las siguientes variables con sus valores correctos.</p></li>
-</ol>
+</section>
+<section id="configurar-variables-de-entorno" class="level4">
+<h4 class="anchored" data-anchor-id="configurar-variables-de-entorno">1.4.4. Configurar variables de entorno</h4>
+<p>Antes de levantar el <em>backend</em>, asegurarse de que el archivo <code>.env</code> en la raíz del proyecto contenga las siguientes variables con sus valores correctos.</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Conexión a la base de datos SQL</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>ip<span class="op">=</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>port<span class="op">=</span></span>
@@ -413,25 +427,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>MONGO_COLLECTION_PEDIDOS<span class="op">=</span><span class="st">"tbl_pedidos"</span></span>
 <span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>PODMAN_REDIS_URL<span class="op">=</span>redis:<span class="op">//</span>localhost:<span class="dv">6379</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<ol start="5" type="1">
-<li>Levantar el backend con Gunicorn:</li>
-</ol>
+</section>
+<section id="levantar-el-backend-con-gunicorn" class="level4">
+<h4 class="anchored" data-anchor-id="levantar-el-backend-con-gunicorn">1.4.5. Levantar el backend con Gunicorn</h4>
 <p>Este comando inicia la API, especificando el número de <em>workers</em>, el <em>binding</em> de IP y puerto, y la configuración de SSL/TLS para HTTPS.</p>
 <div class="sourceCode" id="cb9"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nohup</span> gunicorn ct.main:app   <span class="at">--workers</span> 4   <span class="at">--bind</span> 0.0.0.0:8000   <span class="at">--certfile</span><span class="op">=</span>static/ssl/cert.pem   <span class="at">--keyfile</span><span class="op">=</span>static/ssl/key.pem   <span class="at">-k</span> uvicorn.workers.UvicornWorker <span class="at">--timeout</span> 120 <span class="at">--access-logfile</span> <span class="at">-</span>   <span class="at">--error-logfile</span> <span class="at">-</span> <span class="kw">&amp;</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>El uso de <code>nogup</code> y <code>&amp;</code> asegura que el proceso continúe ejecutándose en segundo plano incluso si la sesión SSH se cierra.</p>
-<ol start="6" type="1">
-<li>Regenerar el certificado SSL (si expira o es necesario):</li>
-</ol>
+</section>
+<section id="regenerar-el-certificado-ssl-si-expira-o-es-necesario" class="level4">
+<h4 class="anchored" data-anchor-id="regenerar-el-certificado-ssl-si-expira-o-es-necesario">1.4.6. Regenerar el certificado SSL (si expira o es necesario)</h4>
 <p>Si el certificado SSL autofirmado ha expirado o necesitas uno nuevo:</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">openssl</span> req <span class="at">-x509</span> <span class="at">-newkey</span> rsa:2048 <span class="at">-nodes</span> <span class="at">-keyout</span> ssl/key.pem <span class="at">-out</span> ssl/cert.pem&nbsp;-days&nbsp;365</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Asegurarse de que los archivos <code>cert.pem</code> y <code>key.pem</code> estén en la ruta <code>ssl</code> dentro de tu proyecto.</p>
-<ol start="7" type="1">
-<li>Verificar logs:</li>
-</ol>
+</section>
+<section id="verificar-logs" class="level4">
+<h4 class="anchored" data-anchor-id="verificar-logs">1.4.7. Verificar logs</h4>
 <p>Al correr la API con <code>nohup</code>, este genera un archivo <code>nohup.out</code>, con el cual podemos ver los logs del sistema, para eso solo hay que ubicarse en donde está dicho archivo y correr lo siguiente:</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-f</span> nohup.out</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Los logs también se pueden analizar para el reporte automatizado</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">nohup</span> streamlit run run_report.py <span class="at">--server.fileWatcherType</span> none <span class="at">--server.port</span> 3000 <span class="kw">&amp;</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
 </section>
 <section id="instalación-del-frontend-widget" class="level3">
 <h3 class="anchored" data-anchor-id="instalación-del-frontend-widget">1.5 Instalación del frontend (Widget)</h3>
@@ -488,20 +503,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Crontab del ETL (opcional)</strong>: Se recomienda automatizar la ejecución de este pipeline (por ejemplo, <strong>cada hora entre las 8:30 a 18:30</strong>) para mantener actualizada la base de conocimientos del chatbot.</li>
 </ol>
 <p>En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante un <strong>cron job</strong>.</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Crea la carpeta de logs</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> ~/proyectoCT/logs</span>
+<div class="sourceCode" id="cb20"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Dar permisos de ejecución al archivo bash</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="fu">chmod</span> +x ~/proyectoCT/reload_all.sh</span>
 <span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Agregar la tarea al cron</span></span>
 <span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span>
 <span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Añade la siguiente línea</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="ex">30</span> 8-18 <span class="pp">*</span> <span class="pp">*</span> <span class="pp">*</span> ~/proyectoCT/.venv/bin/python3 ~/proyectoCT/src/ct/ETL/update_vector_stores.py <span class="op">&gt;&gt;</span> ~/proyectoCT/logs/update_vector_stores.log <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="ex">30</span> 8-18 <span class="pp">*</span> <span class="pp">*</span> <span class="pp">*</span> ~/proyectoCT/reload_all.sh <span class="kw">&amp;&amp;</span> <span class="ex">pkill</span> <span class="at">-HUP</span> gunicorn <span class="op">&gt;&gt;</span> ~/proyectoCT/logs/reload_cron_wrapper.log <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span>
 <span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar que se hizo correctamente con</span></span>
 <span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
 <span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Cuando ya se haya ejecutado el flujo del cron, se puede revisar con</span></span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> ~/proyectoCT/logs/update_vector_stores.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> ~/proyectoCT/logs/reload_cron_wrapper.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Comandos útiles de <code>cron</code></p>
 <table class="caption-top table">
 <thead>
