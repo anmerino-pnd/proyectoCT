@@ -352,7 +352,7 @@ tail -n 200 ~/proyectoCT/logs/reload_cron_wrapper.log
 crontab -e
 
 # Añade la siguiente línea
-30 8-18 * * * ~/proyectoCT/reload_all.sh && pkill -HUP gunicorn >> ~/proyectoCT/logs/reload_cron_wrapper.log 2>&1
+30 8-18 * * 1-6 ~/proyectoCT/reload_all.sh >> ~/proyectoCT/logs/reload_cron_wrapper.log 2>&1
 
 # Verificar que se hizo correctamente con
 crontab -l
