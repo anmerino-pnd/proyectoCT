@@ -521,7 +521,7 @@ about the RDB error.</code></pre>
 <span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span>
 <span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Añade la siguiente línea</span></span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="ex">30</span> 8-18 <span class="pp">*</span> <span class="pp">*</span> <span class="pp">*</span> ~/proyectoCT/reload_all.sh <span class="kw">&amp;&amp;</span> <span class="ex">pkill</span> <span class="at">-HUP</span> gunicorn <span class="op">&gt;&gt;</span> ~/proyectoCT/logs/reload_cron_wrapper.log <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a><span class="ex">30</span> 8-18 <span class="pp">*</span> <span class="pp">*</span> 1-6 ~/proyectoCT/reload_all.sh <span class="op">&gt;&gt;</span> ~/proyectoCT/logs/reload_cron_wrapper.log <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span>
 <span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar que se hizo correctamente con</span></span>
 <span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
