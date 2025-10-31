@@ -9,7 +9,7 @@ datos/vectorstores/
 datos/idSucursal.json
 datos/productos_raw.json
 datos/sucursales.csv
-
+datos/partnerCT
 notebooks/
 src/proyectoct.egg-info/
 static/ssl/

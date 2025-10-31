@@ -3,11 +3,11 @@ import json
 import ollama
 from ct.settings.config import BASE_KNOWLEDGE
 
-def guide_creation(folder_path: str):
+def guide_creation(folder_path: str, model: str = "gemma3:27b"):
     image_paths = [
         os.path.join(folder_path, f)
         for f in os.listdir(folder_path)
-        if f.endswith(".jpg")
+        if f.lower().endswith((".jpg", ".jpeg", ".png"))
     ]
     image_paths.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
 
@@ -20,7 +20,7 @@ def guide_creation(folder_path: str):
         current_group = image_paths[i:i+3]
 
         response = ollama.chat(
-            model="gemma3:27b",
+            model=model,
             messages=[
                 {"role": "system", "content": f"""
     Eres un asistente que redacta tutoriales claros y completos para la empresa CT Internacional.
