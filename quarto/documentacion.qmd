@@ -366,7 +366,7 @@ crontab -l
 cat ~/proyectoCT/logs/reload_cron_wrapper.log
 ```
 
-  Para actualizar las ofertas, que cada mes se cargan, solo es necesario agregar la siguiente tarea 
+  Para actualizar las ofertas, que cada mes se cargan, solo es necesario agregar la siguiente tarea:
 
 ```bash
 chmod +x ~/proyectoCT/reload_sales.sh
@@ -378,6 +378,20 @@ crontab -e
 
 # Cada 1° y 2° de cada mes se ejecuta la tarea
 0 9 1,2 * * ~/proyectoCT/reload_sales.sh 
+```
+
+  Para agregar ofertas que se vayan agregando a lo largo de la semana:
+
+```bash
+chmod +x ~/proyectoCT/update_sales.sh
+
+~/proyectoCT/update_sales.sh
+
+# Agregar la tarea
+crontab -e
+
+# Cada 1° y 2° de cada mes se ejecuta la tarea
+0 10-17 * * 1-6 ~/proyectoCT/reload_sales.sh 
 ```
 
 Comandos útiles de `cron`
