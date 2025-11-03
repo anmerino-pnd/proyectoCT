@@ -390,8 +390,8 @@ chmod +x ~/proyectoCT/update_sales.sh
 # Agregar la tarea
 crontab -e
 
-# Cada 1° y 2° de cada mes se ejecuta la tarea
-0 10-17 * * 1-6 ~/proyectoCT/reload_sales.sh 
+# A partir del 2 de cada mes hasta que acabe el mes, agrega promociones que se hayan subido
+0 10-19 2-31 * 1-6 ~/proyectoCT/update_sales.sh 
 ```
 
 Comandos útiles de `cron`
