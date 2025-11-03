@@ -164,25 +164,29 @@ class Load:
         products_vs.save_local(str(SALES_PRODUCTS_VECTOR_PATH))
         return print("Vector store de productos y ofertas creado y guardado en disco.")
 
-    def add_products(self):
-        productos_vectorstore = FAISS.load_local(
-            folder_path=str(PRODUCTS_VECTOR_PATH),
+    def add_products(self, folder_path: str, collection_name: str):
+        vectorstore = FAISS.load_local(
+            folder_path=str(folder_path),
             embeddings=OpenAIEmbeddings(openai_api_key=api_key),
             allow_dangerous_deserialization=True
         )
 
-        unique_products = list(set([doc.metadata["clave"] for doc in productos_vectorstore.docstore._dict.values()]))
-        ids_nuevos = self.clean_data.data.update_products(unique_products)
-        if ids_nuevos == []:
-            print("Advertencia: No hay productos nuevos para cargar.")
-            return False
-        new_products = self.clean_data.clean_products(ids_nuevos)
+        unique_products = list(set([doc.metadata["clave"] for doc in vectorstore.docstore._dict.values()]))
         
-        docs = self._create_documents_with_context(new_products, 'productos')
+        if collection_name == 'productos':
+            ids_nuevos = self.clean_data.data.update_products(unique_products)
+            if ids_nuevos == []:
+                print("Advertencia: No hay productos nuevos para cargar.")
+                return False
+            new_products = self.clean_data.clean_products(ids_nuevos)
+            docs = self._create_documents_with_context(new_products, collection_name)
+        elif collection_name == 'promociones':
+            new_sales = self.clean_data.clean_sales(ids_nuevos)
+            docs = self._create_documents_with_context(new_sales, collection_name)
+        
+        vectorstore.add_documents(docs)
 
-        productos_vectorstore.add_documents(docs)
-
-        productos_vectorstore.save_local(str(PRODUCTS_VECTOR_PATH))
+        vectorstore.save_local(str(folder_path))
         print(f"Cantidad de documentos nuevos agregados: {len(docs)}")
         return True
     

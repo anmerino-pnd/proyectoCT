@@ -1,3 +1,8 @@
+from ct.settings.config import (
+    PRODUCTS_VECTOR_PATH, 
+    SALES_VECTOR_PATH, 
+    SALES_PRODUCTS_VECTOR_PATH
+    )
 from ct.ETL.load import Load
 
 load = Load()
@@ -19,7 +24,7 @@ def update_products():
     """
     Actualiza la lista de productos, insertando los faltantes sin procesar todos los productos ya procesados.
     """
-    flag = load.add_products()
+    flag = load.add_products(folder_path=PRODUCTS_VECTOR_PATH, collection_name='productos')
     return flag
 
 def load_sales():
@@ -34,7 +39,7 @@ def load_sales():
         load.sales_vs(sales_docs)
         print("✅ Vector store de ventas (ofertas) actualizado correctamente.")
     else:
-        print("No se pudo actualizar el vector store de ventas.")
+        print("No hay ofertas para cargar.")
 
 def load_sales_products():
     """Combina los vector stores de productos y ofertas."""

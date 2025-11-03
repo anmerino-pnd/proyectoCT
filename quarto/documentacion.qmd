@@ -332,7 +332,7 @@ python3 -c "from ct.ETL.pipeline import update_all; update_all()"
   3. **Crontab del ETL (opcional)**:
   Se recomienda automatizar la ejecución de este pipeline (por ejemplo, **cada hora entre las 8:30 a 18:30**) para mantener actualizada la base de conocimientos del chatbot.  
 
-  En sistemas **Linux**, esto se puede realizar fácilmente mediante un **cron job** y el archivo `reload_all.sh` que:
+  En sistemas **Linux**, esto se puede realizar fácilmente mediante un **cron job** y el archivo `reload_products.sh` que:
 
   - Ejecuta `src/ct/ETL/update_vector_stores.py` usando el `python` del virtualenv del proyecto.
   - Si detecta que el vector store fue regenerado, envía `SIGHUP` al proceso master de Gunicorn para forzar la recarga de todos los workers.
@@ -340,10 +340,10 @@ python3 -c "from ct.ETL.pipeline import update_all; update_all()"
 
 ```bash
 # Dar permisos de ejecución al archivo bash
-chmod +x ~/proyectoCT/reload_all.sh
+chmod +x ~/proyectoCT/reload_products.sh
 
 # Probar manualmente 
-~/proyectoCT/reload_all.sh
+~/proyectoCT/reload_products.sh
 
 # Revisar el log
 tail -n 200 ~/proyectoCT/logs/reload_cron_wrapper.log
@@ -352,13 +352,27 @@ tail -n 200 ~/proyectoCT/logs/reload_cron_wrapper.log
 crontab -e
 
 # Añade la siguiente línea
-30 8-18 * * 1-6 ~/proyectoCT/reload_all.sh >> ~/proyectoCT/logs/reload_cron_wrapper.log 2>&1
+30 8-18 * * 1-6 ~/proyectoCT/reload_products.sh >> ~/proyectoCT/logs/reload_cron_wrapper.log 2>&1
 
 # Verificar que se hizo correctamente con
 crontab -l
 
 # Cuando ya se haya ejecutado el flujo del cron, se puede revisar con
 cat ~/proyectoCT/logs/reload_cron_wrapper.log
+```
+
+  Para actualizar las ofertas, que cada mes se cargan, solo es necesario agregar la siguiente tarea 
+
+```bash
+chmod +x ~/proyectoCT/reload_sales.sh
+
+~/proyectoCT/reload_sales.sh
+
+# Agregar la tarea
+crontab -e
+
+# Cada 1° y 2° de cada mes se ejecuta la tarea
+30 10 1,2 * * ~/proyectoCT/reload_sales.sh 
 ```
 
 Comandos útiles de `cron`
