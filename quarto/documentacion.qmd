@@ -319,6 +319,11 @@ python3 -c "from ct.ETL.pipeline import update_products; update_products()"
 python3 -c "from ct.ETL.pipeline import load_sales; load_sales()"
 ```
 
+  Para cada promoción o promociones nuevas que fueron cargadas después del inicio del mes, este método busca promociones faltantes y los agrega a la base de datos.
+```bash
+python3 -c "from ct.ETL.pipeline import update_sales; update_sales()"
+```
+
   Una vez que ya se tienen las dos bases vectoriales, es necesario combinarlos y cargarlos.
 ```bash
 python3 -c "from ct.ETL.pipeline import load_sales_products; load_sales_products()"
@@ -372,7 +377,7 @@ chmod +x ~/proyectoCT/reload_sales.sh
 crontab -e
 
 # Cada 1° y 2° de cada mes se ejecuta la tarea
-30 10 1,2 * * ~/proyectoCT/reload_sales.sh 
+0 9 1,2 * * ~/proyectoCT/reload_sales.sh 
 ```
 
 Comandos útiles de `cron`

@@ -1,7 +1,6 @@
 from ct.settings.config import (
     PRODUCTS_VECTOR_PATH, 
-    SALES_VECTOR_PATH, 
-    SALES_PRODUCTS_VECTOR_PATH
+    SALES_VECTOR_PATH
     )
 from ct.ETL.load import Load
 
@@ -29,17 +28,27 @@ def update_products():
 
 def load_sales():
     """
-    Actualiza únicamente el vector store de ventas (ofertas).
-    Carga primero el vector store de productos (si es necesario)
-    y actualiza solo las ofertas.
+    Carga únicamente el vector store de ventas (ofertas).
     """
-    print("\n--- Actualizando ventas (ofertas) ---")
+    print("\n--- Cargando ventas (ofertas) ---")
     sales_docs = load.load_sales()
     if sales_docs:
         load.sales_vs(sales_docs)
-        print("✅ Vector store de ventas (ofertas) actualizado correctamente.")
+        print("✅ Vector store de ventas (ofertas) cargado correctamente.")
     else:
         print("No hay ofertas para cargar.")
+
+def update_sales():
+    """
+    Actualiza únicamente el vector store de ventas (ofertas).
+    Carga primero el vector store y actualiza solo las ofertas.
+    """
+    print("\n--- Actualizando ventas (ofertas) ---")
+    flag = load.add_products(folder_path=SALES_VECTOR_PATH, collection_name='promociones')
+    if flag:
+        print("✅ Vector store de ventas (ofertas) actualizado correctamente.")
+    else:
+        print("No hay ofertas para actualizar.")
 
 def load_sales_products():
     """Combina los vector stores de productos y ofertas."""

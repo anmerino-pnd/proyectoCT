@@ -100,7 +100,6 @@ class Extraction():
       """
       return query
 
-
   def get_products(self, ids_validos: list) -> pd.DataFrame:
     print(ids_validos)
     try:
@@ -198,6 +197,84 @@ ORDER BY
       sales = pd.DataFrame(datos, columns=columnas)
 
       return sales
+    except mysql.connector.Error as err:
+      if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+          print("Hay un error con la contraseña o el usuario")
+      elif err.errno == errorcode.ER_BAD_DB_ERROR:
+          print("La base de datos no existe")
+      else:
+          print(err)
+      return None
+    finally:
+      if 'cursor' in locals() and cursor is not None:
+          cursor.close()
+      if 'cnx' in locals() and cnx is not None:
+          cnx.close()
+
+  def sales_query(self, id):
+      query = f"""
+        SELECT 
+            pros.idProducto,
+            pro.descripcion_corta_icecat AS nombre,  
+            pros.producto                      AS clave,  
+            cat.nombre                        AS categoria,
+            m.nombre                          AS marca,
+            pro.tipo, 
+            pro.modelo, 
+            pro.descripcion, 
+            pro.descripcion_corta,
+            pro.palabrasClave
+        FROM promociones pros
+        INNER JOIN productos pro  
+            ON pro.idProductos = pros.idProducto
+        LEFT JOIN precio pre 
+            ON pros.idProducto = pre.idProducto
+        LEFT JOIN categorias cat 
+            ON pro.idCategoria = cat.idCategoria
+        LEFT JOIN marcas m 
+            ON pro.idMarca = m.idMarca
+        WHERE 
+            -- promoción ya empezó y sigue activa hoy
+            pros.fecha_fin    >= CURRENT_DATE
+
+            -- más validaciones
+            AND pre.idMoneda IS NOT NULL
+            AND pros.producto IN ({id})
+
+        GROUP BY 
+            pros.idProducto 
+        ORDER BY 
+            pros.importe     ASC,
+            pre.listaPrecio;
+      """
+      return query
+
+  def get_sales(self, ids_validos: list) -> pd.DataFrame:
+    print(ids_validos)
+    try:
+      cnx = mysql.connector.connect(
+          host=self.ip,
+          port=self.port,
+          user=self.user,
+          password=self.pwd,
+          database=self.database,
+          read_timeout=60,
+          write_timeout=15
+      )
+      cursor = cnx.cursor(buffered=False)
+      filas = []
+      for id in ids_validos:
+          cursor.execute(self.product_query(id))
+          filas.append(cursor.fetchall())
+      columnas = [desc[0] for desc in cursor.description]
+      datos = []
+      for file in filas:
+          for producto in file:
+              datos.append(producto)
+      print(f"Cantidad de ofertas: {len(datos)}")
+      productos = pd.DataFrame(datos, columns=columnas)
+      return productos
+    
     except mysql.connector.Error as err:
       if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
           print("Hay un error con la contraseña o el usuario")
@@ -389,7 +466,59 @@ ORDER BY
           for clave_nueva in claves_nuevas:
               print(clave_nueva)
               cursor.execute(
-                  "SELECT idProductos FROM productos WHERE clave = %s",
+                  "SELECT DISTINCT idProductos FROM productos WHERE clave = %s",
+                  (clave_nueva,)
+              )
+              row = cursor.fetchone()
+              if row:
+                  ids_validos.append(row[0])  # ← solo el número, no la tupla
+
+          return ids_validos
+
+      except mysql.connector.Error as err:
+          if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+              print("❌ Error: usuario o contraseña incorrectos.")
+          elif err.errno == errorcode.ER_BAD_DB_ERROR:
+              print("❌ Error: la base de datos no existe.")
+          else:
+              print(f"❌ Error de MySQL: {err}")
+          return [] 
+      finally:
+          if cursor:
+              cursor.close()
+          if cnx:
+              cnx.close()
+
+  def update_sales(self, claves_guardadas) -> list:
+      query = """
+        SELECT DISTINCT pro.producto
+        FROM promociones pro
+        JOIN existencias e ON pro.idProducto = e.idProductos
+        JOIN precio pre ON pro.idProducto = pre.idProducto;
+      """
+      cnx = None
+      cursor = None
+      try:
+          cnx = mysql.connector.connect(
+              host=self.ip,
+              port=self.port,
+              user=self.user,
+              password=self.pwd,
+              database=self.database,
+              read_timeout=60,
+              write_timeout=15
+          )
+          cursor = cnx.cursor(buffered=False)
+          cursor.execute(query)
+          claves_actuales = [row[0] for row in cursor.fetchall()]
+          claves_nuevas: list = list(set(claves_actuales) - set(claves_guardadas))
+          print(f"Número de nuevas claves: {len(claves_nuevas)}")
+
+          ids_validos = []
+          for clave_nueva in claves_nuevas:
+              print(clave_nueva)
+              cursor.execute(
+                  "SELECT DISTINCT idProducto FROM promociones WHERE producto = %s",
                   (clave_nueva,)
               )
               row = cursor.fetchone()

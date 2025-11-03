@@ -181,7 +181,12 @@ class Load:
             new_products = self.clean_data.clean_products(ids_nuevos)
             docs = self._create_documents_with_context(new_products, collection_name)
         elif collection_name == 'promociones':
-            new_sales = self.clean_data.clean_sales(ids_nuevos)
+            ids_nuevos = self.clean_data.data.update_sales(unique_products)
+            if ids_nuevos == []:
+                print("Advertencia: No hay ofertas nuevas para cargar.")
+                return False
+            sales_raw = self.clean_data.data.get_sales(ids_nuevos)
+            new_sales = self.clean_data.clean_sales(sales_raw)
             docs = self._create_documents_with_context(new_sales, collection_name)
         
         vectorstore.add_documents(docs)
