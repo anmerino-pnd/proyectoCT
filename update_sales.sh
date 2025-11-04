@@ -35,7 +35,7 @@ fi
 # --- Ejecutar load_sales_products ---
 echo "[INFO] Cargando productos relacionados a las ofertas" | tee -a "$LOG_FILE"
 if PYTHONPATH="$PROJECT_DIR/src" "$VENV_PY" -c "from ct.ETL.pipeline import load_sales_products; load_sales_products()" >> "$TMP_OUTPUT" 2>&1; then
-    echo "[INFO] load_sales_products() ejecutado correctamente" | tee -a "$LOG_FILE"
+    echo "[INFO] load_sales_products() ejecutado correctamente." | tee -a "$LOG_FILE"
 else 
     echo "[ERROR] Falló load_sales_products(). Ver salida en $TMP_OUTPUT" | tee -a "$LOG_FILE"
     cat "$TMP_OUTPUT" >> "$LOG_FILE"

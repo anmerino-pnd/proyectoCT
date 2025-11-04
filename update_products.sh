@@ -15,7 +15,8 @@ mkdir -p "$LOG_DIR"
 echo "---- $(date +"%Y-%m-%d %H:%M:%S %Z") START ----" >> "$LOG_FILE"
 
 echo "[INFO] Ejecutando ETL: $ETL_SCRIPT" | tee -a "$LOG_FILE"
-if PYTHONPATH="$PROJECT_DIR/src" "$VENV_PY" "$ETL_SCRIPT" >> "$TMP_OUTPUT" 2>&1 
+if PYTHONPATH="$PROJECT_DIR/src" "$VENV_PY" "$ETL_SCRIPT" >> "$TMP_OUTPUT" 2>&1; then
+    echo "[INFO] ETL ejecutado correctamente."
 else
     echo "[ERROR] Falló la ejecución del ETL. Ver salida en $TMP_OUTPUT" | tee -a "$LOG_FILE"
     cat "$TMP_OUTPUT" >> "$LOG_FILE"
