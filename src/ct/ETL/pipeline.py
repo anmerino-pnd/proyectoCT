@@ -34,7 +34,7 @@ def load_sales():
     sales_docs = load.load_sales()
     if sales_docs:
         load.sales_vs(sales_docs)
-        print("✅ Vector store de ventas (ofertas) cargado correctamente.")
+        print("Vector store de ventas (ofertas) cargado correctamente.")
     else:
         print("No hay ofertas para cargar.")
 
@@ -46,7 +46,7 @@ def update_sales():
     print("\n--- Actualizando ventas (ofertas) ---")
     flag = load.add_products(folder_path=SALES_VECTOR_PATH, collection_name='promociones')
     if flag:
-        print("✅ Vector store de ventas (ofertas) actualizado correctamente.")
+        print("Vector store de ventas (ofertas) actualizado correctamente.")
     else:
         print("No hay ofertas para actualizar.")
 

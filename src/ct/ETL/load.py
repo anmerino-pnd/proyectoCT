@@ -172,6 +172,7 @@ class Load:
         )
 
         unique_products = list(set([doc.metadata["clave"] for doc in vectorstore.docstore._dict.values()]))
+        print(f"Cantidad de {collection_name} actualmente: {len(unique_products)}")
         
         if collection_name == 'productos':
             ids_nuevos = self.clean_data.data.update_products(unique_products)

@@ -377,7 +377,11 @@ chmod +x ~/proyectoCT/reload_sales.sh
 crontab -e
 
 # Cada 1° y 2° de cada mes se ejecuta la tarea
-0 9 1,2 * * ~/proyectoCT/reload_sales.sh 
+0 9 1,2 * * ~/proyectoCT/reload_sales.sh
+
+crontab -l
+
+cat ~/proyectoCT/logs/monthly_sales_etl.log
 ```
 
   Para agregar ofertas que se vayan agregando a lo largo de la semana:
@@ -392,6 +396,10 @@ crontab -e
 
 # A partir del 2 de cada mes hasta que acabe el mes, agrega promociones que se hayan subido
 0 10-19 2-31 * 1-6 ~/proyectoCT/update_sales.sh 
+
+crontab -l
+
+cat ~/proyectoCT/logs/update_sales.log
 ```
 
 Comandos útiles de `cron`

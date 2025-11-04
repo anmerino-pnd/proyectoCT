@@ -7,8 +7,8 @@ PROJECT_DIR="$HOME/proyectoCT"
 VENV_PY="$PROJECT_DIR/.venv/bin/python3"
 ETL_SCRIPT="$PROJECT_DIR/src/ct/ETL/update_vector_stores.py"
 LOG_DIR="$PROJECT_DIR/logs"
-LOG_FILE="$LOG_DIR/reload_cron_wrapper.log"
-TMP_OUTPUT="$LOG_DIR/reload_cron_wrapper.tmp"
+LOG_FILE="$LOG_DIR/update_products.log"
+TMP_OUTPUT="$LOG_DIR/update_products.tmp"
 
 mkdir -p "$LOG_DIR"
 
@@ -24,9 +24,10 @@ PYTHONPATH="$PROJECT_DIR/src" "$VENV_PY" "$ETL_SCRIPT" >> "$TMP_OUTPUT" 2>&1 || 
 
 cat "$TMP_OUTPUT" >> "$LOG_FILE"
 
-if grep -q -i "Vector store regenerado" "$TMP_OUTPUT" || grep -q -i "Vector store creado" "$TMP_OUTPUT"; then
+if grep -q -i "Vector store regenerado" "$TMP_OUTPUT"; then
     echo "[INFO] Cambios detectados — recargando Gunicorn workers..." | tee -a "$LOG_FILE"
-    pkill -HUP -f gunicorn && echo "[INFO] pkill -HUP executed" | tee -a "$LOG_FILE" || echo "[ERROR] pkill falló" | tee -a "$LOG_FILE"
+    pkill -HUP -f gunicorn && echo "[INFO] pkill -HUP executed" | tee -a "$LOG_FILE" 
+    || echo "[ERROR] pkill falló" | tee -a "$LOG_FILE"
 else
     echo "[INFO] No se detectaron cambios. No se recarga gunicorn." | tee -a "$LOG_FILE"
 fi

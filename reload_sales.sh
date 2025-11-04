@@ -8,7 +8,15 @@ VENV_PY="$PROJECT_DIR/.venv/bin/python3"
 LOG_DIR="$PROJECT_DIR/logs"
 LOG_FILE="$LOG_DIR/monthly_sales_etl.log"
 TMP_OUTPUT="$LOG_DIR/monthly_sales_etl.tmp"
-LOCK_FILE="$LOG_DIR/monthly_sales_etl.lock"  # ← NUEVO
+LOCK_FILE="$LOG_DIR/monthly_sales_etl.lock"  
+
+if [ -f "$PROJECT_DIR/.env" ]; then
+    set -a  # exporta automáticamente todas las variables leídas
+    source "$PROJECT_DIR/.env"
+    set +a
+else
+    echo "[WARN] No se encontró el archivo .env en $PROJECT_DIR/.env" >&2
+fi
 
 mkdir -p "$LOG_DIR"
 
@@ -18,6 +26,7 @@ day_of_week=$(date +%u)
 
 # Si no es día 1 ni 2, salir
 if [[ "$day_of_month" != "01" && "$day_of_month" != "02" ]]; then
+    echo "[$(date)] Se ejecutó fuera de la fecha correspondiente."
     exit 0
 fi
 
@@ -44,7 +53,6 @@ fi
 
 echo "---- $(date +"%Y-%m-%d %H:%M:%S %Z") START ----" >> "$LOG_FILE"
 
-# --- Ejecución de los scripts Python ---
 echo "[INFO] Ejecutando carga mensual de ventas" | tee -a "$LOG_FILE"
 PYTHONPATH="$PROJECT_DIR/src" "$VENV_PY" -c "from ct.ETL.pipeline import load_sales; load_sales()" >> "$TMP_OUTPUT" 2>&1
 
@@ -60,9 +68,10 @@ fi
 cat "$TMP_OUTPUT" >> "$LOG_FILE"
 
 # --- Lógica de recarga de Gunicorn ---
-if grep -qiE "✅ Vector store de ventas (ofertas) actualizado correctamente." "$TMP_OUTPUT"; then
+if grep -qiE "Vector stores combinados exitosamente" "$TMP_OUTPUT"; then
     echo "[INFO] Cambios detectados — recargando Gunicorn workers..." | tee -a "$LOG_FILE"
-    pkill -HUP -f gunicorn && echo "[INFO] pkill -HUP ejecutado" | tee -a "$LOG_FILE" || echo "[ERROR] pkill falló" | tee -a "$LOG_FILE"
+    pkill -HUP -f gunicorn && echo "[INFO] pkill -HUP ejecutado" | tee -a "$LOG_FILE" 
+    || echo "[ERROR] pkill falló" | tee -a "$LOG_FILE"
 else
     echo "[INFO] No se detectaron cambios. No se recarga Gunicorn." | tee -a "$LOG_FILE"
 fi
