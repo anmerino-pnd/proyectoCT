@@ -15,19 +15,23 @@ mkdir -p "$LOG_DIR"
 echo "---- $(date +"%Y-%m-%d %H:%M:%S %Z") START ----" >> "$LOG_FILE"
 
 echo "[INFO] Ejecutando ETL: $ETL_SCRIPT" | tee -a "$LOG_FILE"
-PYTHONPATH="$PROJECT_DIR/src" "$VENV_PY" "$ETL_SCRIPT" >> "$TMP_OUTPUT" 2>&1 || {
+if PYTHONPATH="$PROJECT_DIR/src" "$VENV_PY" "$ETL_SCRIPT" >> "$TMP_OUTPUT" 2>&1 
+else
     echo "[ERROR] Falló la ejecución del ETL. Ver salida en $TMP_OUTPUT" | tee -a "$LOG_FILE"
     cat "$TMP_OUTPUT" >> "$LOG_FILE"
     echo "---- $(date +"%Y-%m-%d %H:%M:%S %Z") END (ETL FAIL) ----" >> "$LOG_FILE"
     exit 1
-}
+fi
 
 cat "$TMP_OUTPUT" >> "$LOG_FILE"
 
 if grep -q -i "Vector store regenerado" "$TMP_OUTPUT"; then
     echo "[INFO] Cambios detectados — recargando Gunicorn workers..." | tee -a "$LOG_FILE"
-    pkill -HUP -f gunicorn && echo "[INFO] pkill -HUP executed" | tee -a "$LOG_FILE" 
-    || echo "[ERROR] pkill falló" | tee -a "$LOG_FILE"
+    if pkill -HUP -f gunicorn; then 
+        echo "[INFO] pkill -HUP executed" | tee -a "$LOG_FILE"
+    else
+        echo "[ERROR] pkill falló" | tee -a "$LOG_FILE"
+    fi
 else
     echo "[INFO] No se detectaron cambios. No se recarga gunicorn." | tee -a "$LOG_FILE"
 fi

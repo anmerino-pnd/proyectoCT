@@ -70,8 +70,10 @@ cat "$TMP_OUTPUT" >> "$LOG_FILE"
 # --- Lógica de recarga de Gunicorn ---
 if grep -qiE "Vector stores combinados exitosamente" "$TMP_OUTPUT"; then
     echo "[INFO] Cambios detectados — recargando Gunicorn workers..." | tee -a "$LOG_FILE"
-    pkill -HUP -f gunicorn && echo "[INFO] pkill -HUP ejecutado" | tee -a "$LOG_FILE" 
-    || echo "[ERROR] pkill falló" | tee -a "$LOG_FILE"
+    if pkill -HUP -f gunicorn; then
+        echo "[INFO] pkill -HUP ejecutado" | tee -a "$LOG_FILE" 
+    else
+        echo "[ERROR] pkill falló" | tee -a "$LOG_FILE"
 else
     echo "[INFO] No se detectaron cambios. No se recarga Gunicorn." | tee -a "$LOG_FILE"
 fi
