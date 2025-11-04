@@ -45,7 +45,7 @@ fi
 
 cat "$TMP_OUTPUT" >> "$LOG_FILE"
 
-if grep -qiE "Vector stores combinados exitosamente" "$TMP_OUTPUT" ; then
+if grep -qiE "Vector store de productos y ofertas creado y guardado en disco." "$TMP_OUTPUT" ; then
     echo "[INFO] Cambios detectados en ofertas — recargando Gunicorn workers..." | tee -a "$LOG_FILE"
     if pkill -HUP -f gunicorn; then
         echo "[INFO] pkill -HUP ejecutado" | tee -a "$LOG_FILE" 
