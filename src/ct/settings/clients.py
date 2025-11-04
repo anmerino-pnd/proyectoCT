@@ -11,29 +11,28 @@ class QueryRequest(BaseModel):
 load_dotenv()
 
 # Credenciales de la empresa
-ip: str = os.getenv('ip')
-port: int = os.getenv('port')
-user: str = os.getenv('user')
-pwd: str = os.getenv('pwd')
-database: str = os.getenv('db')
+ip: str = os.getenv('IP')
+port: int = os.getenv('PORT')
+user: str = os.getenv('USER')
+pwd: str = os.getenv('PWD')
+database: str = os.getenv('DB')
 
 # Credenciales de la empresa dev
-ip_dev: str = os.getenv('ip_dev')
-port_dev: int = os.getenv('port_dev')
-user_dev: str = os.getenv('user_dev')
-pwd_dev: str = os.getenv('pwd_dev')
-database_dev: str = os.getenv('db_dev')
+ip_dev: str = os.getenv('IP_DEV')
+port_dev: int = os.getenv('PORT_DEV')
+user_dev: str = os.getenv('USER_DEV')
+pwd_dev: str = os.getenv('PWD_DEV')
+database_dev: str = os.getenv('DB_DEV')
 
 # Información del servicio
-sucursales_url : str = os.getenv('sucursales_url')
-url: str = os.getenv('url')
-tokenapi: str = os.getenv('Token-api')
-tokenct: str = os.getenv('Token-ct')
-contentType: str = os.getenv('Token-ct')
-cookie: str = os.getenv('Token-ct')
-
-dominio : str = os.getenv('dominio')
-boundary: str = os.getenv('boundary')
+sucursales_url : str = os.getenv('SUCURSALES_URL')
+url: str = os.getenv('URL')
+tokenapi: str = os.getenv('TOKEN_API')
+tokenct: str = os.getenv('TOKEN_CT')
+contentType: str = os.getenv('CONTENT_TYPE')
+cookie: str = os.getenv('COOKIE')
+dominio : str = os.getenv('DOMINIO')
+boundary: str = os.getenv('BOUNDARY')
 
 mongo_uri: str = os.getenv('MONGO_URI')
 mongo_db: str = os.getenv('MONGO_DB')
@@ -49,4 +48,4 @@ openai_api_key: str = os.getenv("OPENAI_API_KEY")
 openai = openai_api.OpenAI(api_key=openai_api_key)
 
 podman_redis_url: str = os.getenv("PODMAN_REDIS_URL")
-reload_vectors_post : str = os.getenv("reload_vectors_post")
+reload_vectors_post : str = os.getenv("RELOAD_VECTORS_POST")
