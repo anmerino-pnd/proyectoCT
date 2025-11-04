@@ -6,9 +6,9 @@ export TZ="America/Hermosillo"
 PROJECT_DIR="$HOME/proyectoCT"
 VENV_PY="$PROJECT_DIR/.venv/bin/python3"
 LOG_DIR="$PROJECT_DIR/logs"
-LOG_FILE="$LOG_DIR/monthly_sales_etl.log"
-TMP_OUTPUT="$LOG_DIR/monthly_sales_etl.tmp"
-LOCK_FILE="$LOG_DIR/monthly_sales_etl.lock"  
+LOG_FILE="$LOG_DIR/reload_sales.log"
+TMP_OUTPUT="$LOG_DIR/reload_sales.tmp"
+LOCK_FILE="$LOG_DIR/reload_sales.lock"  
 
 if [ -f "$PROJECT_DIR/.env" ]; then
     set -a  # exporta automáticamente todas las variables leídas
