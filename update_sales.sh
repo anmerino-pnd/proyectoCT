@@ -32,20 +32,9 @@ else
     exit 1
 fi
 
-# --- Ejecutar load_sales_products ---
-echo "[INFO] Cargando productos relacionados a las ofertas" | tee -a "$LOG_FILE"
-if PYTHONPATH="$PROJECT_DIR/src" "$VENV_PY" -c "from ct.ETL.pipeline import load_sales_products; load_sales_products()" >> "$TMP_OUTPUT" 2>&1; then
-    echo "[INFO] load_sales_products() ejecutado correctamente." | tee -a "$LOG_FILE"
-else 
-    echo "[ERROR] Falló load_sales_products(). Ver salida en $TMP_OUTPUT" | tee -a "$LOG_FILE"
-    cat "$TMP_OUTPUT" >> "$LOG_FILE"
-    echo "---- $(date +"%Y-%m-%d %H:%M:%S %Z") END (LOAD_SALES_PRODUCTS FAIL) ----" >> "$LOG_FILE"
-    exit 1
-fi
-
 cat "$TMP_OUTPUT" >> "$LOG_FILE"
 
-if grep -qiE "Vector store de productos y ofertas creado y guardado en disco." "$TMP_OUTPUT" ; then
+if grep -qi "Vector store de ventas (ofertas) actualizado correctamente." "$TMP_OUTPUT" ; then
     echo "[INFO] Cambios detectados en ofertas — recargando Gunicorn workers..." | tee -a "$LOG_FILE"
     if pkill -HUP -f gunicorn; then
         echo "[INFO] pkill -HUP ejecutado" | tee -a "$LOG_FILE" 

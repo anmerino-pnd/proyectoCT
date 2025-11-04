@@ -56,9 +56,6 @@ echo "---- $(date +"%Y-%m-%d %H:%M:%S %Z") START ----" >> "$LOG_FILE"
 echo "[INFO] Ejecutando carga mensual de ventas" | tee -a "$LOG_FILE"
 PYTHONPATH="$PROJECT_DIR/src" "$VENV_PY" -c "from ct.ETL.pipeline import load_sales; load_sales()" >> "$TMP_OUTPUT" 2>&1
 
-echo "[INFO] Ejecutando carga de productos de ventas" | tee -a "$LOG_FILE"
-PYTHONPATH="$PROJECT_DIR/src" "$VENV_PY" -c "from ct.ETL.pipeline import load_sales_products; load_sales_products()" >> "$TMP_OUTPUT" 2>&1
-
 # ✅ MEJORA: Marcar ejecución exitosa
 if [ $? -eq 0 ]; then
     date +%Y-%m > "$LOCK_FILE"
@@ -68,7 +65,7 @@ fi
 cat "$TMP_OUTPUT" >> "$LOG_FILE"
 
 # --- Lógica de recarga de Gunicorn ---
-if grep -qiE "Vector stores combinados exitosamente" "$TMP_OUTPUT"; then
+if grep -qi "Vector store de ventas (ofertas) cargado correctamente. " "$TMP_OUTPUT"; then
     echo "[INFO] Cambios detectados — recargando Gunicorn workers..." | tee -a "$LOG_FILE"
     if pkill -HUP -f gunicorn; then
         echo "[INFO] pkill -HUP ejecutado" | tee -a "$LOG_FILE" 

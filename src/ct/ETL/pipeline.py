@@ -24,6 +24,8 @@ def update_products():
     Actualiza la lista de productos, insertando los faltantes sin procesar todos los productos ya procesados.
     """
     flag = load.add_products(folder_path=PRODUCTS_VECTOR_PATH, collection_name='productos')
+    if flag == True:
+        load.sales_products_vs()
     return flag
 
 def load_sales():
@@ -34,6 +36,7 @@ def load_sales():
     sales_docs = load.load_sales()
     if sales_docs:
         load.sales_vs(sales_docs)
+        load.sales_products_vs()
         print("Vector store de ventas (ofertas) cargado correctamente.")
     else:
         print("No hay ofertas para cargar.")
@@ -46,14 +49,10 @@ def update_sales():
     print("\n--- Actualizando ventas (ofertas) ---")
     flag = load.add_products(folder_path=SALES_VECTOR_PATH, collection_name='promociones')
     if flag:
+        load.sales_products_vs()
         print("Vector store de ventas (ofertas) actualizado correctamente.")
     else:
         print("No hay ofertas para actualizar.")
-
-def load_sales_products():
-    """Combina los vector stores de productos y ofertas."""
-    load.sales_products_vs()
-    return "Vector stores combinados exitosamente"
 
 def update_all():
     """
