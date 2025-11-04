@@ -14,7 +14,7 @@ load_dotenv()
 ip: str = os.getenv('IP')
 port: int = os.getenv('PORT')
 user: str = os.getenv('USER')
-pwd: str = os.getenv('PWD')
+pwd: str = os.getenv('PSSWD')
 database: str = os.getenv('DB')
 
 # Credenciales de la empresa dev
