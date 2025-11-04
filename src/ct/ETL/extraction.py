@@ -5,7 +5,18 @@ import pandas as pd
 import mysql.connector
 pymysql.install_as_MySQLdb()
 from mysql.connector import errorcode
-from ct.settings.clients import ip, port, user, pwd, database, url, tokenapi, tokenct, cookie, dominio, boundary
+from ct.settings.clients import (
+    ip, 
+    port, 
+    user, 
+    pwd, 
+    database, 
+    url, 
+    tokenapi, 
+    tokenct, 
+    cookie, 
+    dominio, 
+    boundary)
 
 from typing import List, Dict
 import cloudscraper 
@@ -35,6 +46,9 @@ class Extraction():
     self.user = user
     self.pwd = pwd
     self.database = database
+    print(f"""
+{ip, port, user, pwd, database}
+""")
 
   def ids_query(self) -> str:
     query = """
