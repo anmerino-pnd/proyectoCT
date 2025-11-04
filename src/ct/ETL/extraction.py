@@ -46,9 +46,6 @@ class Extraction():
     self.user = user
     self.pwd = pwd
     self.database = database
-    print(f"""
-{ip, port, user, pwd, database}
-""")
 
   def ids_query(self) -> str:
     query = """
