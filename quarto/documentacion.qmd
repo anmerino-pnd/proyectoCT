@@ -185,39 +185,36 @@ exit                        # Salir de mongosh
 
    Antes de levantar el *backend*, asegurarse de que el archivo `.env` en la raíz del proyecto contenga las siguientes variables con sus valores correctos. 
    
-```python
+```bash
 # Conexión a la base de datos SQL
-ip=
-port=
-user=
-pwd=
-db=
+IP=
+PORT=
+USER=
+PSSWD=
+DB=
 
 # Clave de la API de OpenAI para correr sus modelos
 OPENAI_API_KEY=
 
 # Configuración para el servicio de fichas técnicas
-sucursales_url = ""  # Url de la sección de sucursales
-reload_vectors_post = "https://localhost:8000/internal/reload_vectorstores"
-url= ''           # Url del servicio de fichas tecnicas
-Token-api=''
-Token-ct=''
-Content-Type=''
-Cookie=''
-
-sucursales_url= ""
-
-dominio=""
-boundary=''
+SUCURSALES_URL=""  # Url de la sección de sucursales
+RELOAD_VECTORS_POST= "https://localhost:8000/internal/reload_vectorstores"
+URL=''           # Url del servicio de fichas tecnicas
+TOKEN_API=
+TOKEN_CT=
+CONTENT_TYPE=
+COOKIE=
+DOMINIO=
+BOUNDARY=
 
 # Conexión a MongoDB
-MONGO_URI = "mongodb://" # En la URI debe estar incrustrado el nombre de la DB
-MONGO_DB = ""
-MONGO_COLLECTION_SESSIONS = "tbl_sessions"
-MONGO_COLLECTION_MESSAGE_BACKUP = "tbl_message_backup"
-MONGO_COLLECTION_PRODUCTS = "tbl_productos"
-MONGO_COLLECTION_SALES = "tbl_ofertas"         
-MONGO_COLLECTION_SPECIFICATIONS = "tbl_mongo_collection_specifications"
+MONGO_URI="mongodb://" # En la URI debe estar incrustrado el nombre de la DB
+MONGO_DB=""
+MONGO_COLLECTION_SESSIONS="tbl_sessions"
+MONGO_COLLECTION_MESSAGE_BACKUP="tbl_message_backup"
+MONGO_COLLECTION_PRODUCTS="tbl_productos"
+MONGO_COLLECTION_SALES="tbl_ofertas"         
+MONGO_COLLECTION_SPECIFICATIONS="tbl_mongo_collection_specifications"
 MONGO_COLLECTION_PEDIDOS="tbl_pedidos"
 
 PODMAN_REDIS_URL=redis://localhost:6379
@@ -302,7 +299,7 @@ source .venv/bin/activate # Para Linux/macOS
 ```
 
   2. **Ejecutar el pipeline ETL**:
-  Una vez activado el entorno, puedes ejecutar una de las funciones dentro del script `pipeline.py` dependiendo la necesidad.
+  Una vez activado el entorno, puedes ejecutar una de las funciones que están dentro del script `pipeline.py` dependiendo la necesidad.
 
   En caso de cargar la base general de productos, correr este comando. Recomendación, correr cada 2 o 3 meses, ya que la información técnica cambia con poca frecuencia.
 ```bash
@@ -334,7 +331,7 @@ python3 -c "from ct.ETL.pipeline import load_sales_products; load_sales_products
 python3 -c "from ct.ETL.pipeline import update_all; update_all()"
 ```
 
-  3. **Crontab del ETL (opcional)**:
+  3. **Crontab del ETL (recomendación opcional)**:
   Se recomienda automatizar la ejecución de este pipeline (por ejemplo, **cada hora entre las 8:30 a 18:30**) para mantener actualizada la base de conocimientos del chatbot.  
 
   En sistemas **Linux**, esto se puede realizar fácilmente mediante un **cron job** y el archivo `update_products.sh` que:
@@ -373,10 +370,9 @@ chmod +x ~/proyectoCT/reload_sales.sh
 
 ~/proyectoCT/reload_sales.sh
 
-# Agregar la tarea
 crontab -e
 
-# Cada 1° y 2° de cada mes se ejecuta la tarea
+# Cada 1° y 2° de cada mes se ejecuta la tarea a las 9 en punto (Hermosillo)
 0 9 1,2 * * ~/proyectoCT/reload_sales.sh
 
 crontab -l
@@ -394,7 +390,7 @@ chmod +x ~/proyectoCT/update_sales.sh
 # Agregar la tarea
 crontab -e
 
-# A partir del 2 de cada mes hasta que acabe el mes, agrega promociones que se hayan subido
+# A partir del 2 de cada mes hasta que acabe el mes, agrega promociones que se hayan subido después de la fecha inicial, de 10 a 7 pm (Hermosillo)
 0 10-19 2-31 * 1-6 ~/proyectoCT/update_sales.sh 
 
 crontab -l
@@ -408,6 +404,9 @@ Comandos útiles de `cron`
 |-------------------------|-----------------------------------|
 | Ver tareas activas      | `crontab -l`                      |
 | Borrar todas las tareas | `crontab -r`                      |
+| Insertar/editar tareas  | `I`                               |
+| Guardar las tareas      | `:wq`                             |
+| No hacer ningún cambio  | `:q!`                             |
 | Pausar una tarea        | Editar y comentar la línea con `#`|
 
 
@@ -418,7 +417,7 @@ Cómo salir del editor
 
 ### 1.7 Descargas y configuraciones adicionales
 
-Estas configuraciones son necesarios para que no haya problemas dentro del sistema de conversaciones y el sistema de reportes automatizados.
+Estas configuraciones son necesarias para que no hayan problemas dentro del sistema de conversaciones y el sistema de reportes automatizados.
 
 ```bash
 python -m spacy download es_core_news_lg
@@ -439,40 +438,16 @@ python -m spacy download es_core_news_sm
 
 El proyecto sigue una estructura modular para facilitar la gestión y el mantenimiento. A continuación, se detalla el propósito de los módulos principales y algunas de sus funciones clave:
 
-**ct/langchain/vectorstore.py**
-
-Este módulo implementa la lógica para la creación, carga y consulta de la base de datos vectorial FAISS. Gestiona el retriever que busca los documentos más relevantes.
-
-* **Clases y funciones clave**:
-  * `class LangchainVectorStore`:
-    * `__init__(self, embedder, index_path: str = None)`: Inicializa el *vector store*.
-      * **Propósito**: Inicializa el _vector store_ de Langchain, configurando el _embedder_ y la ruta del índice. Si el índice ya existe, lo carga; de lo contrario, se preparará para crear uno nuevo.
-      * **Parámetros**: 
-        * `embedder`: Una instancia de la clase *embedder* utilizada para generar los *embeddings* (ej., `OpenAIEmbeddings(openai_api_key=openai_api_key)`).
-        * `index_path` (`str`): Ruta al directorio donde se guardará o cargará en el índice FAISS.
-      * **Comportarmiento**: 
-        * Almacena el `embedder` y el `index_path`.
-        * Si `index_path` existe y es un directorio válido, llama a `_load_index()` para cargar el índice preexistente.
-        * Inicializa `self.vectorstore` as `None` hasta que se cargue o cree.
-
-    * `_load_index(self)`: 
-      * **Propósito**: Carga un índice FAISS existente desde disco en `self.vectorstore`.
-      * **Parámetros**: Ninguno (usa `self.index_path`).
-      * **Comportamiento**: 
-        * Utiliza `FAISS.load_local()` para cargar el índice desde la `folder_path` especificada en `self.index_path`, usando el `embedder` configurado.
-        * `allow_dangerous_deserialization=True` se usa para permitir la carga de índices serializados.
-        * Es una función interna que no debe ser llamada directamente desde fuera de la clase.
-
 **ct/langchain/tool_agent.py**
 
-Este archivo contiene la lógica principal del agente conversacional, incluyendo la interacción con herramientas externas, gestión del historial de conversación, uso de MongoDB, y conexión con el modelo GPT-4.1 a través de LangChain y OpenAI.
+Este archivo contiene la lógica principal del agente conversacional, incluyendo la interacción con herramientas externas, gestión del historial de conversación, uso de MongoDB, y conexión con el modelo que se esté utilizando en el momento a través de LangChain y OpenAI.
 
 * **Clases y funciones clave**:
   * `class ToolAgent`:
     * `__init__`: 
       * **Propósito**: Inicializa el agente, configurando el modelo LLM, conectando a MongoDB para la persistencia de sesiones e historial, definiendo el _prompt_ principal del sistema y registrando las herramientas disponibles.
       * **Comportamiento**:
-        * Establece `self.model` a "gpt-4.1".
+        * Establece `self.model` a "gpt-4.1" (O cualquier modelo disponible).
         * Inicializa las conexiones a las colecciones de MongoDB (`sessions`, `message_backup`).
         * Define `self.prompt` como un `ChatPromptTemplate` que guía el comportamiento del agente, incluyendo instrucciones de formato de respuesta y el manejo del historial (`chat_history`).
         * Define `self.tools` como una lista de objetos `Tool` y `StructuredTool`, que el agente puede invocar. Estas herramientas incluyen `search_information_tool`, `inventory_tool` y `sales_rules_tool`, cada una con su descripción y esquema de argumentos (`args_schema`) cuando aplica.
