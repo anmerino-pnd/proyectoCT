@@ -30,7 +30,7 @@
 # )
 
 import redis
-from langchain_community.cache import RedisCache, RedisSemanticCache
+from langchain_community.cache import RedisCache, RedisSemanticCache, InMemoryCache
 from ct.settings.clients import podman_redis_url, openai_api_key
 from langchain.globals import set_llm_cache
 from langchain_openai import OpenAIEmbeddings
@@ -38,13 +38,12 @@ from langchain_openai import OpenAIEmbeddings
 #redis_client = redis.Redis.from_url(podman_redis_url)
 #set_llm_cache(RedisCache(redis_client, ttl=600))
 
-redis_client = RedisSemanticCache(
-                redis_url=podman_redis_url,
-                embedding=OpenAIEmbeddings(api_key=openai_api_key))
-set_llm_cache(redis_client)
+# redis_client = RedisSemanticCache(
+#                 redis_url=podman_redis_url,
+#                 embedding=OpenAIEmbeddings(api_key=openai_api_key))
 
-
-
+cache_client = InMemoryCache()
+set_llm_cache(cache_client)
 
 # import time
 # from typing import Optional, Any
