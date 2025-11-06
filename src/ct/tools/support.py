@@ -11,7 +11,7 @@ from ct.settings.config import SUPPORT_INFO_VECTOR_PATH
 
 # Define los filtros disponibles usando Literal para que el agente los conozca.
 # Esto es más robusto que solo mencionarlos en el prompt, ya que forma parte del "schema" de la herramienta.
-SupportFilter = Literal['Compra en línea', 'ESD', 'Terminos, condiciones y políticas', 'Procedimientos Garantía']
+SupportFilter = Literal['Compra en línea', 'ESD', 'Terminos, condiciones y políticas', 'Procedimientos Garantía', 'PartnerCT']
 
 class SupportInput(BaseModel):
     """Define la entrada para la herramienta de información de soporte."""

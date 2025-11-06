@@ -1,9 +1,35 @@
 import os
-import json
 import ollama
-from ct.settings.config import BASE_KNOWLEDGE
 
-def guide_creation(folder_path: str, model: str = "gemma3:27b"):
+def _get_paragraphs(text: str, n_chars: int):
+    """
+    Obtiene los últimos párrafos hasta alcanzar aproximadamente target_chars.
+    Siempre devuelve párrafos completos.
+    """
+    if not text: 
+        return ""
+    
+    paragraphs = text.split('\n\n')
+    paragraphs = [p.strip() for p in paragraphs if p.strip()]
+
+    result = []
+    char_count = 0
+
+    for paragraph in  reversed(paragraphs):
+        result.insert(0, paragraph)
+        char_count += len(paragraph)
+        if char_count >= n_chars:
+            break
+    
+    return '\n\n'.join(result)
+
+def guide_creation(folder_path: str, model: str = "gemma3:27b", context_size: int = 500):
+    """
+    Genera tutorial con ventana deslizante de contexto.
+    
+    Args:
+        context_size: Caracteres aproximados de contexto a incluir (default: 2000)
+    """
     image_paths = [
         os.path.join(folder_path, f)
         for f in os.listdir(folder_path)
@@ -16,42 +42,40 @@ def guide_creation(folder_path: str, model: str = "gemma3:27b"):
 
     for batch_num, i in enumerate(range(0, len(image_paths), 3), start=1):
         print(f"Lote {batch_num} de {total_batches}")
-        prev_fragment = full_answer[-1] if full_answer else "Ninguno (este es el inicio)"
+
+        if full_answer:
+            prev_fragment = _get_paragraphs(full_answer, n_chars=context_size)
+            print(f"  📝 Contexto: {len(prev_fragment)} chars ({len(prev_fragment.split())} palabras)")
+        else:
+            prev_fragment =  "Ninguno (este es el inicio)"
+
         current_group = image_paths[i:i+3]
 
         response = ollama.chat(
             model=model,
             messages=[
                 {"role": "system", "content": f"""
-    Eres un asistente que redacta tutoriales claros y completos para la empresa CT Internacional.
+Eres un asistente que redacta tutoriales claros y completos para la empresa CT Internacional.
 
-    - Explica de forma clara, como si cualquier persona sin experiencia pudiera entender.
-    - No omitas información importante que se muestre en las imágenes.
-    - No inventes ni agregues cosas que no estén en las imágenes.
-    - No concluyas todavía el tutorial hasta recibir todas las imágenes.
+INSTRUCCIONES:             
+- Explica de forma clara para personas sin experiencia técnica.
+- No omitas información importante visible en las imágenes.
+- No inventes información que no aparezca en las imágenes.
+- Continúa naturalmente desde donde quedó el fragmento anterior.
+- NO menciones "lotes", "batches", ni fragmentos, ni imágenes.
 
-    Fragmento anterior del tutorial:
-    {prev_fragment}
+FRAGMENTO ANTERIOR DEL TUTORIAL:
+{prev_fragment}
 
-    Ahora continúa el tutorial con el siguiente bloque de imágenes.
-    Este es el lote {batch_num} de {total_batches}.
-
-    NO menciones los lotes ni preguntas o concluyas al terminar un lote, solo espera internamente sin decirlo.
+Lote {batch_num}/{total_batches}
     """}, 
                 {"role": "user",
-                 "content": "Genera la siguiente parte del tutorial con base en estas imágenes:",
+                 "content": "Redacta un tutorial con las imágenes proporcionadas",
                  "images": current_group}
             ],
             options={"temperature": 0},
         )
 
         full_answer += response['message']['content']
-
-    # Normalizar nombre del archivo
-    nombre = os.path.basename(os.path.normpath(folder_path)).strip().replace(" ", "_")
-    os.makedirs(BASE_KNOWLEDGE, exist_ok=True)
-
-    with open(os.path.join(BASE_KNOWLEDGE, f"{nombre}.json"), "w", encoding="utf-8") as f:
-        json.dump(full_answer, f, ensure_ascii=False, indent=2)
 
     return full_answer

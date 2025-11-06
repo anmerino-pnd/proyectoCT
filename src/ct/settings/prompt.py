@@ -53,7 +53,8 @@ prompt_dict = {
                 "Compra en línea", 
                 "ESD", 
                 "Terminos, condiciones y políticas", 
-                "Procedimientos Garantía"
+                "Procedimientos Garantía",
+                "PartnerCT"
             ],
             "proceso": [
                 "Identifica el filtro correcto según la consulta del usuario.",
