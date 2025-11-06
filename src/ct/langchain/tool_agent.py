@@ -7,18 +7,14 @@ from ct.settings.prompt import prompt_dict
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 
-from cachetools import TTLCache
-from langchain.globals import set_llm_cache
+
+from langchain_openai import ChatOpenAI
 from langchain.tools import Tool, StructuredTool 
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import trim_messages
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_core.rate_limiters import InMemoryRateLimiter
-from langchain_community.utilities.sql_database import SQLDatabase
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
-from langchain_community.agent_toolkits.sql.toolkit import SQLDatabaseToolkit
-from langchain_community.cache import InMemoryCache, SQLiteCache, GPTCache, RedisCache, RedisSemanticCache
-from langchain.agents import create_openai_functions_agent, AgentExecutor, create_tool_calling_agent
+from langchain.agents import AgentExecutor, create_tool_calling_agent
 
 from ct.tools.ct_info import who_are_we
 from ct.tools.status import status_tool, StatusInput
@@ -29,7 +25,6 @@ from ct.tools.sales_rules_tool import sales_rules_tool, SalesInput
 from ct.tools.sucursales import get_sucursales_info, SucursalesInput
 from ct.tools.search_information import search_information_tool, search_by_key_tool, ClaveInput
 
-from ct.settings.config import DATA_DIR
 from ct.settings.clients import openai_api_key
 from ct.settings.tokens import TokenCostProcess, CostCalcAsyncHandler
 from ct.settings.clients import mongo_uri, mongo_collection_sessions, mongo_collection_message_backup
@@ -50,7 +45,8 @@ class ToolAgent:
             openai_api_key=openai_api_key,
             model_name=self.model,
             rate_limiter=self.rate_limiter,
-            cache=True
+            cache=True,
+            streaming=False
             )
         try:
             self.client = MongoClient(mongo_uri).get_default_database()
@@ -197,10 +193,13 @@ class ToolAgent:
         full_answer = ""
 
         try:
-            async for output in self.executor.astream(inputs, config={"callbacks": [cost_handler]}):
-                content = output.get("output", "")
-                full_answer += content
-                yield content
+            # async for output in self.executor.astream(inputs, config={"callbacks": [cost_handler]}):
+            #     content = output.get("output", "")
+            #     full_answer += content
+            #     yield content
+            result = await self.executor.ainvoke(inputs, config={"callbacks": [cost_handler]})
+            full_answer = result.get("output", "")
+            yield full_answer
         finally:
             duration = time.perf_counter() - start_time
             metadata = self.make_metadata(token_cost_process, duration)
