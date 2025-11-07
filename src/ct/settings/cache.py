@@ -35,15 +35,15 @@ from gptcache.manager.factory import get_data_manager, CacheBase, VectorBase
 # set_llm_cache(cache_client)
 
 def init_gptcache(cache_obj: Cache):
-    # Usar modelo de embedding incluido
-    onnx = Onnx()
-    
-    init_similar_cache(
-        cache_obj=cache_obj,
-        data_dir="./gptcache_data",
-        embedding_func=onnx.to_embeddings,  # ← Embedding correcto
-        similarity_threshold=0.9  # Qué tan similar debe ser para cache hit
+    embedding_func = Onnx()  # o usa OpenAIEmbeddings
+    cache_obj.init(
+        pre_embedding_func=lambda text, **_: embedding_func.to_embeddings(text),
+        data_manager=get_data_manager(
+            CacheBase("sqlite"),
+            VectorBase("faiss", dimension=embedding_func.dimension)
+        ),
     )
+
 set_llm_cache(GPTCache(init_gptcache))
 
 
