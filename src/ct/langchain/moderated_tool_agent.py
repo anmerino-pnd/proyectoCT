@@ -1,5 +1,5 @@
 from typing import AsyncGenerator
-from langchain.globals import get_llm_cache
+from ct.settings.cache import set_llm_cache
 from ct.langchain.tool_agent import ToolAgent
 from ct.moderation.query_moderator import QueryModerator
 
@@ -8,7 +8,6 @@ class ModeratedToolAgent:
     def __init__(self):
         self.tool_agent = ToolAgent()
         self.moderator = QueryModerator(assistant=self.tool_agent)
-        print("Cache actual:", get_llm_cache())
 
     async def run(self, query: str, session_id: str = None, listaPrecio : str = None) -> AsyncGenerator[str, None]:
         """Ejecuta una consulta RAG y muestra los chunks de respuesta en tiempo real."""

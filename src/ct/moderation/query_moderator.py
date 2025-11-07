@@ -1,6 +1,7 @@
 import redis
 from typing import Optional
 from langchain_openai import ChatOpenAI
+from langchain.globals import get_llm_cache
 from ct.settings.clients import openai_api_key
 from datetime import datetime, timedelta, timezone
 
@@ -13,6 +14,7 @@ class QueryModerator:
             temperature=0,
             cache=True  
         )
+        print("Cache actual:", get_llm_cache())
         
     def classify_query(self, query: str, session_id: str) -> str:
         history = self._get_formatted_history(session_id)
