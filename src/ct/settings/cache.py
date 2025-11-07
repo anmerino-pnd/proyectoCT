@@ -1,5 +1,7 @@
 import redis
 import gptcache
+from gptcache import Cache
+from gptcache.embedding import Onnx  
 from langchain_community.cache import (
     GPTCache,
     RedisCache, 
@@ -9,6 +11,7 @@ from langchain_community.cache import (
 from langchain.globals import set_llm_cache
 from gptcache.processor.pre import get_prompt
 from langchain_openai import OpenAIEmbeddings
+from gptcache.adapter.api import init_similar_cache
 from ct.settings.clients import podman_redis_url, openai_api_key
 from gptcache.manager.factory import get_data_manager, CacheBase, VectorBase
 
@@ -31,12 +34,16 @@ from gptcache.manager.factory import get_data_manager, CacheBase, VectorBase
 # cache_client = InMemoryCache()
 # set_llm_cache(cache_client)
 
-def init_gptcache(cache_obj: gptcache.Cache):
-    cache_obj.init(
-        pre_embedding_func=get_prompt,
-        data_manager=get_data_manager(CacheBase('sqlite'), VectorBase('faiss', dimension=128))
-        )
-
+def init_gptcache(cache_obj: Cache):
+    # Usar modelo de embedding incluido
+    onnx = Onnx()
+    
+    init_similar_cache(
+        cache_obj=cache_obj,
+        data_dir="./gptcache_data",
+        embedding_func=onnx.to_embeddings,  # ← Embedding correcto
+        similarity_threshold=0.9  # Qué tan similar debe ser para cache hit
+    )
 set_llm_cache(GPTCache(init_gptcache))
 
 
