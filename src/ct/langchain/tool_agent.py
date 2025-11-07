@@ -9,6 +9,7 @@ from pymongo.errors import PyMongoError
 
 
 from langchain_openai import ChatOpenAI
+from langchain.globals import get_llm_cache
 from langchain.tools import Tool, StructuredTool 
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import trim_messages
@@ -34,6 +35,7 @@ system_prompt = yaml.dump(prompt_dict, allow_unicode=True, sort_keys=False)
 class ToolAgent:
     def __init__(self):
         self.model = "gpt-4.1"
+        print("Cache actual:", get_llm_cache())
         
         self.rate_limiter = InMemoryRateLimiter(
             requests_per_second=0.1,
