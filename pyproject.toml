@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
     "beautifulsoup4>=4.14.2",
+    "cassio>=0.1.10",
     "cloudscraper>=1.2.71",
     "datasets>=4.0.0",
     "dotenv>=0.9.9",
