@@ -252,6 +252,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Ollama</strong>: Instalado y en ejecución en el servidor para el <em>hosting</em> de modelos <em>open-source</em>.</li>
 <li><strong>MongoDB</strong>: Acceso remoto configurado para las colecciones de historial, productos, ofertas y fichas técnicas.</li>
 <li><strong>MySQL</strong>: Acceso remoto configurado para la extracción de datos de productos y precios.</li>
+<li><strong>Podman</strong>: Gestión y ejecución de los contenedores de la aplicación (API, frontend y otros microservicios) que consumen dichas bases de datos.</li>
 </ul>
 </section>
 <section id="dependencias-principales-del-sistema" class="level3">
@@ -484,7 +485,7 @@ about the RDB error.</code></pre>
 <div class="sourceCode" id="cb14"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="bu">source</span> .venv/bin/activate <span class="co"># Para Linux/macOS</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># o `.venv/Scripts/activate` para Windows</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ol start="2" type="1">
-<li><strong>Ejecutar el pipeline ETL</strong>: Una vez activado el entorno, puedes ejecutar una de las funciones dentro del script <code>pipeline.py</code> dependiendo la necesidad.</li>
+<li><strong>Ejecutar el pipeline ETL</strong>: Una vez activado el entorno, puedes ejecutar una de las funciones que están dentro del script <code>pipeline.py</code> dependiendo la necesidad.</li>
 </ol>
 <p>En caso de cargar la base general de productos, correr este comando. Recomendación, correr cada 2 o 3 meses, ya que la información técnica cambia con poca frecuencia.</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-c</span> <span class="st">"from ct.ETL.pipeline import load_products; load_products()"</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -499,7 +500,7 @@ about the RDB error.</code></pre>
 <p>En caso de querer actualizar ambas al mismo tiempo, correr este comando. Esto elimina productos antiguos que sean innecesarios almacenar.</p>
 <div class="sourceCode" id="cb20"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> <span class="at">-c</span> <span class="st">"from ct.ETL.pipeline import update_all; update_all()"</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <ol start="3" type="1">
-<li><strong>Crontab del ETL (opcional)</strong>: Se recomienda automatizar la ejecución de este pipeline (por ejemplo, <strong>cada hora entre las 8:30 a 18:30</strong>) para mantener actualizada la base de conocimientos del chatbot.</li>
+<li><strong>Crontab del ETL (recomendación opcional)</strong>: Se recomienda automatizar la ejecución de este pipeline (por ejemplo, <strong>cada hora entre las 8:30 a 18:30</strong>) para mantener actualizada la base de conocimientos del chatbot.</li>
 </ol>
 <p>En sistemas <strong>Linux</strong>, esto se puede realizar fácilmente mediante un <strong>cron job</strong> y el archivo <code>update_products.sh</code> que:</p>
 <ul>
@@ -532,15 +533,14 @@ about the RDB error.</code></pre>
 <span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="ex">~/proyectoCT/reload_sales.sh</span></span>
 <span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Agregar la tarea</span></span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Cada 1° y 2° de cada mes se ejecuta la tarea</span></span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span> 9 1,2 <span class="pp">*</span> <span class="pp">*</span> ~/proyectoCT/reload_sales.sh</span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
-<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> ~/proyectoCT/logs/reload_sales.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Cada 1° y 2° de cada mes se ejecuta la tarea a las 9 en punto (Hermosillo)</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span> 9 1,2 <span class="pp">*</span> <span class="pp">*</span> ~/proyectoCT/reload_sales.sh</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> ~/proyectoCT/logs/reload_sales.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Para agregar ofertas que se vayan agregando a lo largo de la semana:</p>
 <div class="sourceCode" id="cb23"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">chmod</span> +x ~/proyectoCT/update_sales.sh</span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -549,7 +549,7 @@ about the RDB error.</code></pre>
 <span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Agregar la tarea</span></span>
 <span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span>
 <span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="co"># A partir del 2 de cada mes hasta que acabe el mes, agrega promociones que se hayan subido</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="co"># A partir del 2 de cada mes hasta que acabe el mes, agrega promociones que se hayan subido después de la fecha inicial, de 10 a 7 pm (Hermosillo)</span></span>
 <span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span> 10-19 2-31 <span class="pp">*</span> 1-6 ~/proyectoCT/update_sales.sh </span>
 <span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
@@ -573,6 +573,18 @@ about the RDB error.</code></pre>
 <td><code>crontab -r</code></td>
 </tr>
 <tr class="odd">
+<td>Insertar/editar tareas</td>
+<td><code>I</code></td>
+</tr>
+<tr class="even">
+<td>Guardar las tareas</td>
+<td><code>:wq</code></td>
+</tr>
+<tr class="odd">
+<td>No hacer ningún cambio</td>
+<td><code>:q!</code></td>
+</tr>
+<tr class="even">
 <td>Pausar una tarea</td>
 <td>Editar y comentar la línea con <code>#</code></td>
 </tr>
@@ -586,7 +598,7 @@ about the RDB error.</code></pre>
 </section>
 <section id="descargas-y-configuraciones-adicionales" class="level3">
 <h3 class="anchored" data-anchor-id="descargas-y-configuraciones-adicionales">1.7 Descargas y configuraciones adicionales</h3>
-<p>Estas configuraciones son necesarios para que no haya problemas dentro del sistema de conversaciones y el sistema de reportes automatizados.</p>
+<p>Estas configuraciones son necesarias para que no hayan problemas dentro del sistema de conversaciones y el sistema de reportes automatizados.</p>
 <div class="sourceCode" id="cb24"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> spacy download es_core_news_lg</span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> <span class="at">-m</span> spacy download es_core_news_sm</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
@@ -603,44 +615,8 @@ about the RDB error.</code></pre>
 <section id="estructura-de-carpetas-y-módulos" class="level3">
 <h3 class="anchored" data-anchor-id="estructura-de-carpetas-y-módulos">2.1 Estructura de carpetas y módulos</h3>
 <p>El proyecto sigue una estructura modular para facilitar la gestión y el mantenimiento. A continuación, se detalla el propósito de los módulos principales y algunas de sus funciones clave:</p>
-<p><strong>ct/langchain/vectorstore.py</strong></p>
-<p>Este módulo implementa la lógica para la creación, carga y consulta de la base de datos vectorial FAISS. Gestiona el retriever que busca los documentos más relevantes.</p>
-<ul>
-<li><strong>Clases y funciones clave</strong>:
-<ul>
-<li><code>class LangchainVectorStore</code>:
-<ul>
-<li><code>__init__(self, embedder, index_path: str = None)</code>: Inicializa el <em>vector store</em>.
-<ul>
-<li><strong>Propósito</strong>: Inicializa el <em>vector store</em> de Langchain, configurando el <em>embedder</em> y la ruta del índice. Si el índice ya existe, lo carga; de lo contrario, se preparará para crear uno nuevo.</li>
-<li><strong>Parámetros</strong>:
-<ul>
-<li><code>embedder</code>: Una instancia de la clase <em>embedder</em> utilizada para generar los <em>embeddings</em> (ej., <code>OpenAIEmbeddings(openai_api_key=openai_api_key)</code>).</li>
-<li><code>index_path</code> (<code>str</code>): Ruta al directorio donde se guardará o cargará en el índice FAISS.</li>
-</ul></li>
-<li><strong>Comportarmiento</strong>:
-<ul>
-<li>Almacena el <code>embedder</code> y el <code>index_path</code>.</li>
-<li>Si <code>index_path</code> existe y es un directorio válido, llama a <code>_load_index()</code> para cargar el índice preexistente.</li>
-<li>Inicializa <code>self.vectorstore</code> as <code>None</code> hasta que se cargue o cree.</li>
-</ul></li>
-</ul></li>
-<li><code>_load_index(self)</code>:
-<ul>
-<li><strong>Propósito</strong>: Carga un índice FAISS existente desde disco en <code>self.vectorstore</code>.</li>
-<li><strong>Parámetros</strong>: Ninguno (usa <code>self.index_path</code>).</li>
-<li><strong>Comportamiento</strong>:
-<ul>
-<li>Utiliza <code>FAISS.load_local()</code> para cargar el índice desde la <code>folder_path</code> especificada en <code>self.index_path</code>, usando el <code>embedder</code> configurado.</li>
-<li><code>allow_dangerous_deserialization=True</code> se usa para permitir la carga de índices serializados.</li>
-<li>Es una función interna que no debe ser llamada directamente desde fuera de la clase.</li>
-</ul></li>
-</ul></li>
-</ul></li>
-</ul></li>
-</ul>
 <p><strong>ct/langchain/tool_agent.py</strong></p>
-<p>Este archivo contiene la lógica principal del agente conversacional, incluyendo la interacción con herramientas externas, gestión del historial de conversación, uso de MongoDB, y conexión con el modelo GPT-4.1 a través de LangChain y OpenAI.</p>
+<p>Este archivo contiene la lógica principal del agente conversacional, incluyendo la interacción con herramientas externas, gestión del historial de conversación, uso de MongoDB, y conexión con el modelo que se esté utilizando en el momento a través de LangChain y OpenAI.</p>
 <ul>
 <li><strong>Clases y funciones clave</strong>:
 <ul>
@@ -651,7 +627,7 @@ about the RDB error.</code></pre>
 <li><strong>Propósito</strong>: Inicializa el agente, configurando el modelo LLM, conectando a MongoDB para la persistencia de sesiones e historial, definiendo el <em>prompt</em> principal del sistema y registrando las herramientas disponibles.</li>
 <li><strong>Comportamiento</strong>:
 <ul>
-<li>Establece <code>self.model</code> a “gpt-4.1”.</li>
+<li>Establece <code>self.model</code> a “gpt-4.1” (O cualquier modelo disponible).</li>
 <li>Inicializa las conexiones a las colecciones de MongoDB (<code>sessions</code>, <code>message_backup</code>).</li>
 <li>Define <code>self.prompt</code> como un <code>ChatPromptTemplate</code> que guía el comportamiento del agente, incluyendo instrucciones de formato de respuesta y el manejo del historial (<code>chat_history</code>).</li>
 <li>Define <code>self.tools</code> como una lista de objetos <code>Tool</code> y <code>StructuredTool</code>, que el agente puede invocar. Estas herramientas incluyen <code>search_information_tool</code>, <code>inventory_tool</code> y <code>sales_rules_tool</code>, cada una con su descripción y esquema de argumentos (<code>args_schema</code>) cuando aplica.</li>
