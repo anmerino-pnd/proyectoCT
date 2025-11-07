@@ -34,21 +34,21 @@ from gptcache.manager.factory import get_data_manager, CacheBase, VectorBase
 # cache_client = InMemoryCache()
 # set_llm_cache(cache_client)
 
-def init_gptcache(cache_obj: Cache):
-    embedding_func = Onnx()  # o usa OpenAIEmbeddings
-    cache_obj.init(
-        pre_embedding_func=lambda text, **_: embedding_func.to_embeddings(text),
-        data_manager=get_data_manager(
-            CacheBase("sqlite"),
-            VectorBase("faiss", dimension=embedding_func.dimension)
-        ),
-    )
+# def init_gptcache(cache_obj: Cache):
+#     embedding_func = Onnx()  # o usa OpenAIEmbeddings
+#     cache_obj.init(
+#         pre_embedding_func=lambda text, **_: embedding_func.to_embeddings(text),
+#         data_manager=get_data_manager(
+#             CacheBase("sqlite"),
+#             VectorBase("faiss", dimension=embedding_func.dimension)
+#         ),
+#     )
 
-set_llm_cache(GPTCache(init_gptcache))
+# set_llm_cache(GPTCache(init_gptcache))
 
 
-# redis_client = redis.Redis.from_url(podman_redis_url)
-# set_llm_cache(RedisCache(redis_client, ttl=600))
+redis_client = redis.Redis.from_url(podman_redis_url)
+set_llm_cache(RedisCache(redis_client, ttl=600))
 
 # redis_client = RedisSemanticCache(                                        # Error de pip install que no se arregló
 #                 redis_url=podman_redis_url,
