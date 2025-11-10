@@ -171,10 +171,9 @@ class Load:
             allow_dangerous_deserialization=True
         )
 
-        unique_products = list(set([doc.metadata["clave"] for doc in vectorstore.docstore._dict.values()]))
-        print(f"Cantidad de {collection_name} actualmente: {len(unique_products)}")
-
         key_value = {doc.metadata["clave"]: doc.id for doc in vectorstore.docstore._dict.values()}
+        unique_products = list(key_value.keys())
+        print(f"Cantidad de {collection_name} actualmente: {len(unique_products)}")
         
         if collection_name == 'productos':
             updater = self.clean_data.data.update_products
@@ -188,6 +187,13 @@ class Load:
             raise ValueError(f"Nombre de colección inválido: {collection_name}")
 
         ids_nuevos, claves_sobrantes = updater(unique_products)
+        
+        if len(claves_sobrantes) > 0:
+            ids = [key_value[clave] for clave in claves_sobrantes if clave in key_value]
+            if ids:
+                print(f'{len(ids)} productos obsoletos y eliminados.')
+                vectorstore.delete(ids)
+
         if not ids_nuevos:
             print(f"Advertencia: No hay {collection_name} nuevos para cargar.")
             return False
@@ -195,11 +201,7 @@ class Load:
         new_data = fetcher(ids_nuevos) if fetcher else ids_nuevos
         cleaned = cleaner(new_data)
         docs = self._create_documents_with_context(cleaned, collection_name)
-        
-        if len(claves_sobrantes) > 0:
-            ids = [key_value[clave] for clave in claves_sobrantes if clave in key_value]
-            if ids:
-                vectorstore.delete(ids)
+    
 
         vectorstore.add_documents(docs)
 
