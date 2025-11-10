@@ -47,10 +47,10 @@ from gptcache.manager.factory import get_data_manager, CacheBase, VectorBase
 # set_llm_cache(GPTCache(init_gptcache))
 
 
-redis_client = redis.Redis.from_url(podman_redis_url)
-set_llm_cache(RedisCache(redis_client, ttl=600))
+# redis_client = redis.Redis.from_url(podman_redis_url)
+# set_llm_cache(RedisCache(redis_client, ttl=600))
 
-# redis_client = RedisSemanticCache(                                        # Error de pip install que no se arregló
-#                 redis_url=podman_redis_url,
-#                 embedding=OpenAIEmbeddings(api_key=openai_api_key))
-# set_llm_cache(redis_client)
+redis_client = RedisSemanticCache(                                        # Error de pip install que no se arregló
+                redis_url=podman_redis_url,
+                embedding=OpenAIEmbeddings(api_key=openai_api_key))
+set_llm_cache(redis_client)
