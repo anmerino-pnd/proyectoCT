@@ -15,7 +15,7 @@ def load_products():
     products_docs = load.load_products()
     if products_docs:
         load.products_vs(products_docs)
-        print("✅ Vector store de productos actualizado correctamente.")
+        print("Vector store de productos cargado correctamente.")
     else:
         print("No se pudo actualizar el vector store de productos.")
 

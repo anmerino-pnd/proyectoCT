@@ -173,23 +173,34 @@ class Load:
 
         unique_products = list(set([doc.metadata["clave"] for doc in vectorstore.docstore._dict.values()]))
         print(f"Cantidad de {collection_name} actualmente: {len(unique_products)}")
+
+        key_value = {doc.metadata["clave"]: doc.id for doc in vectorstore.docstore._dict.values()}
         
         if collection_name == 'productos':
-            ids_nuevos = self.clean_data.data.update_products(unique_products)
-            if ids_nuevos == []:
-                print("Advertencia: No hay productos nuevos para cargar.")
-                return False
-            new_products = self.clean_data.clean_products(ids_nuevos)
-            docs = self._create_documents_with_context(new_products, collection_name)
+            updater = self.clean_data.data.update_products
+            cleaner = self.clean_data.clean_products
+            fetcher = None
         elif collection_name == 'promociones':
-            ids_nuevos = self.clean_data.data.update_sales(unique_products)
-            if ids_nuevos == []:
-                print("Advertencia: No hay ofertas nuevas para cargar.")
-                return False
-            sales_raw = self.clean_data.data.get_sales(ids_nuevos)
-            new_sales = self.clean_data.clean_sales(sales_raw)
-            docs = self._create_documents_with_context(new_sales, collection_name)
+            updater = self.clean_data.data.update_sales
+            cleaner = self.clean_data.clean_sales
+            fetcher = self.clean_data.data.get_sales
+        else:
+            raise ValueError(f"Nombre de colección inválido: {collection_name}")
+
+        ids_nuevos, claves_sobrantes = updater(unique_products)
+        if not ids_nuevos:
+            print(f"Advertencia: No hay {collection_name} nuevos para cargar.")
+            return False
+
+        new_data = fetcher(ids_nuevos) if fetcher else ids_nuevos
+        cleaned = cleaner(new_data)
+        docs = self._create_documents_with_context(cleaned, collection_name)
         
+        if len(claves_sobrantes) > 0:
+            ids = [key_value[clave] for clave in claves_sobrantes if clave in key_value]
+            if ids:
+                vectorstore.delete(ids)
+
         vectorstore.add_documents(docs)
 
         vectorstore.save_local(str(folder_path))

@@ -26,7 +26,7 @@ def vector_store():
     retriever_productos = vectorstore.as_retriever(
         search_type='mmr',
         search_kwargs={
-            "k": 8,
+            "k": 8, 
             "filter": {"collection": "productos"},
             "lambda_mult": 0.85
         }
