@@ -196,6 +196,7 @@ class Load:
 
         if not ids_nuevos:
             print(f"Advertencia: No hay {collection_name} nuevos para cargar.")
+            vectorstore.save_local(str(folder_path))
             return False
 
         new_data = fetcher(ids_nuevos) if fetcher else ids_nuevos
