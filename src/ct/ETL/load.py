@@ -202,7 +202,7 @@ class Load:
         if claves_sobrantes:
             ids_a_eliminar = [key_value[c] for c in claves_sobrantes if c in key_value]
             if ids_a_eliminar:
-                print(f"{len(ids_a_eliminar)} {collection_name} obsoletos eliminados.")
+                print(f"{len(ids_a_eliminar)} {collection_name} obsoletas eliminadas.")
                 vectorstore.delete(ids_a_eliminar)
 
         # --- 6. Si no hay nuevos, solo guardar cambios y salir
