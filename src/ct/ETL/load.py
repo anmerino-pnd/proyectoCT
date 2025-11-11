@@ -3,6 +3,8 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+import json
+from pathlib import Path
 from ct.ETL.transform import Transform
 from ct.settings.clients import openai_api_key as api_key
 from ct.settings.config import (
@@ -164,52 +166,65 @@ class Load:
         products_vs.save_local(str(SALES_PRODUCTS_VECTOR_PATH))
         return print("Vector store de productos y ofertas creado y guardado en disco.")
 
-    def add_products(self, folder_path: str, collection_name: str):
+    def add_products(self, folder_path: str, collection_name: str) -> bool:
+        """Carga o actualiza documentos FAISS (productos o promociones)."""
+
+        # --- 1. Cargar vectorstore existente
         vectorstore = FAISS.load_local(
             folder_path=str(folder_path),
             embeddings=OpenAIEmbeddings(openai_api_key=api_key),
-            allow_dangerous_deserialization=True
+            allow_dangerous_deserialization=True,
         )
 
-        key_value = {doc.metadata["clave"]: doc.id for doc in vectorstore.docstore._dict.values()}
-        unique_products = list(key_value.keys())
+        # --- 2. Crear diccionario clave → id
+        docs = list(vectorstore.docstore._dict.values())
+        key_value = {doc.metadata["clave"]: doc.id for doc in docs}
+        unique_products = set(key_value.keys())  # set más eficiente para búsquedas
         print(f"Cantidad de {collection_name} actualmente: {len(unique_products)}")
-        
-        if collection_name == 'productos':
-            updater = self.clean_data.data.update_products
-            cleaner = self.clean_data.clean_products
-            fetcher = None
-        elif collection_name == 'promociones':
-            updater = self.clean_data.data.update_sales
-            cleaner = self.clean_data.clean_sales
-            fetcher = self.clean_data.data.get_sales
-        else:
-            raise ValueError(f"Nombre de colección inválido: {collection_name}")
 
-        ids_nuevos, claves_sobrantes = updater(unique_products)
-        
-        if len(claves_sobrantes) > 0:
-            ids = [key_value[clave] for clave in claves_sobrantes if clave in key_value]
-            if ids:
-                print(f'{len(ids)} productos obsoletos y eliminados.')
-                vectorstore.delete(ids)
+        # --- 3. Seleccionar funciones de limpieza y actualización
+        match collection_name:
+            case "productos":
+                updater = self.clean_data.data.update_products
+                cleaner = self.clean_data.clean_products
+                fetcher = None
+            case "promociones":
+                updater = self.clean_data.data.update_sales
+                cleaner = self.clean_data.clean_sales
+                fetcher = self.clean_data.data.get_sales
+            case _:
+                raise ValueError(f"Nombre de colección inválido: {collection_name}")
 
+        # --- 4. Determinar qué claves se agregan y cuáles se eliminan
+        ids_nuevos, claves_sobrantes = updater(list(unique_products))
+
+        # --- 5. Eliminar productos obsoletos
+        if claves_sobrantes:
+            ids_a_eliminar = [key_value[c] for c in claves_sobrantes if c in key_value]
+            if ids_a_eliminar:
+                print(f"{len(ids_a_eliminar)} {collection_name} obsoletos eliminados.")
+                vectorstore.delete(ids_a_eliminar)
+
+        # --- 6. Si no hay nuevos, solo guardar cambios y salir
         if not ids_nuevos:
             print(f"Advertencia: No hay {collection_name} nuevos para cargar.")
             vectorstore.save_local(str(folder_path))
-            print(f"Cantidad de {collection_name} ahora: {len(unique_products) + len(ids_nuevos) - len(claves_sobrantes)}")
-
+            total = len(unique_products) - len(claves_sobrantes)
+            print(f"Cantidad de {collection_name} ahora: {total}")
             return False
 
+        # --- 7. Obtener y limpiar nuevos documentos
         new_data = fetcher(ids_nuevos) if fetcher else ids_nuevos
         cleaned = cleaner(new_data)
-        docs = self._create_documents_with_context(cleaned, collection_name)
-    
+        docs_nuevos = self._create_documents_with_context(cleaned, collection_name)
 
-        vectorstore.add_documents(docs)
-
+        # --- 8. Agregar, guardar y reportar
+        vectorstore.add_documents(docs_nuevos)
         vectorstore.save_local(str(folder_path))
-        print(f"Cantidad de documentos nuevos agregados: {len(docs)}")
-        print(f"Cantidad de {collection_name} ahora: {len(unique_products) + len(ids_nuevos) - len(claves_sobrantes)}")
+        total = len(unique_products) + len(ids_nuevos) - len(claves_sobrantes)
+        print(f"Agregados {len(docs_nuevos)} nuevos documentos.")
+        print(f"Cantidad total de {collection_name}: {total}")
+
         return True
+
     
