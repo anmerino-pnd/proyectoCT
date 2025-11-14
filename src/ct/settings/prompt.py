@@ -48,13 +48,14 @@ prompt_dict = {
             ]
         },
         "get_support_info": {
-            "objetivo": "Responder dudas sobre procesos y normativas de la empresa.",
+            "objetivo": "Responder dudas sobre procesos, normativas, directorios de PM, terminos, garantías de la empresa.",
             "filtros": [
                 "Compra en línea", 
                 "ESD", 
                 "Terminos, condiciones y políticas", 
                 "Procedimientos Garantía",
-                "PartnerCT"
+                "PartnerCT",
+                "Directorio PM"
             ],
             "proceso": [
                 "Identifica el filtro correcto según la consulta del usuario.",
@@ -65,7 +66,7 @@ prompt_dict = {
         },
         "get_sucursales_info": {
             "objetivo": (
-                "Consultar ubicación, dirección, horarios, teléfonos y directorios de sucursales."
+                "Consulta ubicación, dirección, horarios, teléfonos y directorios SOLAMENTE de SUCURSALES."
             ),
             "columnas_df": [
                 "sucursal", "ubicacion", "direccion", "telefono",

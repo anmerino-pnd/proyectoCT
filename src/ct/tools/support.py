@@ -11,7 +11,7 @@ from ct.settings.config import SUPPORT_INFO_VECTOR_PATH
 
 # Define los filtros disponibles usando Literal para que el agente los conozca.
 # Esto es más robusto que solo mencionarlos en el prompt, ya que forma parte del "schema" de la herramienta.
-SupportFilter = Literal['Compra en línea', 'ESD', 'Terminos, condiciones y políticas', 'Procedimientos Garantía', 'PartnerCT']
+SupportFilter = Literal['Compra en línea', 'ESD', 'Terminos, condiciones y políticas', 'Procedimientos Garantía', 'PartnerCT', 'Directorio PM']
 
 class SupportInput(BaseModel):
     """Define la entrada para la herramienta de información de soporte."""
@@ -52,10 +52,14 @@ def get_support_info(query: str, filters: List[SupportFilter]) -> str:
             retriever = get_faiss_retriever(collection_filter=collection_filter)
             docs = retriever.invoke(query)
             if docs:
-                # Agrega un título para separar el contexto de cada filtro
-                context_parts.append(f"--- Información sobre: {collection_filter} ---\n")
-                all_info = "\n".join([doc.page_content for doc in docs])
-                context_parts.append(all_info)
+                if 'Directorio PM' in filters:
+                    context_parts.append(f"--- Información sobre: {collection_filter} ---\n")
+                    all_info = "\n".join([f"Coordinador(a) responsable: {pm.metadata['coordinador']} de {pm.page_content}" for pm in  docs])
+                    context_parts.append(all_info)
+                else:
+                    context_parts.append(f"--- Información sobre: {collection_filter} ---\n")
+                    all_info = "\n".join([doc.page_content for doc in docs])
+                    context_parts.append(all_info)
         except Exception as e:
             # Es buena idea registrar errores si un filtro falla.
             print(f"Error retrieving info for filter '{collection_filter}': {e}")
