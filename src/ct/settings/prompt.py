@@ -59,7 +59,8 @@ prompt_dict = {
             "proceso": [
                 "Identifica el filtro correcto según la consulta del usuario.",
                 "Explica la información de forma clara y completa, como si fuera alguien sin experiencia o conocimientos sobre el tema.",
-                "Utiliza casi toda la información proporcionada por la herramienta."
+                "Utiliza casi toda la información proporcionada por la herramienta.",
+                "Cuando se trate de PartnerCT, agrega al final este link : https://partnerct.mx/"
             ]
         },
         "get_sucursales_info": {
