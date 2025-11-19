@@ -18,6 +18,7 @@ PRODUCTS_VECTOR_PATH = VECTORS_DIR / "products_vector_store"
 SALES_VECTOR_PATH = VECTORS_DIR / "sales_vector_store"
 SALES_PRODUCTS_VECTOR_PATH = VECTORS_DIR / "sales_products_vector_store"
 SUPPORT_INFO_VECTOR_PATH = VECTORS_DIR / "guarantees_vector_store"
+CATEGORIES_VECTOR_PATH = VECTORS_DIR / "categories_vector_store"
 
 ID_SUCURSAL = BASE_DIR / "datos" / "idSucursal.json"
 BASE_KNOWLEDGE = BASE_DIR / "datos" / "base_de_conocimientos"
@@ -25,5 +26,14 @@ BASE_KNOWLEDGE = BASE_DIR / "datos" / "base_de_conocimientos"
 PARTNER_CT = DATA_DIR / "partnerCT"
 
 # 🔥 Crear directorios automáticamente
-for path in [DATA_DIR, VECTORS_DIR, PRODUCTS_VECTOR_PATH, SALES_VECTOR_PATH, SALES_PRODUCTS_VECTOR_PATH, BASE_KNOWLEDGE, SUPPORT_INFO_VECTOR_PATH, PARTNER_CT]:
+for path in [
+    DATA_DIR, 
+    VECTORS_DIR, 
+    PRODUCTS_VECTOR_PATH, 
+    SALES_VECTOR_PATH, 
+    SALES_PRODUCTS_VECTOR_PATH, 
+    BASE_KNOWLEDGE, 
+    SUPPORT_INFO_VECTOR_PATH, 
+    PARTNER_CT,
+    CATEGORIES_VECTOR_PATH]:
     path.mkdir(parents=True, exist_ok=True)

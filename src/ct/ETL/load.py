@@ -205,26 +205,23 @@ class Load:
                 print(f"{len(ids_a_eliminar)} {collection_name} obsoletas eliminadas.")
                 vectorstore.delete(ids_a_eliminar)
 
-        # --- 6. Si no hay nuevos, solo guardar cambios y salir
-        if not ids_nuevos:
-            print(f"Advertencia: No hay {collection_name} nuevos para cargar.")
+        # --- 6. Agregar productos nuevos
+        if ids_nuevos:
+            new_data = fetcher(ids_nuevos) if fetcher else ids_nuevos
+            cleaned = cleaner(new_data)
+            docs_nuevos = self._create_documents_with_context(cleaned, collection_name)
+            vectorstore.add_documents(docs_nuevos)
+            print(f"Agregados {len(docs_nuevos)} nuevos documentos.")
+
+        # --- 7. Guardar solo si hubo cambios
+        if ids_nuevos or claves_sobrantes:
             vectorstore.save_local(str(folder_path))
-            total = len(unique_products) - len(claves_sobrantes)
-            print(f"Cantidad de {collection_name} ahora: {total}")
-            return False
-
-        # --- 7. Obtener y limpiar nuevos documentos
-        new_data = fetcher(ids_nuevos) if fetcher else ids_nuevos
-        cleaned = cleaner(new_data)
-        docs_nuevos = self._create_documents_with_context(cleaned, collection_name)
-
-        # --- 8. Agregar, guardar y reportar
-        vectorstore.add_documents(docs_nuevos)
-        vectorstore.save_local(str(folder_path))
-        total = len(unique_products) + len(ids_nuevos) - len(claves_sobrantes)
-        print(f"Agregados {len(docs_nuevos)} nuevos documentos.")
-        print(f"Cantidad total de {collection_name}: {total}")
-
-        return True
+            total = len(unique_products) + len(ids_nuevos) - len(claves_sobrantes)
+            print(f"Cantidad total de {collection_name}: {total}")
+            return True
+        
+        # --- 8. Sin cambios
+        print(f"No hay cambios en {collection_name}.")
+        return False
 
     

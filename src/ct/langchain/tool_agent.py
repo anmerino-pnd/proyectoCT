@@ -1,12 +1,11 @@
 import re
-import yaml
 import time
+from toon import encode
 from datetime import datetime, timezone
 from ct.settings.prompt import prompt_dict
 
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
-
 
 from langchain_openai import ChatOpenAI
 from langchain.globals import get_llm_cache
@@ -14,8 +13,8 @@ from langchain.tools import Tool, StructuredTool
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.messages import trim_messages
 from langchain_core.rate_limiters import InMemoryRateLimiter
-from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 from langchain.agents import AgentExecutor, create_tool_calling_agent
+from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 
 from ct.tools.ct_info import who_are_we
 from ct.tools.status import status_tool, StatusInput
@@ -30,7 +29,6 @@ from ct.settings.clients import openai_api_key
 from ct.settings.tokens import TokenCostProcess, CostCalcAsyncHandler
 from ct.settings.clients import mongo_uri, mongo_collection_sessions, mongo_collection_message_backup
 
-system_prompt = yaml.dump(prompt_dict, allow_unicode=True, sort_keys=False)
         
 class ToolAgent:
     def __init__(self):
@@ -61,7 +59,7 @@ class ToolAgent:
             raise
 
         self.prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt
+            ("system", encode(prompt_dict)
             ),
             ("user", "{input}"),
             ("placeholder", "{agent_scratchpad}")
@@ -168,12 +166,19 @@ class ToolAgent:
         chat_history = trim_messages(
             full_history,
             token_counter=lambda messages: sum(len(m.content.split()) for m in messages),
-            max_tokens=800,
+            max_tokens=1500,
             strategy="last",
             start_on="human",
             include_system=True,
             allow_partial=False,
         )
+        chat_history_dict = [
+            {
+                "role": "human" if isinstance(msg, HumanMessage) else "assistant",
+                "content": msg.content
+            }
+            for msg in chat_history
+        ]
 
         token_cost_process = TokenCostProcess()
         cost_handler = CostCalcAsyncHandler(
@@ -187,7 +192,7 @@ class ToolAgent:
 
         inputs = {
             "input": query,
-            "chat_history": chat_history,
+            "chat_history": encode(chat_history_dict),
             "listaPrecio": lista_precio,
             "session_id" : session_id
         }
@@ -219,7 +224,7 @@ class ToolAgent:
         try:
             session = self.sessions.find_one(
                 {"session_id": session_id},
-                {"last_messages": 1}
+                {"last_messages": {"$slice": -10}}
             )
             if session and "last_messages" in session:
                 for m in session["last_messages"]:

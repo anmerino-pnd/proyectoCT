@@ -1,6 +1,6 @@
 SELECT 
   pro.descripcion_corta_icecat AS nombre,  
-  clave,  
+  pro.clave,  
   cat.nombre AS categoria,
   m.nombre  AS marca,
   pro.tipo, 
