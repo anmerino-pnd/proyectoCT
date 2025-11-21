@@ -18,9 +18,12 @@ with open(ID_SUCURSAL, "r", encoding="utf-8") as f:
     SUCURSALES = json.load(f)
 
 class AlgoliaInput(BaseModel):
-    query : str = Field(description="")
-    user : str = Field(description="")
-    lista_precio : int = Field(description="")
+    producto : str = Field(description="Búsqueda del producto de interés del usuario")
+    session_id : str = Field(description="ID de la sesión del usuario")
+    lista_precio : int = Field(description="Lista de precio a la que pertenece el usuario")
+    lowest_price : bool = Field(description="Si el usuario quiere saber el producto con el precio más barato, True, si no, False. Por defecto es False",
+                                default=False)
+
 
 def _create_scraper(user_token: str) -> cloudscraper.CloudScraper:
     scraper = cloudscraper.create_scraper(
@@ -40,8 +43,8 @@ def _create_scraper(user_token: str) -> cloudscraper.CloudScraper:
     return scraper
 
 
-def algolia_query(
-        query: str, 
+def algolia_search_tool(
+        producto: str, 
         session_id: str, 
         lista_precio: int,
         lowest_price : bool = False, 
@@ -55,7 +58,7 @@ def algolia_query(
     final_filters = f"especial_hp = {especial_hp} AND especial_cuenta : {especial_cuenta}"
     
     payload = json.dumps({
-        "query": query,
+        "query": producto,
         "filters": final_filters,
         "facetFilters": [],
         "facets": ["*"],
@@ -79,7 +82,7 @@ def algolia_query(
         hits = data.get('hits', [])
 
         if not hits:
-            return f"  No se encontraron resultados para: {query}"
+            return f"  No se encontraron resultados para: {producto}"
         
         resultados = {}
         id_sucursal = get_id_sucursal(session_id)
@@ -115,7 +118,7 @@ def algolia_query(
         return encode(resultados)
     
     except requests.exceptions.Timeout:
-        print(f"❌ Timeout en búsqueda de Algolia: {query}")
+        print(f"❌ Timeout en búsqueda de Algolia: {producto}")
         return {}
         
     except requests.exceptions.RequestException as e:

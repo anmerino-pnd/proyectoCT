@@ -18,6 +18,7 @@ from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
 
 from ct.tools.ct_info import who_are_we
 from ct.tools.status import status_tool, StatusInput
+from ct.tools.algolia import algolia_search_tool, AlgoliaInput
 from ct.tools.support import get_support_info, SupportInput
 from ct.tools.inventory import inventory_tool, InventoryInput 
 from ct.tools.moneda_api import dolar_convertion_tool, DolarInput
@@ -59,23 +60,17 @@ class ToolAgent:
             raise
 
         self.prompt = ChatPromptTemplate.from_messages([
-            ("system", encode(prompt_dict)
-            ),
+            ("system", encode(prompt_dict)),
             ("user", "{input}"),
             ("placeholder", "{agent_scratchpad}")
         ])
 
         self.tools = [
-            Tool(
-                name='search_information_tool',
-                func=search_information_tool.invoke,
-                description="Busca productos, o información de productos mencionados, una búsqueda más general de lo que se puede encontrar en la empresa"
-            ),
             StructuredTool.from_function(
-                func=inventory_tool,
-                name='inventory_tool',
-                description="Esta herramienta sirve como referencia y devuelve precios, moneda y existencias de un producto por su clave y listaPrecio",
-                args_schema=InventoryInput 
+                name='algolia_tool',
+                func=algolia_search_tool,
+                description="Utiliza el buscador de la empresa para encontrar productos que el usuario esté buscando",
+                args_schema=AlgoliaInput
             ),
             StructuredTool.from_function(
                 func=sales_rules_tool,
@@ -119,7 +114,6 @@ class ToolAgent:
                 args_schema=SucursalesInput
             )
 ]
-
         self.executor = None
 
     def clear_session_history(self, session_id: str):
