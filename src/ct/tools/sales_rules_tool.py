@@ -35,7 +35,6 @@ def get_id_sucursal(session_id: str) -> str:
 
     raise ValueError(f"No se encontró idSucursal para el session_id: {session_id}")
 
-
 def query_sales():
     return """
 SELECT 
