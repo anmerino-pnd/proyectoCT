@@ -49,3 +49,8 @@ openai = openai_api.OpenAI(api_key=openai_api_key)
 
 podman_redis_url: str = os.getenv("PODMAN_REDIS_URL")
 reload_vectors_post : str = os.getenv("RELOAD_VECTORS_POST")
+
+algolia_url = os.getenv("ALGOLIA_URL")
+algolia_app_id = os.getenv("ALGOLIA_APP_ID")
+algolia_api_key = os.getenv("ALGOLIA_API_KEY")
+algolia_content_type = os.getenv("ALGOLIA_CONTENT_TYPE")
