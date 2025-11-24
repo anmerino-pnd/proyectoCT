@@ -54,7 +54,7 @@ def get_support_info(query: str, filters: List[SupportFilter]) -> str:
             if docs:
                 if 'Directorio PM' in filters:
                     context_parts.append(f"--- Información sobre: {collection_filter} ---\n")
-                    all_info = "\n".join([f"Coordinador(a) responsable: {pm.metadata['coordinador']} de {pm.page_content}" for pm in  docs])
+                    all_info = "\n".join([f"Coordinador(a) responsable: {pm.metadata['coordinador']} de {pm.page_content}, correo: {pm.metadata['correo']}, teams: {pm.metadata['teams']}, extensión: {pm.metadata['extension']}" for pm in  docs])
                     context_parts.append(all_info)
                 else:
                     context_parts.append(f"--- Información sobre: {collection_filter} ---\n")
