@@ -73,29 +73,13 @@ Para comenzar, examinaremos la distribución de categorías dentro del catálogo
 
 El siguiente análisis nos permitirá visualizar las 10 categorías más frecuentes, lo que nos dará una mejor comprensión de la composición del inventario.
 
-```{python}
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-productos = pd.read_json('../datos/productos_raw.json')
-sns.barplot(x=productos['categoria'].value_counts().head(10).values, y=productos['categoria'].value_counts().head(10).index)
-plt.title('Top 10 categorías')
-plt.show()
-```
+![Top 10 categorías](./top_10_categorias.jpg){width=120%}
 
 Vemos que los tóners destacan como la categoría predominante, seguidos por las aplicaciones de seguridad, aunque en este último caso, la diferencia con el resto de las categorías es menos marcada en comparación con la primera.
 
 Del mismo modo, exploraremos la distribución de marcas en los productos y visualizaremos las 10 más comunes dentro de un total de 195 marcas registradas.
 
-```{python}
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-productos = pd.read_json('../datos/productos_raw.json')
-sns.barplot(x=productos['marca'].value_counts().head(10).values, y=productos['marca'].value_counts().head(10).index)
-plt.title('Top 10 marcas')
-plt.show()
-```
+![Top 10 marcas](./top_10_marcas.png){width=120%}
 
 En este análisis, observamos que la marca BROBOTIX sobresale como la más frecuente en el catálogo. Le sigue MANHATTAN, con una diferencia más reducida respecto a las siguientes marcas, en un patrón similar al que se observó en las categorías.
 
@@ -110,28 +94,8 @@ Para ello, compararemos la distribución de palabras en los siguientes atributos
 * Palabras clave asociadas
 Este análisis nos ayudará a identificar patrones en la longitud de las descripciones y su posible impacto en la categorización y búsqueda de los productos.
 
-```{python}
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-productos = pd.read_json('../datos/productos_raw.json')
+![Comparación de distribuciones](./distribuciones.jpg){width=120%}
 
-productos['num_nombre'] = productos.nombre.apply(lambda x: len(x.split()) if x != '0' and pd.notna(x) else 0)
-productos['num_desc'] = productos.descripcion.apply(lambda x: len(x.split()) if x != '0' and pd.notna(x) else 0)
-productos['num_desc_corta'] = productos.descripcion_corta.apply(lambda x: len(x.split()) if x != '0' and pd.notna(x) else 0)
-productos['num_palabrasC'] = productos.palabrasClave.apply(lambda x: len(x.split()) if x != '0' and pd.notna(x) else 0)
-
-sns.kdeplot(x=productos.num_nombre, bw_adjust=1, label="nombre")
-sns.kdeplot(x=productos.num_desc, bw_adjust=1, label="descripcion")
-sns.kdeplot(x=productos.num_desc_corta, bw_adjust=1, label="desc_corta")
-sns.kdeplot(x=productos.num_palabrasC, bw_adjust=1, label="palabrasC")
-
-plt.xlim(0, 20)  # Asegurar que el eje X comience en 0
-plt.legend()  # Mostrar etiquetas de cada línea
-plt.xlabel("Cantidad de palabras")
-plt.title("Comparación de Distribuciones")
-plt.show()
-```
 
 Al analizar las distribuciones, observamos que muchas de las instancias de la descripción corta comienzan con 0, pero luego la distribución se aproxima a una distribución quasi-normal, con un promedio de 5 palabras por instancia. En el caso de las descripciones, aunque no todas las instancias comienzan con 0, la distribución de palabras muestra un promedio de 1 palabra. Finalmente, las palabras en los nombres siguen una distribución aparentemente normal, con un promedio de 8 palabras por instancia.
 
@@ -145,18 +109,36 @@ Observando el comportamiento de las distribuciones de la gráfica pasada, observ
 
 Si observamos la información de los datos:
 
-```{python}
-import pandas as pd
-productos = pd.read_json('../datos/productos_raw.json')
-productos.info()
+```{markdown}
+RangeIndex: 6526 entries, 0 to 6525
+Data columns (total 11 columns):
+ #   Column             Non-Null Count  Dtype 
+---  ------             --------------  ----- 
+ 0   idProductos        6526 non-null   int64 
+ 1   nombre             6526 non-null   object
+ 2   clave              6526 non-null   object
+ 3   categoria          6526 non-null   object
+ 4   marca              6526 non-null   object
+ 5   tipo               6526 non-null   object
+ 6   modelo             6526 non-null   object
+ 7   descripcion        6526 non-null   object
+ 8   descripcion_corta  763 non-null    object
+ 9   palabrasClave      6268 non-null   object
+ 10  detalles_precio    6526 non-null   object
+dtypes: int64(1), object(10)
+memory usage: 561.0+ KB
 ```
 
 Aquí vemos que la razón por la cual la distribución de descripción corta empezaba en 0, era porque alrededor del 89% son datos nulos. Sin embargo vemos que la descripción no tiene datos nulos, pero aún así sigue siendo curioso que la cantidad de palabras en promedio sea 1. Para esto analizaremos esta columna, contando sus valores únicos.
 
-```{python}
-import pandas as pd
-productos = pd.read_json('../datos/productos_raw.json')
-productos.descripcion.value_counts(dropna=True)[0:5]
+```{markdown}
+descripcion
+0                                                                                                                   4983
+                                                                                                                    1460
+Tipo: Limpiador& Función: Para computadoras& Características: Limpieza profunda y protección antiestática              1
+Color: Negro& Compatible: L200                                                                                         1
+Tipo: Vertical sencillo&#38; Compatible: Para rack de 42U&#38; Ducto: 4x4 pulgadas&#38; Color: Negro texturizado       1
+Name: count, dtype: int64
 ```
 
 Si observamos en los datos, la gran mayoría de los datos tienen escrito el valor 0 (en tipo string). Y el segundo valor más frecuente son un espacio en blanco.

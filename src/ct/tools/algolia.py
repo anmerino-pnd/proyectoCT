@@ -1,15 +1,24 @@
 from ct.settings.clients import (
+    ip,
+    pwd,
+    port,
+    user,
+    database,
     algolia_url,
     algolia_app_id,
     algolia_api_key,
     algolia_sort_url,
-    algolia_content_type,
+    algolia_content_type
 )
 import re
 import json
+import pymysql
 import requests
 import cloudscraper 
+import mysql.connector
 from toon import encode
+from string import Template
+pymysql.install_as_MySQLdb()
 from pydantic import BaseModel, Field
 from ct.settings.config import ID_SUCURSAL
 from ct.tools.sales_rules_tool import get_id_sucursal
@@ -24,6 +33,21 @@ class AlgoliaInput(BaseModel):
     lowest_price : bool = Field(description="Si el usuario quiere saber el producto con el precio más barato, True, si no, False. Por defecto es False",
                                 default=False)
 
+query = Template(
+    """
+SELECT
+	cuenta,
+	lista1,
+	lista2,
+	lista3,
+	lista4,
+	lista5,
+	lista6,
+	lista7
+FROM clientes_hp
+WHERE cuenta = '${account}';
+"""
+)
 
 def _create_scraper(user_token: str) -> cloudscraper.CloudScraper:
     scraper = cloudscraper.create_scraper(
@@ -42,28 +66,76 @@ def _create_scraper(user_token: str) -> cloudscraper.CloudScraper:
 
     return scraper
 
+def get_user(user: str) -> str:
+    match_ctin = re.match(r"^(\d{2}CTIN)", user)
+    if match_ctin:
+        return match_ctin.group(1)
+
+    # Extrae la cuenta del session id (como "HMO4536" de "HMO4536_angel.merino")
+    match_user = re.match(r"^([A-Z0-9]+)", user)
+    if match_user:
+        return match_user.group(1)
+    else:
+        raise ValueError(f"No se pudo extraer usuario")  
+
+def query_exec(query) -> list:
+    cnx = None
+    cursor = None
+    try:
+        cnx = mysql.connector.connect(
+            host=ip, 
+            port=port, 
+            user=user, 
+            password=pwd, 
+            database=database,
+            read_timeout=60, write_timeout=15
+        )
+        cursor = cnx.cursor()
+        cursor.execute(query)
+        return cursor.fetchall()
+    except mysql.connector.Error as err:
+        return f"Error de base de datos: {err}"
+    except Exception as e:
+        return f"Ocurrió un error inesperado: {e}"
+    finally:
+        if cursor:
+            cursor.close()
+        if cnx:
+            cnx.close()
 
 def algolia_search_tool(
         producto: str, 
         session_id: str, 
         lista_precio: int,
-        lowest_price : bool = False, 
-        especial_hp : int = 0,
-        especial_cuenta : str = 'VPG'):
+        lowest_price : bool = False):
     
     lista_precio = str(lista_precio)
     userToken = re.sub(r'[._]', '-', session_id)
     scraper = _create_scraper(userToken)
-    
-    final_filters = f"especial_hp = {especial_hp} AND especial_cuenta : {especial_cuenta}"
-    
+    account = get_user(session_id)
+    especial_hp = query_exec(query.substitute(account = account))
+    if especial_hp:
+        especial_values = especial_hp[0][1:]
+        lista_especial_hp = [
+            "" if v == 1 else f" AND NOT especial_hp = {i}"
+            for i, v in enumerate(especial_values, start=1)
+        ]
+        filters = "especial_hp = 0 "
+        for especial in lista_especial_hp:
+            if '':
+                continue
+            else:
+                filters += especial
+        final_filters = filters + f" AND especial_cuenta: 'VPG' OR especial_cuenta: '{account}'"
+    else:
+        final_filters = f"especial_hp = 0 AND especial_cuenta: 'VPG'"
+        
+    print(final_filters)
     payload = json.dumps({
         "query": producto,
         "filters": final_filters,
-        "facetFilters": [],
-        "facets": ["*"],
-        "page": 0,
         "hitsPerPage": 30,
+        "page": 0,
         "optionalFilters": [["existencia_sucursal:1"]],
         "numericFilters": [],
         "ruleContexts": ["*"]
