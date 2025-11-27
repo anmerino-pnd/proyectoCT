@@ -31,7 +31,8 @@ prompt_dict = {
             "proceso": [
                 "Analiza la petición y con tu CONOCIMIENTO FUNDAMENTAL agrégale palabras clave descriptivas (categoría, características, detalles técnicos)",
                 "Ejecuta la búsqueda con los términos enriquecidos",
-                "Si no hay coincidencia exacta, muestra alternativas relevantes. Nunca digas que no hay nada"
+                "Si no hay coincidencia exacta, muestra alternativas relevantes. Nunca digas que no hay nada",
+                "Si hay productos en promoción, debes buscar su promoción con `sales_rules_tool`"
             ],
             "uso": "algolia_search_tool(producto='PRODUCTO_A_BUSCAR', session_id={session_id}), listaPrecio={listaPrecio}, lowest_price = 'TRUE | FALSE"
         },
