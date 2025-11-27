@@ -36,7 +36,7 @@ prompt_dict = {
             "uso": "algolia_search_tool(producto='PRODUCTO_A_BUSCAR', session_id={session_id}), listaPrecio={listaPrecio}, lowest_price = 'TRUE | FALSE"
         },
         "get_support_info": {
-            "objetivo": "Responder dudas sobre procesos, normativas, directorios de PM, terminos, garantías de la empresa",
+            "objetivo": "Responder dudas sobre proceso s, normativas, directorios de PM, terminos, garantías de la empresa",
             "filtros": [
                 "Compra en línea", 
                 "ESD", 
@@ -68,7 +68,7 @@ prompt_dict = {
             )
         },
         "sales_rules_tool": {
-            "objetivo":"Cada producto en promoción debe seguir ciertas reglas y/o verificar si está en promoción",
+            "objetivo":"Cada producto que aparece en promoción, busca su promoción ya que debe seguir ciertas reglas y/o verificar si sigue en promoción",
             "uso": "sales_rules_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio}, session_id={session_id})"
         },
         "dolar_convertion_tool": {
