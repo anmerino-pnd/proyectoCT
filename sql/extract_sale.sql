@@ -24,7 +24,7 @@ WHERE
 
     -- más validaciones
     AND pre.idMoneda IS NOT NULL
-    AND pros.producto = 'MONBLR380'
+    #AND pros.producto = 'MONBLR380'
 
 GROUP BY 
     pros.idProducto 
