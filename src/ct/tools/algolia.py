@@ -134,7 +134,7 @@ def algolia_search_tool(
     payload = json.dumps({
         "query": producto,
         "filters": final_filters,
-        "hitsPerPage": 30,
+        "hitsPerPage": 10,
         "page": 0,
         "optionalFilters": [["existencia_sucursal:1"]],
         "numericFilters": [],
