@@ -112,7 +112,7 @@ Durante la transformación, se aplican filtros para incluir solo productos con e
 
 La etapa de carga es donde los datos limpios y transformados se persisten en los destinos finales y se preparan para el consumo del chatbot.
 
-#### 1.3.1 Destinos de carga
+#### 1.3.1. Destinos de carga
 
 Los datos limpios y transformados se persisten en **MongoDB**, específicamente en una colección principal:
 

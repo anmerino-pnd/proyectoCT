@@ -116,7 +116,7 @@ class ToolAgent:
 ]
         self.executor = None
 
-    def clear_session_history(self, session_id: str):
+    def clear_session_history(self, session_id: str) -> bool:
         try:
             self.sessions.update_one(
                 {"session_id": session_id},

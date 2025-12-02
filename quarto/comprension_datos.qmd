@@ -9,12 +9,12 @@ toc-depth: 3
 ---
 
 ::: {style="text-align: justify"}
-## 0.1 Recolección de los datos
+## 0.1. Recolección de los datos
 
-### 0.1.1 Datos existentes
+### 0.1.1. Datos existentes
 La fuente principal de información es la base de datos SQL local de la empresa, específicamente las tablas que contienen los datos relevantes de los productos, promociones y sus características más importantes. Estos datos se extraen mediante una conexión de Python con SQL. Además, complementamos esta información con datos obtenidos de un servicio interno, el cual proporciona las fichas técnicas de los productos en formato XML.
 
-### 0.1.2 Datos adquiridos
+### 0.1.2. Datos adquiridos
 Para la exploración hemos usado un subconjunto de los datos. La información extraída de SQL incluye las siguientes columnas:
 
 ```{python}
@@ -40,13 +40,13 @@ En cuanto a la información de las fichas técnicas, una vez llamado el servicio
 
 En este ejemplo, se muestra la ficha técnica de un solo producto. De este archivo, los atributos de interés que utilizaremos son: `Clave`, `Feature`, `Presentation_Value` y `SummaryDescription`, los cuales se encuentran en el atributo de `Product`.
 
-### 0.1.3 Datos adicionales
+### 0.1.3. Datos adicionales
 
 Para completar el sistema de ofertas de productos, añadiremos aquellos productos que estén en promoción. De este modo, los clientes podrán encontrar y aprovechar fácilmente las ofertas que les interesen. La estructura de sus fichas técnicas es idéntica a la de los productos, lo cual brinda mayor ventaja al proceso.
 :::
 
 ::: {style="text-align: justify"}
-## 0.2 Descripción de los datos
+## 0.2. Descripción de los datos
 
 Al combinar la información extraída de SQL con las fichas técnicas en formato XML, obtenemos las siguientes variables:
 
@@ -66,9 +66,9 @@ Al combinar la información extraída de SQL con las fichas técnicas en formato
 :::
 
 ::: {style="text-align: justify"}
-## 0.3 Exploración de los datos
+## 0.3. Exploración de los datos
 
-### 0.3.1 Variedad de productos
+### 0.3.1. Variedad de productos
 Para comenzar, examinaremos la distribución de categorías dentro del catálogo, identificando cuáles son las más representativas entre un total de 247 categorías distintas.
 
 El siguiente análisis nos permitirá visualizar las 10 categorías más frecuentes, lo que nos dará una mejor comprensión de la composición del inventario.
@@ -83,7 +83,7 @@ Del mismo modo, exploraremos la distribución de marcas en los productos y visua
 
 En este análisis, observamos que la marca BROBOTIX sobresale como la más frecuente en el catálogo. Le sigue MANHATTAN, con una diferencia más reducida respecto a las siguientes marcas, en un patrón similar al que se observó en las categorías.
 
-### 0.3.2 Distribución de las palabras asociadas a los productos
+### 0.3.2. Distribución de las palabras asociadas a los productos
 En esta sección, analizaremos la cantidad de palabras utilizadas en diferentes descripciones de los productos. Esto nos permitirá entender cómo se estructuran los nombres, descripciones y palabras clave dentro del catálogo.
 
 Para ello, compararemos la distribución de palabras en los siguientes atributos:
@@ -101,9 +101,9 @@ Al analizar las distribuciones, observamos que muchas de las instancias de la de
 :::
 
 ::: {style="text-align: justify"}
-## 0.4 Verificación de la calidad de los datos
+## 0.4. Verificación de la calidad de los datos
 
-### 0.4.1 Datos faltantes
+### 0.4.1. Datos faltantes
 Observando el comportamiento de las distribuciones de la gráfica pasada, observamos que debe haber presencia de varios datos nulos, además de una distribución poco común para la variable de descripción ya que el promedio indica que es 1, algo que no se esperaría en una variable de este estilo.
 
 Si observamos la información de los datos:

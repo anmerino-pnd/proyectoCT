@@ -9,28 +9,30 @@ toc-depth: 5
 ---
 
 ::: {style="text-align: justify"}
-## 1 Manual de instalación y despliegue.
+## 1. Manual de instalación y despliegue.
 
-### 1.1 Configuraciones importantes
+### 1.1. Configuraciones importantes
 
 * El proyecto está diseñado para ser desplegado en entornos **Linux o Windows** con **Python 3.12.9**. Requiere acceso a **Ollama** (para la ejecución de modelos *open-source* como `gemma3:12b`), así como conectividad a una instancia de **MongoDB** y bases de datos **MySQL**.
 * La aplicación *backend* se expone a través de **FastAPI** en el puerto `8000`. Es crucial asegurar que este puerto esté abierto y accesible en el entorno de despliegue.
-* Archivo `.env` con variables cargadas
+* Archivo `.env` con variables cargadas.
 * Todas las credenciales y configuraciones sensibles se gestionan mediante un archivo de variables de entorno (`.env`), garantizando la seguridad y facilidad de configuración.
 
-### 1.2 Requisitios del sistema
+### 1.2. Requisitios del sistema
 
-* **Python**: Versión 3.12.9
-* **Pip**: Última versión
-* **UV**: Última versión (gestor de paquetes y entornos)
+* **Python**: Versión 3.12.9.
+* **Pip**: Última versión.
+* **UV**: Última versión (gestor de paquetes y entornos).
 * **Ollama**: Instalado y en ejecución en el servidor para el *hosting* de modelos *open-source*.
-* **MongoDB**: Acceso remoto configurado para las colecciones de historial, productos, ofertas y fichas técnicas.
 * **MySQL**: Acceso remoto configurado para la extracción de datos de productos y precios. 
-* **Podman**: Gestión y ejecución de los contenedores de la aplicación (API, frontend y otros microservicios) que consumen dichas bases de datos.
+* **Podman**: Gestión y ejecución de los contenedores de los cuales depende la aplicación (MongoDB y Redis).
+* **MongoDB**: Acceso remoto configurado para las colecciones de historial, productos, ofertas y fichas técnicas.
+* **Redis**: Acceso a través de Podman para cachear preguntas y respuestas.
 
-### 1.3 Dependencias principales del sistema
+### 1.3. Dependencias principales del sistema
 
 * `langchain`: Framework principal para la construcción de cadenas RAG y la orquestación del flujo del chatbot.
+* `OpenAI`: API de OpenAI con créditos para poder utilizar los modelos de LLM y Embeddings.
 * `tiktoken`: Utilizado para el conteo preciso de tokens en las consutlas y respuestas, fundamental para la estimación de costos.
 * `ollama`: Herramienta para servir modelos de lenguaje *open-source* localmente, como `gemma3:12b`, permitiendo flexibilidad en la elección del LLM.
 * `pymongo`: Driver Python para la interacción con MongoDB, utilizado para el almacenamiento y recuperación de sesiones de usuario, historial de mensajes, fichas técnicas, y datos de productos/ofertas.
@@ -40,12 +42,12 @@ toc-depth: 5
 * `podman`: Herramienta de virtualización y contenedores sin daemon, utilizada para ejecutar la aplicación dentro de entornos aislados (containers) de manera similar a Docker, pero con mayor seguridad y compatibilidad con sistemas Linux. Facilita el despliegue reproducible de la aplicación y sus servicios asociados (como la base de datos o el servidor vectorial).
 * **Otras dependencias**: Todas las demás librerías requeridas se detallan en el archivo `pyproject.toml`. La instalación de este archivo se detalla más adelante.
 
-### 1.4 Instalación del backend (API)
+### 1.4. Instalación del backend (API)
 
-#### 1.4.1 Clonar el repositorio
+#### 1.4.1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/anmerino-pnd/proyectoCT
+gh repo fork https://github.com/anmerino-pnd/proyectoCT
 cd proyectoCT
 ```
 
@@ -236,10 +238,10 @@ nohup gunicorn ct.main:app   --workers 4   --bind 0.0.0.0:8000   --certfile=stat
   Si el certificado SSL autofirmado ha expirado o necesitas uno nuevo:
 
 ```bash
-openssl req -x509 -newkey rsa:2048 -nodes -keyout ssl/key.pem -out ssl/cert.pem -days 365
+openssl req -x509 -newkey rsa:2048 -nodes -keyout static/ssl/key.pem -out static/ssl/cert.pem -days 365
 ```
 
-  Asegurarse de que los archivos `cert.pem` y `key.pem` estén en la ruta `ssl` dentro de tu proyecto.
+  Asegurarse de que los archivos `cert.pem` y `key.pem` estén en la ruta `static/ssl` dentro de tu proyecto.
 
 #### 1.4.7. Verificar logs
 
@@ -254,7 +256,7 @@ Los logs también se pueden analizar para el reporte automatizado
 nohup streamlit run run_report.py --server.fileWatcherType none --server.port 3000 &
 ```
 
-### 1.5 Instalación del frontend (Widget)
+### 1.5. Instalación del frontend (Widget)
 
 1. **Cargar archivos del widget**: Los archivos del *frontend* (principalmente `sdk.js` y cualquier recurso gráfico como `chat.png`) deben ser cargados en el servidor donde reside el *frontend* de la página.
 
@@ -285,14 +287,14 @@ nohup streamlit run run_report.py --server.fileWatcherType none --server.port 30
 * Si la API corre en HTTP y el *frontend* en HTTPS, se enfrentarán problemas de "contenido mixto". La solución propuesta fue usar un archivo PHP (*backend* del sitio web) como intermediario, el cual es crucial aquí. La API debe apuntar a este PHP y el PHP a su *frontend* donde se encuentra el widget.
 * La `data-api-base` es el dominio donde es accesible la API mediante PHP.
 
-### 1.6 Actualización de la base de conocimientos (ETL)
+### 1.6. Actualización de la base de conocimientos (ETL)
 
 Para asegurar que el chatbot tenga acceso a la información más reciente de productos, promociones y fichas técnicas, es necesario ejecutar periódicamente el pipeline ETL. Este proceso extrae, transforma y carga los datos, actualizando la base de datos vectorial utilizada por el sistema RAG.
 
 Para ejecutar el pipeline ETL, sigue estos pasos:
 
   1. **Acceder al entorno virtual**:
-  Asegurarse de estar en el directorio raíz del proyecto (`proyectoCT`) y activa el entorno virtual donde se instalaron las dependencias del *backend*.
+  Asegurarse de estar en el directorio raíz del proyecto (`proyectoCT`) y activar el entorno virtual donde se instalaron las dependencias del *backend*.
     
 ```bash
 source .venv/bin/activate # Para Linux/macOS
@@ -355,7 +357,7 @@ tail -n 200 ~/proyectoCT/logs/update_products.log
 crontab -e
 
 # Añade la siguiente línea
-30 8-18 * * 1-6 ~/proyectoCT/update_products.sh
+15 7-18 * * 1-6 ~/proyectoCT/update_products.sh
 
 # Verificar que se hizo correctamente con
 crontab -l
@@ -374,7 +376,7 @@ chmod +x ~/proyectoCT/reload_sales.sh
 crontab -e
 
 # Cada 1° y 2° de cada mes se ejecuta la tarea a las 9 en punto (Hermosillo)
-0 9 1,2 * * ~/proyectoCT/reload_sales.sh
+20 7,8,9 1,2 * * ~/proyectoCT/reload_sales.sh
 
 crontab -l
 
@@ -392,7 +394,7 @@ chmod +x ~/proyectoCT/update_sales.sh
 crontab -e
 
 # A partir del 2 de cada mes hasta que acabe el mes, agrega promociones que se hayan subido después de la fecha inicial, de 10 a 7 pm (Hermosillo)
-0 10-19 2-31 * 1-6 ~/proyectoCT/update_sales.sh 
+30 7-19 2-31 * 1-6 ~/proyectoCT/update_sales.sh 
 
 crontab -l
 
@@ -416,7 +418,7 @@ Cómo salir del editor
 * **En `nano`** -> `Ctrl + O`, `Enter`, luego `Ctrl + X`
 * **En `vi` o `vim`** -> `I`, editar, `Esc`, luego `:wq` para guardar o `:q!` para salir sin guardar
 
-### 1.7 Descargas y configuraciones adicionales
+### 1.7. Descargas y configuraciones adicionales
 
 Estas configuraciones son necesarias para que no hayan problemas dentro del sistema de conversaciones y el sistema de reportes automatizados.
 
@@ -425,51 +427,52 @@ python -m spacy download es_core_news_lg
 python -m spacy download es_core_news_sm
 ```
 
-### 1.8 Notas adicionales
+### 1.8. Notas adicionales
 
 * **Problemas de caché**: Es común que los navegadores almacenen versiones antiguas de archivos JS/CSS. Si la interfaz del *widget* no funciona correctamente después de una actualización, instruye a los usuarios a limpiar la caché de su navegador o a realizar un "hard refresh" (Ctrl+F5). Implementar una estrategia de *versioning* para los archivos del *widget* (ej.js?v=1.2.3) puede mitigar esto a futuro.
 * **Rotación de IP para fichas técnicas**: El sistema está diseñado para manejar el bloqueo de IP del servicio de fichas técnicas. Se recomienda monitorear los logs de la extracción (`extraction.py`) para identificar errores 403, lo que indicaría la necesidad de actualizar la IP en el servicio externo.
-
 :::
 
 ::: {style="text-align: justify"}
-## 2 Documentación técnica del código
+## 2. Documentación técnica del código
 
-### 2.1 Estructura de carpetas y módulos
+### 2.1. Estructura de carpetas y módulos
 
 El proyecto sigue una estructura modular para facilitar la gestión y el mantenimiento. A continuación, se detalla el propósito de los módulos principales y algunas de sus funciones clave:
 
-**ct/langchain/tool_agent.py**
+#### 2.1.1. Agente
+
+##### **langchain/tool_agent.py**
 
 Este archivo contiene la lógica principal del agente conversacional, incluyendo la interacción con herramientas externas, gestión del historial de conversación, uso de MongoDB, y conexión con el modelo que se esté utilizando en el momento a través de LangChain y OpenAI.
 
 * **Clases y funciones clave**:
+
   * `class ToolAgent`:
     * `__init__`: 
-      * **Propósito**: Inicializa el agente, configurando el modelo LLM, conectando a MongoDB para la persistencia de sesiones e historial, definiendo el _prompt_ principal del sistema y registrando las herramientas disponibles.
+      * **Propósito**: Inicializa el agente, configurando el modelo LLM, conectando a MongoDB para la persistencia de sesiones e historial, cargando el _prompt_ principal del sistema y registrando las herramientas disponibles.
       * **Comportamiento**:
-        * Establece `self.model` a "gpt-4.1" (O cualquier modelo disponible).
+        * Establece `self.model` a "gpt-4.1" (O cualquier modelo disponible de OpenAI).
         * Inicializa las conexiones a las colecciones de MongoDB (`sessions`, `message_backup`).
         * Define `self.prompt` como un `ChatPromptTemplate` que guía el comportamiento del agente, incluyendo instrucciones de formato de respuesta y el manejo del historial (`chat_history`).
-        * Define `self.tools` como una lista de objetos `Tool` y `StructuredTool`, que el agente puede invocar. Estas herramientas incluyen `search_information_tool`, `inventory_tool` y `sales_rules_tool`, cada una con su descripción y esquema de argumentos (`args_schema`) cuando aplica.
+        * Define `self.tools` como una lista de objetos `Tool` y `StructuredTool`, que el agente puede invocar. Estas herramientas incluyen `search_information_tool`, `inventory_tool` y `sales_rules_tool`, entre otras. Cada una con su descripción y esquema de argumentos (`args_schema`) cuando aplica.
         * `self.executor` se inicializa a `None` y se construye bajo demanda.
 
-    * `clear_session_history(self, session_id: str) -> bool`:  
+    * `clear_session_history() -> bool`:  
       * **Propósito**: Limpia el historial de mensajes (`last_messages`) para una sesión de usuario específica en la base de datos de MongoDB.
-      Limpia el historial de mensajes para una sesión en particular.
       * **Parámetros**:
         * `session_id (str)`: El identificador único de la sesión cuyo historial se desea borrar.
       * **Retorna**: `bool`: `True` si la operación fue exitosa, `False` en caso de error.
       * **Comportamiento**: Actualiza el documento de la sesión en MongoDB, estableciendo `last_messages` como una lista vacía. Maneja excepciones de PyMongo y otras.
 
-    * `ensure_session(self, session: str) -> dict`:
+    * `ensure_session() -> dict`:
       * **Propósito**: Garantiza que exista una entrada para la `sesion_id` en la colección `sessions` de MongoDB. Si no existe, la crea; si existe, actualiza la marca de tiempo de la última actividad.
       * **Parámetros**:
         * `session_id (str)`: El identificador de la sesión.
       * **Retorna**: `dict`: El documento de la sesión actualizado o recién creado.
       * **Comportamiento**: Utiliza `update_one` con `$setOnInsert` y `$set` para manejar la lógica de upsert y actualización de actividad.
 
-    * `build_executor(self)`: 
+    * `build_executor()`: 
       * **Propósito**: Construye el `AgentExecutor` de LangChain, que es el componente principal que orquesta la interacción entre el LLM, las herramientas y el _prompt_.
       * **Parámetros**: Ninguno (usa atributos de la clase).
       * **Comportamiento**:
@@ -477,48 +480,31 @@ Este archivo contiene la lógica principal del agente conversacional, incluyendo
         * Crea un agente de funciones de OpenAI (`create_openai_functions_agent`) vinculando el LLM, las herramientas y el _prompt_.
         * Inicializa `self.executor` como una instancia de `AgentExecutor`, configurándolo para ser `verbose=False` y con un `max_iterations` para controlar la profundidad de la ejecución del agente.
 
-    * `run`:
-
-     ```python
-    async def run(
-      session_id: str, 
-      question: str, 
-      listaPrecio: str = None
-      ) -> AsyncGenerator[str, None]: 
-    ```
+    * `run()`:
       * **Propósito**: Ejecuta una consulta del usuario a través del agente, gestiona el historial de chat, recopila métricas y transmite la respuesta en tiempo real.
       * **Parámetros**:
+        * `query (str)`: La pregunta del usuario.
         * `session_id (str)`: ID de la sesión del usuario.
-        * `question (str)`: La pregunta del usuario.
-        * `listaPrecio (str)`: El nivel de lista de precios asociado al usuario, usado en el *prompt* del LLM.
-      * **Retorna**: `AsyncGenerator[str, None]`: Un generador asíncrono que cede fragmentos (`chunks`) de la respuesta a medida que se generan.
+        * `lista_precio (str)`: El nivel de lista de precios asociado al usuario, usado en el *prompt* del LLM.
+      * **Retorna**: La respuesta generada por el modelo en invocación asíncrona.
       * **Comportamiento**: 
         * Recupera el historial completo de la sesión (`get_session_history`).
         * Trunca el historial (`trim_messages`) para ajustarse a la ventana de contexto del LLM, priorizando los mensajes más recientes.
         * Inicializa un `TokenCostProcess` y `CostCalcAsyncHandler` para el seguimiento de tokens y costos.
         * Si el `executor` no está construido, llama a `build_executor()`.
         * Define los `inputs` para el `executor`, incluyendo la `query`, `chat_history`, `listaPrecio` y `session_id`.
-        * Utiliza `self.executor.astream()` para obtener la respuesta en _streaming_.
-        * Acumula los fragmentos de la respuesta completa.
+        * Utiliza `self.executor.ainvoke()` para obtener la respuesta final en modo asíncrono y mandarla al usuario.
         * En el bloque `finally`, calcula la duración y los metadatos de la interacción.
         * Persiste los mensajes del usuario y del asistente en las colecciones `sessions` y `message_backup` de MongoDB.
 
-    * `get_session_history(self, session_id: str) -> list[BaseMessage]`:
+    * `get_session_history() -> list[BaseMessage]`:
       * **Propósito**: Recupera el historial de mensajes de una sesión específica desde MongoDB y lo convierte a objetos `BaseMessage` de LangChain.
       * **Parámetros**:
         * `session_id (str)`: El ID del usuario cuyo historial se desea recuperar.
       * **Retorna**: `list[baseMessage]`: Una lista de objetos `HumanMessage` y `AIMessage` que representan el historial de conversación.
-      * **Comportamiento**: Consulta la colección `sessions` en MongoDB para el `session_id` dado y mapea los mensajes almacenados a los tipos de mensaje de LangChain.
+      * **Comportamiento**: Consulta la colección `sessions` en MongoDB para el `session_id` dado y mapea los mensajes almacenados a los tipos de mensaje de LangChain, guarda estos mensajes, luego los devuelve como el historial extraído y estructurado.
 
-    * `add_message`
-    
-     ```python
-    def add_message(
-      session_id: str, 
-      message_type: str, 
-      content: str, 
-      metadata: dict = None): 
-    ```
+    * `add_message()`:
       * **Propósito**: Añade un nuevo mensaje (de usuario o asistente) al historial de `last_messages` de una sesión en MongoDB, manteniendo un tamaño fijo para optimizar el rendimiento.
       * **Parámetros**:
         * `session_id (str)`: ID de la sesión.
@@ -528,15 +514,7 @@ Este archivo contiene la lógica principal del agente conversacional, incluyendo
         * Crea un diccionario `short_msg` con el tipo, contenido y timestamp.
         * Utiliza `$push` con `$each`, `$sort` y `$slice` para añadir el nuevo mensaje y truncar la lista `last_messages` a los últimos 24 mensajes (configurable).
 
-    * `add_message_backup`
-     
-     ```python
-    def add_message_backup(
-      session_id: str, 
-      question: str, 
-      full_answer: str, 
-      metadata: dict = None): 
-    ```
+    * `add_message_backup()`
       * **Propósito**: Guarda un respaldo completo de cada interacción (pregunta del usuario y respuesta completa del asistente) junto con métricas detalladas en la colección `message_backup` de MongoDB para análisis posterior.
       * **Parámetros**:
         * `session_id (str)`: ID de la sesión.
@@ -545,159 +523,24 @@ Este archivo contiene la lógica principal del agente conversacional, incluyendo
         * `metadata (dict)`: Diccionario con metadatos adicionales (tokens, costo, duración, modelo utilizado).
       * **Comportamiento**: Inserta un nuevo documento en `message_backup` con toda la información relevante para análisis posterior.
       
-    * `add_irrelevant_message`
-     
-     ```python
-    def add_irrelevant_message(
-      self,
-      session_id: str, 
-      question: str, 
-      full_answer: str, 
-      metadata: dict = None): 
-    ```
+    * `add_irrelevant_message()`
       * **Propósito**: Guarda un mensaje etiquetado como "irrelevante" en la colección `message_backup`. Esto es útil para el monitoreo y posible re-entrenamiento del clasificador.
       * **Parámetros**:
         * `session_id (str)`: ID de la sesión.
         * `question (str)`: La pregunta del usuario clasificada como irrelevante.
         * `full_answer (str)`: La respuesta generada por el moderador para consultas irrelevantes.
+        * `metadata (dict)`: Diccionario con metadatos adicionales (tokens, costo, duración, modelo utilizado).
       * **Comportamiento**:  Inserta un nuevo documento en `message_backup` con el campo `label` establecido en `False`.
 
-    * `make_metadata`
-     
-     ```python
-    def make_metadata(
-      self,
-      token_cost_process: TokenCostProcess,
-      duration: float = None) -> dict : 
-    ```
+    * `make_metadata() -> dict`:
       * **Propósito**: Genera un diccionario con metadatos de la interacción, incluyendo información sobre el costo, los tokens utilizados y el tiempo de procesamiento.
       * **Parámetros**:
         * `token_cost_process (TokenCostProcess)`:  Objeto que contiene información de los tokens.
         * `duration (float)`: Duración de la ejecución en segundos.
       * **Retorna**: `dict`: Diccionario con metadatos.
 
-**ct/tools/search_information.py**
 
-Este módulo define la herramienta `search_information_tool`, que permite al chatbot realizar búsquedas semánticas en las bases de datos vectoriales de productos y promociones para encontrar elementos relevantes.
-
-  * **Clases y funciones clave**:
-    * `vectorstore`:
-      * **Propósito**: Una instancia global de `LangchainVectorStore` que carga el vector store combinado de productos y promociones desde `SALES_PRODUCTS_VECTOR_PATH`.
-
-    * `retriever_productos`:
-      * **Propósito**: Un `retriever` configurado para buscar similitudes en el vector store, filtrando específicamente por documentos de la colección "productos".
-      * **Configuración**: `search_type='similarity'`, `k=2` (devuelve los 2 resultados más similares), `score_threshold=0.95` (filtra resultados con baja similitud), `filter={"collection": "productos"}`.
-    
-    * `retriever_promociones`:
-      * **Propósito**: Un `retriever` configurado de manera similar, pero filtrando por documentos de la colección "promociones".
-      * **Configuración**: `search_type='similarity'`, `k=2` (devuelve los 2 resultados más similares), `score_threshold=0.95` (filtra resultados con baja similitud), `filter={"collection": "promociones"}`.
-
-    * `parse_page_content (content)`:
-      * **Propósito**: Una función auxiliar interna que parsea el `page_content` de un documento de LangChain (que es una cadena de texto concatenada) de nuevo a un diccionario de clave-valor.
-      * **Parámetros**:
-        * `content (str)`: La cadena de texto del `page_content` del documento.
-      * **Retorna**: `dict`: Un diccionario con las características del producto/promoción.
-      * **Comportamiento**: Utiliza expresiones regulares para dividir la cadena por `.` y luego por `:` para extraer las claves y valores.
-
-    * `search_information_tool(query) -> dict`:
-      * **Propósito**: Busca productos y promociones relevantes en las bases de datos vectoriales utilizando la búsqueda semántica.
-      * **Parámetros**:
-        * `query (str)`: La consulta de búsqueda del usuario.
-      * **Retorna**: `dict`: Un diccionario que contiene dos listas: `"Promociones"` y `"Productos"`, donde cada lista contiene diccionarios de los resultados encontrados.
-      * **Comportamiento**:
-        * Invoca `retriever_promociones.invoke(query)` y `retriever_productos.invoke(query)` para obtener los documentos más relevantes de cada colección.
-        * Utiliza `parse_page_content()` para transformar el `page_content` de cada documento recuperado en un formato de diccionario estructurado.
-
-**ct/tools/inventory.py**
-
-Este módulo define la herramienta `inventory_tool`, que permite al chatbot consultar la disponibilidad, precio y moneda de un producto específico en la base de datos MySQL.
-
-* **Clases y funciones clave**:
-  * `class InventoryInput(BaseModel)`:
-    * **Propósito**: Define el esquema de entrada (parámetros) para la herramienta `inventory_tool` utilizando Pydantic, asegurando la validación de los datos.
-    * **Atributos**:
-      * `clave (str)`: La clave única del producto a consultar.
-      * `listaPrecio (int)`: El ID de la lista de precios a considerar para la consulta.
-  
-  * `inventory_tool(clave: str, listaPrecio: int) -> str`:
-    * **Propósito**: Define el esquema de entrada (parámetros) para la herramienta `inventory_tool` utilizando Pydantic, asegurando la validación de los datos.
-    * **Atributos**:
-      * `clave (str)`: La clave del producto.
-      * `listaPrecio (int)`: El ID de la lista de precios.
-    * **Retorna**: `str`: Una cadena de texto formateada con la información del producto (claave, precio original, moneda, existencias, si está en promoción) o un mensaje de promoción no encontrada.
-    * **Comportamiento**:
-      * Construye una consulta SQL que une las tablas `productos`, `existencias`, `precio` y `promociones`.
-      * Se conecta a MySQL, ejecuta la consulta con los parámetros proporcionados.
-      * Formatea el resultado para indicar la moneda (MXN/USD) y el estado de promoción (si el producto en cuestión está o no en promoción).
-      * Incluye manejo de errores para problemas de conexión a la base de datos o errores inesperados.
-
-**ct/tools/sales_rules_tool.py**
-
-Este módulo define la herramienta `sales_rules_tool`, que permite al chatbot aplicar reglas de promoción y calcular el precio final de un producto, considerando la lista de precios y la sucursal del usuario.
-
-* **Clases y funciones clave**:
-  * `SUCURSALES`:
-    * **Propósito**: Un diccionario global cargado desde un archivo JSON (`ID_SUCURSAL`) que mapea nemónicos de sucursal a sus IDs.
-  
-  * `class SalesInput(BaseModel)`:
-    * **Propósito**: Define el esquema de entrada (parámetros) para la herramienta `sales_rule_tool` utilizando Pydantic.
-    * **Atributos**:
-      * `clave (str)`: La clave única del producto en promoción.
-      * `listaPrecio (int)`: El ID de la lista de precios a considerar.
-      * `session_id (str)`: El ID de la sesión del usuario, utilizado para inferir la sucursal.
-
-  * `obtener_id_sucursal(session_id: str) -> str`:
-    * **Propósito**: Extrae el ID de la sucursal a partir del `session_id` del usuario, utilizando patrones predefinidos (e.g., "XXCTIN" o nemónicos como "HMO").
-    * **Parámetros**:
-      * `session_id (str)`: El ID de la sesión del usuario.
-    * **Retorna**: `str`: El ID de la sucursal como una cadena.
-    * **Comportamiento**: Utiliza expresiones regulares para extraer el nemónico o ID de la sucursal del `session_id` y lo busca en el diccionario `SUCURSALES`. Lanza `ValueError` si no puede extraer o encontrar la sucursal.
-
-  * `query_sales()`:
-    * **Propósito**: Retorna la consulta SQL para obtener los detalles de la promoción más relevante para un producto, lista de precios y sucursal específicos.
-    * **Parámetros**: Ninguno.
-    * **Retorna**: `str`: La cadena de la consulta SQL.
-    * **Comportamiento**: La consulta filtra por promociones activas, producto, lista de precios y sucursal, ordenando por fecha de inicio para obtener la promoción más reciente.
-
-  * `sales_rules_tool(clave: str, listaPrecio: int, session_id: str) -> str`:
-    * **Propósito**: Aplica las reglas de promoción para un producto dado, calculando el precio final y generando un mensaje descriptivo para el usuario.
-    * **Parámetros**:
-      * `clave (str)`: La clave del producto.
-      * `listaPrecio (int)`: El ID de la lista de precios.
-      * `session_id (str)`: El ID de la sesión del usuario.
-    * **Retorna**: `str`: Una cadena de texto formateada que describe la promoción aplicada (precio, final, descuento, condiciones, vigencia) o un mensaje si el producto no está en promoción.
-    * **Comportamiento**:
-      * Obtiene el `id_sucursal` usando `obtener_id_sucursal()`.
-      * Se conecta a MySQL y ejecuta `query_sales()` para obtener los detalles de la promoción.
-      * Evalúa diferentes tipos de promociones (precio de oferta, descuento porcentual, "en compra de X recibe Y").
-      * Calcula el `precio_final` y construye un mensaje descriptivo.
-      * Maneja casos donde la promoción no está vigente o el producto no se encuentra en promoción.
-      * Incluye manejo de errores para problemas de base de datos o errores inesperados.
-
-**ct/tools/status.py**
-
-Este módulo define la herramienta `status_tool`, que permite al chatbot obtener el estado actual de un pedido a través de su número de factura.
-
-* **Clases y funciones clave**:
-  * `class StatusInput`:
-    * **Propósito**: Modelo de datos Pydantic para validar y describir el argumento de entrada `factura` requerido por la herramienta.
-    * **Comportamiento**: Asegura que el número de factura sea una cadena de texto.
-  
-  * `status_tool(factura: str) -> str`:
-    * **Propósito**: Consulta una base de datos de MongoDB para encontrar el estado de un pedido específico usando su número de factura.
-    * **Parámetros**: `factura` (`str`): El número de factura del pedido.
-    * **Retorna**: `str`: Una descripción textual del estado del pedido (ej. "Pedido entregado al domicilio", "Pedido en generación").
-    * **Comportamiento**:
-      * Conecta a la base de datos de MongoDB.
-      Realiza una consulta para encontrar el documentos del pedido por su folio (`factura`).
-      * Realiza una consulta para encontrar el documento del pedido por su folio (`factura`).
-      * Si el pedido es encontrado, navega al último estado registrado en el historial de estados (`estatus`).
-      * Utiliza una declaración `match` para mapear los estados de la base de datos (ej. 'Pendiente', 'Enviado', 'Entregado') a descripciones amigables para el usuario.
-      * Maneja casos especiales como el estado de 'Transito' para formatear la fecha y hora de manera legible.
-      * Devuelve un mensaje apropiado si el pedido no es encontrado.
-
-
-**ct/moderation/query_moderator.py**
+##### **langchain/moderator_agent.py**
 
 Este módulo se encarga de clasificar las consultas del usuario (relevante, irrelevante, inapropiado) y de gestionar el comportamiento inapropiado, incluyendo la aplicación de sanciones temporales.
 
@@ -765,7 +608,8 @@ Este módulo se encarga de clasificar las consultas del usuario (relevante, irre
         * `banned_until (Optional[datetime])`: La fecha y hora hasta la que el usuario está baneado (o `None`).
       * **Comportamiento**: Realiza una operación de `update_one` en la colección `sessions` para establecer los campos especificados.
 
-**ct/langchain/moderated_tool_agent.py**
+  
+##### **langchain/moderated_tool_agent.py**
 
 Este módulo orquesta el flujo completo de una consulta de usuario, incluyendo la moderación de contenido y la delegación de la consulta al agente principal de herramientas (`ToolAgent`) si es relevante.
 
@@ -777,15 +621,7 @@ Este módulo orquesta el flujo completo de una consulta de usuario, incluyendo l
         * Crea `self.tool_agent` para manejar la lógica principal del chatbot y la interración con herramientas.
         * Crea `self.moderator` para la clasificación y gestión de comportamiento, pasándole `self.tool_agent` para que el moderador pueda actualizar el estado de la sesión.
 
-    * `run`
-     
-     ```python
-    async def run(
-      query: str, 
-      session_id: str = None, 
-      listaPrecio: str = None
-      ) -> AsyncGenerator[str, None]: 
-     ```
+    * `run()`
       * **Propósito**: Ejecuta el flujo completo de una consulta del usuario, desde la verificación de baneo y la clasificación, hasta la generación de la respuesta (relevante, irrelevante, inapropiado) y su _streaming_.
       * **Parámetros**:
         * `query (str)`: La consulta de texto del usuario.
@@ -802,7 +638,219 @@ Este módulo orquesta el flujo completo de una consulta de usuario, incluyendo l
           * Si es _inapropiado_, evalúa el comportamiento (`moderator.evaluate_inappropriate_behavior()`), actualiza la sesión (`moderator.update_inappropriate_session()`) y cede el mensaje de sanción.
           * Si la clasificación no es reconocida, cede un mensaje de error genérico.
 
-**ct/chat.py**
+#### 2.1.2. Tools
+
+Este módulo contiene las herramientas especializadas que el agente puede invocar. Se han ampliado para incluir búsquedas híbridas, análisis de datos en tiempo real y conexión con APIs externas como Algolia.
+
+##### **tools/search_information.py**
+
+Este módulo ha evolucionado para utilizar una estrategia de recuperación híbrida (*Ensemble Retrieval*), mejorando la precisión al combinar documentos de productos y promociones.
+
+  * **Clases y funciones clave**:
+    * `vectorstore()`:
+      * **Propósito**: Carga el índice FAISS y configura dos retrievers independientes utilizando **MMR (Maximal Marginal Relevance)** para asegurar diversidad en los resultados.
+      * **Retrievers**:
+        * `retriever_productos`: Filtra por la colección "productos" (k=8, lambda=0.85).
+        * `retriever_promociones`: Filtra por la colección "promociones" (k=10, lambda=0.85).
+      * **EnsembleRetriever**: Combina ambos recuperadores para permitir que el agente busque en ambas fuentes simultáneamente con una sola consulta.
+
+    * `search_information_tool()`:
+      * **Propósito**: Herramienta principal de RAG. Invoca al ensemble_retriever y agrupa los resultados.
+      * **Comportamiento**: Utiliza la función auxiliar _group_docs_by_key para consolidar fragmentos de texto dispersos (descripción, ficha técnica, oferta) bajo una única clave de producto, proporcionando al LLM un contexto unificado.
+
+    * `search_by_key_tool()`:
+      * **Propósito**: Permite una búsqueda directa y exacta por clave de producto (SKU) utilizando un índice en memoria (index_por_clave). Útil cuando el usuario menciona explícitamente un código.
+
+##### **tools/inventory.py**
+
+Este módulo define la herramienta `inventory_tool`, que permite al chatbot consultar la disponibilidad, precio y moneda de un producto específico en la base de datos MySQL.
+
+* **Clases y funciones clave**:
+  * `class InventoryInput()`:
+    * **Propósito**: Define el esquema de entrada (parámetros) para la herramienta `inventory_tool` utilizando Pydantic, asegurando la validación de los datos.
+    * **Atributos**:
+      * `clave (str)`: La clave única del producto a consultar.
+      * `listaPrecio (int)`: El ID de la lista de precios a considerar para la consulta.
+  
+  * `inventory_tool() -> str`:
+    * **Propósito**: Define el esquema de entrada (parámetros) para la herramienta `inventory_tool` utilizando Pydantic, asegurando la validación de los datos.
+    * **Atributos**:
+      * `clave (str)`: La clave del producto.
+      * `listaPrecio (int)`: El ID de la lista de precios.
+    * **Retorna**: `str`: Una cadena de texto formateada con la información del producto (claave, precio original, moneda, existencias, si está en promoción) o un mensaje de promoción no encontrada.
+    * **Comportamiento**:
+      * Construye una consulta SQL que une las tablas `productos`, `existencias`, `precio` y `promociones`.
+      * Se conecta a MySQL, ejecuta la consulta con los parámetros proporcionados.
+      * Formatea el resultado para indicar la moneda (MXN/USD) y el estado de promoción (si el producto en cuestión está o no en promoción).
+      * Incluye manejo de errores para problemas de conexión a la base de datos o errores inesperados.
+
+##### **tools/sales_rules_tool.py**
+
+Este módulo define la herramienta `sales_rules_tool`, que permite al chatbot aplicar reglas de promoción y calcular el precio final de un producto, considerando la lista de precios y la sucursal del usuario.
+
+* **Clases y funciones clave**:
+  * `SUCURSALES`:
+    * **Propósito**: Un diccionario global cargado desde un archivo JSON (`ID_SUCURSAL`) que mapea nemónicos de sucursal a sus IDs.
+  
+  * `class SalesInput()`:
+    * **Propósito**: Define el esquema de entrada (parámetros) para la herramienta `sales_rule_tool` utilizando Pydantic.
+    * **Atributos**:
+      * `clave (str)`: La clave única del producto en promoción.
+      * `listaPrecio (int)`: El ID de la lista de precios a considerar.
+      * `session_id (str)`: El ID de la sesión del usuario, utilizado para inferir la sucursal.
+
+  * `get_id_sucursal() -> str`:
+    * **Propósito**: Extrae el ID de la sucursal a partir del `session_id` del usuario, utilizando patrones predefinidos (e.g., "XXCTIN" o nemónicos como "HMO").
+    * **Parámetros**:
+      * `session_id (str)`: El ID de la sesión del usuario.
+    * **Retorna**: `str`: El ID de la sucursal como una cadena.
+    * **Comportamiento**: Utiliza expresiones regulares para extraer el nemónico o ID de la sucursal del `session_id` y lo busca en el diccionario `SUCURSALES`. Lanza `ValueError` si no puede extraer o encontrar la sucursal.
+
+  * `query_sales()`:
+    * **Propósito**: Retorna la consulta SQL para obtener los detalles de la promoción más relevante para un producto, lista de precios y sucursal específicos.
+    * **Parámetros**: Ninguno.
+    * **Retorna**: `str`: La cadena de la consulta SQL.
+    * **Comportamiento**: La consulta filtra por promociones activas, producto, lista de precios y sucursal, ordenando por fecha de inicio para obtener la promoción más reciente.
+
+  * `sales_rules_tool() -> str`:
+    * **Propósito**: Aplica las reglas de promoción para un producto dado, calculando el precio final y generando un mensaje descriptivo para el usuario.
+    * **Parámetros**:
+      * `clave (str)`: La clave del producto.
+      * `listaPrecio (int)`: El ID de la lista de precios.
+      * `session_id (str)`: El ID de la sesión del usuario.
+    * **Retorna**: `str`: Una cadena de texto formateada que describe la promoción aplicada (precio, final, descuento, condiciones, vigencia) o un mensaje si el producto no está en promoción.
+    * **Comportamiento**:
+      * Obtiene el `id_sucursal` usando `obtener_id_sucursal()`.
+      * Se conecta a MySQL y ejecuta `query_sales()` para obtener los detalles de la promoción.
+      * Evalúa diferentes tipos de promociones (precio de oferta, descuento porcentual, "en compra de X recibe Y").
+      * Calcula el `precio_final` y construye un mensaje descriptivo.
+      * Maneja casos donde la promoción no está vigente o el producto no se encuentra en promoción.
+      * Incluye manejo de errores para problemas de base de datos o errores inesperados.
+
+##### **tools/algolia.py**
+
+Integra el motor de búsqueda de Algolia para consultas comerciales precisas, filtrado por existencias y precios personalizados según el cliente.
+
+* **Clases y funciones clave**:
+  * `class AlgoliaInput`: Define los parámetros de búsqueda, incluyendo si se desea el "precio más bajo" (lowest_price).
+
+  * `_create_scraper(user_token)`: Configura una instancia de cloudscraper para interactuar con la API de Algolia, manejando los headers de autenticación.
+
+  * `algolia_search_tool`:
+    * **Lógica de Negocio**:
+
+      * Identifica al usuario (Cliente CT o Vendedor) para aplicar filtros de seguridad.
+
+      * **Filtros HP**: Ejecuta una consulta SQL especial para verificar si el cliente tiene restricciones o permisos especiales para ver productos de la marca HP (especial_hp).
+
+      * **Consulta**: Envía la petición a Algolia aplicando filtros de existencia_sucursal y reglas de contexto.
+
+    * **Retorna**: Un JSON codificado con los hits encontrados, incluyendo precio (validado por lista de precios), moneda, existencias en sucursal local vs global y estado de promoción.
+
+##### **tools/support.py**
+
+Herramienta diseñada para responder dudas sobre procesos, garantías y políticas internas, utilizando una base vectorial FAISS independiente.
+
+* **Clases y funciones clave**:
+
+  * `SupportInput`:
+    * Define el esquema de entrada, obligando al agente a categorizar la consulta en filtros predefinidos (`SupportFilter`): 'Compra en línea', 'ESD', 'Terminos...', 'Procedimientos Garantía', 'PartnerCT', 'Directorio PM'.
+
+  * `get_support_info(query, filters)`:
+    * **Propósito**: Recupera información institucional.
+    * **Comportamiento**:
+      * Crea un retriever dinámico filtrando por la colección seleccionada (ej. solo buscar en "Garantías").
+      * Si el filtro es 'Directorio PM', formatea la respuesta para incluir datos de contacto específicos (correo, Teams, extensión) de los Product Managers.
+      * Si no, devuelve el contenido textual de las políticas relevantes.
+
+##### **tools/status.py**
+
+Este módulo define la herramienta `status_tool`, que permite al chatbot obtener el estado actual de un pedido a través de su número de factura.
+
+* **Clases y funciones clave**:
+  * `class StatusInput`:
+    * **Propósito**: Modelo de datos Pydantic para validar y describir el argumento de entrada `factura` requerido por la herramienta.
+    * **Comportamiento**: Asegura que el número de factura sea una cadena de texto.
+  
+  * `status_tool(factura: str) -> str`:
+    * **Propósito**: Consulta una base de datos de MongoDB para encontrar el estado de un pedido específico usando su número de factura.
+    * **Validación**: Verifica si el usuario es un cliente externo (solo puede ver sus pedidos) o interno (puede ver cualquier pedido).
+    * **Parámetros**: `factura` (`str`): El número de factura del pedido.
+    * **Retorna**: `str`: Una descripción textual del estado del pedido (ej. "Pedido entregado al domicilio", "Pedido en generación").
+    * **Comportamiento**:
+      * Conecta a la base de datos de MongoDB.
+      Realiza una consulta para encontrar el documentos del pedido por su folio (`factura`).
+      * Realiza una consulta para encontrar el documento del pedido por su folio (`factura`).
+      * Si el pedido es encontrado, navega al último estado registrado en el historial de estados (`estatus`).
+      * Utiliza una declaración `match` para mapear los estados de la base de datos (ej. 'Pendiente', 'Enviado', 'Entregado') a descripciones amigables para el usuario.
+      * Maneja casos especiales como el estado de 'Transito' para formatear la fecha y hora de manera legible.
+      * Devuelve un mensaje apropiado si el pedido no es encontrado.
+  
+  * `descargas_enviadas(factura)`: Consulta SQL auxiliar que cuenta cuántas licencias de software han sido entregadas para un pedido ESD.
+   
+##### **tools/sucursales.py**
+
+Permite al agente realizar análisis de datos sobre la red de sucursales ejecutando código Python de manera controlada.
+
+* **Funcionamiento**:
+
+  * Carga un agente de Pandas con información de sucursales.csv.
+
+  * **get_sucursales_info**(): Recibe código Python generado por el LLM, lo ejecuta en un entorno seguro local (exec) y captura la salida estándar (stdout) o el valor de la variable result.
+
+  * **Uso**: Ideal para preguntas complejas como "¿Qué sucursales tienen zona extendida?" o "¿Cuál es la dirección de la sucursal más al norte?", permitiendo al LLM operar los datos matemáticamente en lugar de alucinar.
+
+##### **tools/moneda_api.py**
+Herramienta utilitaria para conversión de divisas en tiempo real.
+
+Funcionamiento:
+
+Consulta la tabla monedas_api en MySQL para obtener el tipo de cambio actual.
+
+Realiza la conversión matemática de USD a MXN y devuelve el resultado formateado.
+
+##### **tools/ct_info.py**
+Provee información estática corporativa ("Quiénes somos", "Misión", "Visión") para asegurar que el agente responda preguntas institucionales con el tono y datos exactos de la empresa.
+
+#### 2.1.4. Unión de agentes
+
+Estos son los principales puntos de inicio para interactuar con las funcionalidades del chatbot. Es crucial que aquí se documenten las funciones y clases *directamente expuestas* o *que inician un flujo principal*.
+
+* `ModeratedToolAgent.run()`:
+  * Es la función principal que orquesta el glujocompleto de una consulta de usuario.
+  * **Parámetros**:
+    * `query (str)`: La pregunta o entrada del usuario.
+    * `session_id (str)`: Un identificador único para la sesión del usuario, utilizado para mantener el historial correspondiente.
+    * `listaPrecio (str)`: El nivel o clave de precio específico del cliente, que se pasa al LLM para asegurar la precisión de los precios en las consultas dinámicas (ej. precios y promociones).
+  * **Comportamiento**:
+    1. Verifica si el usuario está actualmente baneado (usando `QueryModerator.check_if_banned`). Si es así, retorna un mensaje de baneo.
+    2. Clasifica la `query` (usando `QueryModerator.classify_query`) en una de las categorías: `relevante`, `irrelevante`, o `inapropiado`.
+    3. Basado en la clasificación:
+      * Si es `relevante`, delega la ejecución al `ToolAgent.run()` para obtener una respuesta detallada con el uso de herramientas y la base de datos vectorial.
+
+      * Si es `irrelevante`, retorna una respuesta predefinida y cortés (QueryModerator.polite_answer()) y registra la interacción.
+
+      * Si es `inapropiado`, evalúa el comportamiento (`QueryModerator.evaluate_inappropriate_behavior()`), actualiza el estado de baneo en la sesión del usuario (`QueryModerator.update_inappropriate_session()`) y retorna el mensaje de sanción apropiado.
+    4. Cede fragmentos de la respuesta en tiempo real (streaming).
+    5. Registra la interacción completa, incluyendo la pregunta, respuesta y metadatos relevantes para análisis futuro.
+  
+* `ToolAgent.run() -> AsyncGenerator[str, None]`:
+  * **Propósito**: Responde a consultas relevantes de productos, utilizando el agente de LangChain con acceso a herramientas y memoria de conversación. Es la función que el `ModeratedToolAgent` invoca cuando una consulta es clasificada como relevante.
+  * **Parámetros**:
+    * `session_id (str)`: ID de la sesión para recuperar/actualizar el historial.
+    * `question (str)`: La pregunta original del usuario.
+    * `listaPrecio (str)`: El nivel de precios del cliente.
+  * **Comportamiento**:
+    1. Asegura la existencia de la sesión en MongoDB (`ensure_session`).
+    2. Recupera el historial de la sesión (`get_session_history`) y lo trunca para ajustarse a la ventana de contexto del LLM (`trim_messages`).
+    3. Inicializa el `AgentExecutor` si no ha sido construido.
+    4. Ejecuta la `query` a través del `AgentExecutor` de LangChain, que orquesta el uso del LLM y las herramientas (`search_information_tool`, `inventory_tool`, `sales_rules_tool`) según la necesidad de la consulta.
+    5. Transmite la respuesta en fragmentos (`astream()`).
+    6. Registra la interacción completa (pregunta, respuesta, métricas como tokens y costo) en las colecciones `sessions` y `message_backup` de MongoDB.
+  
+#### 2.1.5. Ejecución de la API
+
+##### **ct/chat.py**
 
 Este módulo define los _endpoints_ de la API FastAPI para la interacción del chat y la gestión del historial de sesiones, sirviendo como la interfaz principal entre el _frontend_ y la lógica del chatbot.
 
@@ -839,7 +887,7 @@ Este módulo define los _endpoints_ de la API FastAPI para la interacción del c
     * **Retorna**: `str`: Una cadena "success" si la eliminación fue exitosa.
     * **Comportamiento**: Llama a `assistant.tool_agent.clear_session_history()` para borrar el historial. Maneja excepciones y levanta una `HTTPException` en caso de error interno.
 
-**ct/main.py**
+##### **ct/main.py**
 
 Es el archivo principal de la aplicación FastAPI. Configura la aplicación, habilita CORS y registra los *endpoints* definidos en `ct.chat`.
 
@@ -855,91 +903,172 @@ Es el archivo principal de la aplicación FastAPI. Configura la aplicación, hab
   el historial de un usuario.
   * `if __name__ == "__main__":`: Bloque de ejecución principal para correr la aplicación con Uvicorn en desarrollo. En producción con Gunicorn.
 
-**ct/ETL/extraction.py**:
+#### 2.1.6. ETL
+
+##### **ETL/extraction.py**:
 
 Módulo de la capa de Extracción. Responsable de conectarse a la base de datos MySQL para extraer información de productos y promociones, y de interactuar con el servicio externo para obtener fichas técnicas.
 
 * **Clases y funciones clave**:
   * `class Extraction`:
-    * `__init__()`: Inicializa la clase con los parámetros de conexión a MySQL y configura un `cloudscraper` para la extracción de fichas técnicas.
+    * `__init__()`: 
+      * **Propósito**: Inicializa la clase con los parámetros de conexión a MySQL y configura un `cloudscraper` para la extracción de fichas técnicas.
       * **Parámetros**: Ninguno explícito, lee de `ct.clients`.
       * **Comportamiento**: Establece `scraper` con *headers* personalizados para los tokens de la API y *cookies*.
-    * `ids_query() -> str`: Retorna la consulta SQL para obtener IDs de productos válidos (con existencias y precios).
-    * `get_valid_ids() -> list`: Ejecuta la consulta `ids_query` y retorna una lista de IDs de productos válidos.
+
+    * `ids_query() -> str`: 
+      * **Propósito**: Retorna la consulta SQL para obtener IDs de productos válidos (con existencias y precios).
+    
+    * `get_valid_ids() -> list`: 
+      * **Propósito**: Ejecuta la consulta `ids_query` y retorna una lista de IDs de productos válidos.
       * **Retorna**: `list`: Lista de IDs de productos.
       * **Comportamiento**: Se conecta a MySQL, ejecuta la consulta y maneja errores de conexión.
-    * `product_query(id) -> str`: Retorna la consulta SQL para obtener detalles de un producto específico por ID. Incluye detalles de precios por lista, categoría, marca, etc.
-    * `get_products() -> pd.DataFrame`: Extrae la información de todos los productos válidos desde MySQL.
-      * **Retorna**: `pd.DataFrame`: Un DataFrame de Pandas con la información de los productos.
-      * **Comportamientos**: Itera sobre los IDs válidos, ejecuta `product_query` para cada uno y consolida los resultados en un DataFrame.
-    * `current_sales_query() -> str`: Retorna la consulta SQL para obtener las promociones vigentes.
-    * `get_current_sales() -> pd.DataFrame`: Extrae las promociones vigentes desde MySQL.
-      * **Retorna**: `pd.DataFrame`: Un DataFrame de Pandas con la información de las promociones.
-    * `get_specifications_cloudscraper`:
     
-    ```python
-    get_specifications_cloudscraper(
-        claves: List[str],
-        max_retries: int = 3,
-        sleep_seconds: float = 0.15
-    ) -> Dict[str, dict]
-    ```
-
+    * `product_query() -> str`: 
+      * **Propósito**: Retorna la consulta SQL para obtener detalles de un producto específico por ID. Incluye detalles de precios por lista, categoría, marca, etc.
+    
+    * `get_products() -> pd.DataFrame`: 
+      * **Propósito**: Extrae la información de todos los productos válidos desde MySQL.
+      * **Retorna**: Un DataFrame de Pandas con la información de los productos.
+      * **Comportamientos**: Itera sobre los IDs válidos, ejecuta `product_query` para cada uno y consolida los resultados en un DataFrame.
+      
+    * `current_sales_query() -> str`: 
+      * **Propósito**: Retorna la consulta SQL para obtener las promociones vigentes.
+    
+    * `get_current_sales() -> pd.DataFrame`: 
+      * **Propósito**: Extrae las promociones vigentes desde MySQL.
+      * **Retorna**: `pd.DataFrame`: Un DataFrame de Pandas con la información de las promociones.
+      
+    * `get_specifications_cloudscraper -> Dict[str, dict]`:
      Intenta obtener las fichas técnicas para una lista de claves de productos desde un servicio externo, utilizando `cloudscraper` para manejar posibles protecciones como Cloudflare.
       * **Parámetros**:
         * `claves (List[str])`: Lista de claves de productos.
         * `max_retries (int)`: Número máximo de reintentos por cada clave.
-        * `sleep_seconds (float)`: Tiempo inicial de espera entre reintentos (con *backoff* exponencial).
+        * `sleep_seconds (float)`:Tiempo inicial de espera entre reintentos con backoff exponencial (default: 0.15).
       * **Retorna**: `Dict[str, dict]`: Un diccionario donde la clave es la `claveProducto` y el valor es la ficha técnica en formato JSON.
       * **Comportamiento**: Realiza solicitudes POST al `url` del servicio de fichas técnicas. Implementa lógica de reintentos con *backoff* controlado y maneja diversos errores HTTP (ej., 403 Forbidden) y errores de JSON/red.
+    
+    * `update_products() -> tuple[list, list]`:
+      * **Propósito**: Identifica qué productos han cambiado en la base de datos MySQL comparándolos con los que ya existen en el vector store local.
+      * **Parámetros**: Lista de claves de productos (`claves_guardadas (list)`) que ya existen en el índice vectorial.
+      * **Retorna**: tuple[list, list]: Una tupla conteniendo:
+        1. `ids_validos (list)`: IDs de productos nuevos para agregar.
+        2. `claves_sobrantes (list)`: Claves de productos que ya no están activos y deben eliminarse.
+      * **Comportamiento**: Realiza una consulta a MySQL para obtener las claves activas actuales y utiliza operaciones de conjuntos (set) para calcular la diferencia con las claves guardadas.
 
-**ct/ETL/transform.py** 
+    * `update_sales() -> tuple[list, list]`: 
+      *  Identifica qué promociones han cambiado, similar a update_products pero enfocado en la tabla de ofertas.
+      * **Parámetros**:
+        * `claves_guardadas (list)`: Lista de claves de promociones existentes en el índice.
+      * **Retorna**: `tuple[list, list]`: IDs nuevos y claves sobrantes.
+      * **Comportamiento**: Consulta las promociones vigentes en MySQL y calcula el delta respecto a lo guardado localmente.
+
+
+##### **ETL/transform.py** 
 
 Módulo de la capa de Transformación. Se encarga de limpiar, unificar y normalizar los datos extraídos, y de persistir las fichas técnicas en MongoDB.
 
 * **Clases y funciones claves**:
   * `class Transform`:
-    * `__init__()`: Inicializa la clase `Transform`, creando una instancia de `Extraction` y configurando la conexión a la colección de especificaciones de producto.
+    * `__init__()`: 
+      * **Propósito**: Inicializa la clase `Transform`, creando una instancia de `Extraction` y configurando la conexión a la colección de especificaciones de producto.
       * **Parámetros**:
         * `specifications (dict)`: El diccionario que contiene los datos de la ficha técnica de un producto.
       * **Retorna**: Un diccionario estructurado con `fichaTecnica` (pares nombre-valor de características) y `resumen` (descripciones cortas y largas).
       * **Comportamiento**: Navega a través de la estructura anidada de `ProductFeature` y `SummaryDescription` para extraer la información.
-    * `transform_specifications(specs: dict) -> dict`: Transforma múltiples especificaciones brutas (obtenidas del servicio externo) en un formato limpio.
+      
+    * `_get_all_specifications() -> dict`: 
+      * **Propósito**: Recupera las fichas técnicas de los productos, priorizando la base de datos local (MongoDB) antes de consultar el servicio externo.
+      * **Parámetros**:
+        * `claves (list)`: Lista de claves de productos a enriquecer.
+      * **Retorna**: dict: Diccionario con las fichas técnicas listas para usar.
+      * **Comportamiento**:
+        1. Busca cada clave en la colección specifications de MongoDB.
+        2. Si no existe, la agrega a una lista de pendientes.
+        3. Llama a extraction.get_specifications solo para las pendientes.
+        4. Transforma y guarda las nuevas fichas en MongoDB (upsert=True).
+        5. Retorna la combinación de fichas existentes y nuevas.
+
+    * `transform_specifications(specs: dict) -> dict`: 
+      * **Propósito**:Transforma múltiples especificaciones brutas (obtenidas del servicio externo) en un formato limpio.
       * **Parámetros**:
         * `specs (dict)`: Diccionario de fichas técnicas brutas, donde la clave es la `claveProducto`.
       * **Retorna**: Diccionario con fichas técnicas transformadas y limpias, listas para ser usadas o guardadas.
-    * `transform_products() -> pd.DataFrame`: Transforma los datos brutos de productos obtenidos de MySQL en un DataFrame limpio y estandarizado.
+       
+    * `transform_products() -> pd.DataFrame`: 
+      * **Propósito**: Transforma los datos brutos de productos obtenidos de MySQL en un DataFrame limpio y estandarizado.
       * **Retorna**: Un DataFrame con columnas relevantes, `detalles` concatenados y `detalles_precio` parseado de JSON.
-    * `clean_products() -> dict`: Limpia los datos de productos y los enriquece con las fichas técnicas. Primero busca en MongoDB y si no encuentra, las extrae y las guarda.
-      * **Retorna**: Un diccionario de productos limpios y enriquecidos, listos para la carga final.
-      * **Comportamiento**: Identifica las claves de productos para las que faltan fichas técnicas en MongoDB, las extrae usando `self.data.get_specifications`, las transforma y las guarda en la colección `specifications`. Finalmente, combina las fichas técnicas existentes y nuevas con los datos de productos.
-    * `transform_sales() -> pd.DataFrame`: Transforma los datos brutos de promociones (ventas) en un DataFrame limpio.
+      
+    * `clean_products() -> dict`: 
+      * **Propósito**: Limpia los datos de productos y los enriquece con las fichas técnicas. Primero busca en MongoDB y si no encuentra, las extrae y las guarda.
+      * **Parámetros**:
+        * `ids_validos (list)`: Lista de IDs de productos proveniente de la extracción.
+      * **Retorna**: Un diccionario donde cada ítem contiene:
+        * `contexto`: Cadena breve (Clave, Nombre, Modelo).
+        * `informacion`: Texto denso (Descripciones concatenadas + Ficha técnica).
+      * **Comportamiento**: Obtiene los datos crudos, llena valores nulos, concatena columnas descriptivas y enriquece con la ficha técnica obtenida (vía `_get_all_specifications`).
+      
+    * `transform_sales() -> pd.DataFrame`: 
+      * **Propósito**: Transforma los datos brutos de promociones (ventas) en un DataFrame limpio.
       * **Retorna**: Un DataFrame con información de promociones, fechas formateadas y descuentos con símbolo de porcentaje.
-    * `clean_sales() -> dict`: Limpia los datos de promociones y los enriquece con fichas técnicas de manera similar a `clean_products()`.
-      * **Retorna**: Un diccionario de promociones limpias y enriquecidas con fichas técnicas.
+      
+    * `clean_sales() -> dict`: 
+      * **Propósito**:Realiza la limpieza y estructuración para los datos de promociones.
+      * **Parámetros**:
+        * `sales_raw (pd.DataFrame)`: DataFrame con los datos crudos de las ofertas.
+      * **Retorna**: Diccionario estructurado con `contexto` e `informacion` para cada oferta..
 
-**ct/ETL/load.py**
+##### **ETL/load.py**
 
-Módulo de la capa de Carga. Maneja la inserción de los datos transformados en las colecciones de MongoDB y la construcción de la base de datos vectorial.
+Módulo de la capa de Carga. Maneja la creación de documentos, el chunking inteligente y la gestión de los índices vectoriales FAISS.
 
 * **Clases y funciones clave**:
   * `class Load`:
-    * `__init__()`: Inicializa la clase `Load`, creando una instancia de `Transform` y configurando las conexiones a las colecciones de MongoDB (`products`, `sales`, `specifications`) y el *embedder* de OpenAI.
-    * `build_content(product: dict, product_features: list) -> str`: Contruye el contenido textual de un documento a partir de un diccionario de producto y una lista de características.
+    * `__init__()`: 
+      * **Propósito**: Inicializa la clase `Load`, cargando una instancia de `Transform` e Inicializa el divisor de texto (RecursiveCharacterTextSplitter) con un tamaño de chunk de 220 y solapamiento de 10.
+    
+    * `_create_documents_with_context(data, collection_name) -> list[Document]`:
+      * **Propósito**: Genera documentos de LangChain dividiendo el contenido en fragmentos, pero asegurando que el contexto (nombre del producto) se repita en cada fragmento.
       * **Parámetros**:
-        * `product (dict)`: Un diccionario con los datos de un producto.
-        * `product_features (list)`: Lista de claves de características a incluir en el contenido.
-      * **Retorna**: Una cadena de texto concatenada que resume el producto, adecuada para la vectorización.
-    * `mongo_products()`: Carga las promociones limpias (procesadas por `Transform`) en la colección `products` de MongoDB, realizando *upserts*.
-    * `mongo_sales()`: Carga las promociones limpias (procesadas por `Transform`) en la colección `sales` de MongoDB, realizando *upserts*.
-    * `load_products() -> List[Document]`: Carga los productos desde la colección `products` de MongoDB y los convierte en objetos `langchain.schema.Document`.
+        * `data (dict)`: Diccionario de datos limpios (salida de Transform).
+        * `collection_name (str)`: Nombre de la colección ("productos" o "promociones").
+      * **Retorna**: Lista de objetos Document listos para vectorizar.
+      * **Comportamiento**: Itera sobre los datos, divide el campo informacion en chunks, y antepone la cadena contexto al inicio de cada chunk resultante.
+    
+    * `load_products() -> List[Document]`: 
+      * **Propósito**: Extrae todos los productos válidos, ejecuta la limpieza y los convierte en objetos `langchain.schema.Document`.
       * **Retorna**: Una instancia del índice FAISS.
-    * `products_vs()`: Crea o actualiza el *vector store* para productos.
+       
+    * `load_sales() -> List[Document]`: 
+      * **Propósito**: Extrae todas las ofertas válidas, ejecuta la limpieza y los convierte en objetos `langchain.schema.Document`.
+      * **Retorna**: Una instancia del índice FAISS.
+    
+    * `vector_store`: 
+     
+    * `products_vs()`: 
+      * **Propósito**: Crea o actualiza el *vector store* para productos.
       * **Comportamiento**: Carga los productos desde MongoDB, los vectoriza en lotes (`batch_size = 250`) para optimizar el uso de memoria, y guarda el índice FAISS localmente en `PRODUCTS_VECTOR_PATH`.
-    * `sales_products_vs()`: Crea o actualiza el *vector store* para ventas/ofertas.
+    
+    * `sales_vs()`:
+        
+    * `sales_products_vs()`: 
+      * **Propósito**: Crea o actualiza el *vector store* para ventas/ofertas.
       * **Comportamiento**: Carga las ofertas desde MongoDB. Luego, carga el *vector store* de productos existente desde `PRODUCTS_VECTOR_PATH` y añade las ofertas a este índice (también en lotes), guardando el índice combinado en `SALES_PRODUCTS_VECTOR_PATH`.
+    
+    * `add_products() -> bool`: 
+      * **Propósito**: Realiza una actualización incremental del vector store en disco, agregando nuevos items y eliminando los obsoletos.
+      * **Parámetros**:
+        * folder_path (str): Ruta al directorio del índice FAISS.
+        * collection_name (str): Tipo de colección ("productos" o "promociones").
+      * **Retorna**: True si hubo cambios en el índice, False si no.
+      * Comportamiento:
+        1. Carga el índice local.
+        2. Llama a la función de actualización correspondiente (update_products o update_sales) para obtener deltas.
+        3. Elimina del índice los IDs de claves sobrantes.
+        4. Extrae, limpia y vectoriza los IDs nuevos.
+        5. Guarda el índice en disco solo si hubo modificaciones.
 
-**ct/ETL/pipeline.py**
+##### **ETL/pipeline.py**
 
 Este módulo actúa como el orquestador principal del proceso ETL (Extracción, Transformación, Carga). Centraliza la ejecución de las etapas de obtención, limpieza, enriquecimiento y carga de datos, asegurando que los vector stores de productos y promociones estén siempre actualizados.
 
@@ -954,84 +1083,22 @@ Este módulo actúa como el orquestador principal del proceso ETL (Extracción, 
       5. Invoca `load.sales_products_vs()` para crear o actualizar el vector store de promociones, integrándolos con el vector store de productos existente,
     * **Uso**: Diseñada para ser el punto de entrada para la actualización programada o manual de la base de conocimientos del chatbot.
 
-
-### 2.2 Modelos LLM utilizados
+### 2.2. Modelos LLM utilizados
 
 El sistema utiliza una combinación estratégica de modelos de lenguaje para optimizar la funcionalidad y los costos:
 
-* **Clasificación de consultas y respuestas iniciales (Ollama - `gemma3:4b`)**:
+* **Clasificación de consultas y respuestas iniciales (Ollama - `gemma3:12b`)**:
   * **Función**: Este modelo *open-source*, cargado localmente a través de Ollama, es el primer punto de contacto. Su función principal es clasificar las consultas de los usuarios como *relevantes* (productos que se ofrecen en la empresa), *irrelevantes* (cualquier producto o tema fuera del ámbito de negocio), o *inapropiado* (lenguaje ofensivo).
   * **Ventaja**: Permite una gestión eficiente de consultas no relacionadas con el negocio sin incurrir en costos de API's comerciales, y es ideal para respuestas de "baneo" o corteses.
 
-* **Generación de respuestas relevantes (OpenAI - `gpt-41`)**:
+* **Generación de respuestas relevantes (OpenAI - `gpt-4.1`)**:
   * **Función**: Este modelo avanzado de OpenAI es el encargado de generar las respuestas detalladas y contextualizadas para las consultas clasificadas como *relevantes*. Trabaja en conjunto con la cadena RAG para integrar la información recuperada de la base de datos vectorial.
   * **Ventaja**: Ofrece alta calidad y precisión en las respuestas, especialmente en el manejo de precios, promociones complejas y detalles de productos, lo que fue validad en pruebas comparativas.
-
-### 2.3 Puntos de entrada y funciones clave
-
-Estos son los principales puntos de inicio para interactuar con las funcionalidades del chatbot. Es crucial que aquí se documenten las funciones y clases *directamente expuestas* o *que inician un flujo principal*.
-
-* `ModeratedToolAgent.run`:
-
-```python
-ModeratedToolAgent.run(
-  query: str, 
-  session_id: str = None, 
-  listaPrecio: str = None
-  ) -> AsyncGenerator[str, None]:
-```
-
-  * Es la función principal que orquesta el glujocompleto de una consulta de usuario.
-  * **Parámetros**:
-    * `query (str)`: La pregunta o entrada del usuario.
-    * `session_id (str)`: Un identificador único para la sesión del usuario, utilizado para mantener el historial correspondiente.
-    * `listaPrecio (str)`: El nivel o clave de precio específico del cliente, que se pasa al LLM para asegurar la precisión de los precios en las consultas dinámicas (ej. precios y promociones).
-  * **Comportamiento**:
-    1. Verifica si el usuario está actualmente baneado (usando `QueryModerator.check_if_banned`). Si es así, retorna un mensaje de baneo.
-    2. Clasifica la `query` (usando `QueryModerator.classify_query`) en una de las categorías: `relevante`, `irrelevante`, o `inapropiado`.
-    3. Basado en la clasificación:
-      * Si es `relevante`, delega la ejecución al `ToolAgent.run()` para obtener una respuesta detallada con el uso de herramientas y la base de datos vectorial.
-
-      * Si es `irrelevante`, retorna una respuesta predefinida y cortés (QueryModerator.polite_answer()) y registra la interacción.
-
-      * Si es `inapropiado`, evalúa el comportamiento (`QueryModerator.evaluate_inappropriate_behavior()`), actualiza el estado de baneo en la sesión del usuario (`QueryModerator.update_inappropriate_session()`) y retorna el mensaje de sanción apropiado.
-    4. Cede fragmentos de la respuesta en tiempo real (streaming).
-    5. Registra la interacción completa, incluyendo la pregunta, respuesta y metadatos relevantes para análisis futuro.
-  
-* `ToolAgent.run`:
-
- ```python
-ToolAgent().run(
-  session_id: str, 
-  question: str, 
-  listaPrecio: str
-  ) -> AsyncGenerator[str, None]: 
-```
-  * **Propósito**: Responde a consultas relevantes de productos, utilizando el agente de LangChain con acceso a herramientas y memoria de conversación. Es la función que el `ModeratedToolAgent` invoca cuando una consulta es clasificada como relevante.
-  * **Parámetros**:
-    * `session_id (str)`: ID de la sesión para recuperar/actualizar el historial.
-    * `question (str)`: La pregunta original del usuario.
-    * `listaPrecio (str)`: El nivel de precios del cliente.
-  * **Comportamiento**:
-    1. Asegura la existencia de la sesión en MongoDB (`ensure_session`).
-    2. Recupera el historial de la sesión (`get_session_history`) y lo trunca para ajustarse a la ventana de contexto del LLM (`trim_messages`).
-    3. Inicializa el `AgentExecutor` si no ha sido construido.
-    4. Ejecuta la `query` a través del `AgentExecutor` de LangChain, que orquesta el uso del LLM y las herramientas (`search_information_tool`, `inventory_tool`, `sales_rules_tool`) según la necesidad de la consulta.
-    5. Transmite la respuesta en fragmentos (`astream()`).
-    6. Registra la interacción completa (pregunta, respuesta, métricas como tokens y costo) en las colecciones `sessions` y `message_backup` de MongoDB.
-  
-* `load.py::products_vs()` y `load.py::sales_products_vs()`:
-  * **Propósito**: Funciones clave para la creación y actualización incremental de las bases de datos vectoriales (FAISS) de productos y ofertas, respectivamente. Orquestan el proceso de carga de documentos desde MongoDB y su vectorización.
-
-  * **Comportamiento**:
-    1. `products_vs()`: Carga todos los productos de la colección `products` de MongoDB, los convierte a `langchain.schema.Document` y los vectoriza en lotes (`batch_size=250`) utilizando `OpenAIEmbeddings`. Finalmente, guarda el índice FAISS resultante en `PRODUCTS_VECTOR_PATH`.
-
-    2. `sales_products_vs()`: Carga las ofertas de la colección `sales` de MongoDB. Luego, carga el índice de productos existente (desde `PRODUCTS_VECTOR_PATH`) y añade las ofertas a este mismo índice, también en lotes (`batch_size=200`). Finalmente, guarda el índice combinado (productos + ofertas) en `SALES_PRODUCTS_VECTOR_PATH`. Esta estrategia asegura que las ofertas se integren sin necesidad de re-vectorizar todo el catálogo de productos, optimizando tiempo y recursos.
 
 :::
 
 ::: {style="text-align: justify"}
-## 3 Guía de entrenamiento y mejora 
+## 3. Guía de entrenamiento y mejora 
 
 **Flujo de Datos (ETL)**
 
@@ -1040,13 +1107,13 @@ La información que alimenta la base de conocimientos del chatbot sigue un proce
 **Para una descripción detallada de cada etapa del proceso ETL (Extracción de MySQL y servicio externo de fichas técnicas, Transformación para limpieza, unificación y estructuración, y Carga en MongoDB y la base de datos vectorial FAISS), por favor, consulta el documento "Preparación de los datos".**
 
 
-### 3.1 Generación de la base de datos vectorial
+### 3.1. Generación de la base de datos vectorial
 
 La base de datos vectorial FAISS es el corazón del sistema RAG, almacenando las representaciones vectoriales de la información de productos y promociones para búsquedas de similitud eficientes. Su generación y actualización son parte integral del proceso ETL, el cual asegura que el modelo tenga acceso a una base de conocimiento robusta y actualizada.
 
 **Los detalles sobre el proceso de creación del índice vectorial, el uso de embeddings, la estrategia de procesamiento en lotes y la inclusión incremental de ofertas se encuentran descritos exhaustivamente en el documento "Preparación de los datos".**
 
-### 3.2 Recomendaciones para futura mejora
+### 3.2. Recomendaciones para futura mejora
 
 1. **Embeddings locales (Ollama)**: 
 
@@ -1067,11 +1134,11 @@ La base de datos vectorial FAISS es el corazón del sistema RAG, almacenando las
 :::
 
 ::: {style="text-align: justify"}
-## 4 Diagrama de arquitectura
+## 4. Diagrama de arquitectura
 
 El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, mostrando los componentes principales y el flujo de datos desde la interacción del usuario hasta la generación de respuestas y el almacenamiento del historial. Se ha actualizado para reflejar la implementación de MongoDB y los diferentes flujos.
 
-### 4.1 Componentes clave
+### 4.1. Componentes clave
 * **Interfaz de usuario (widget del chatbot)**: El componente frontal incrustado en la página web de CT Internacional, permitiendo la interacción directa del usuario.
 * **Servicio intermediario PHP**: Actúa como un puente seguro entre el *frontend* (HTTPS) y la API del chatbot (HTTPS pero con certificado autofirmado, o sea, no seguro) para resolver problemas de *contenido mixto*. Si el *backend* ya está en en HTTPS con un certificado SSL seguro, este componente puede ser obviado.
 * **API del chatbot (FastAPI)**: El servicio *backend* principal que procesa las consultas de los usuarios, orquesta la recuperación de información y se comunica con los modelos de lenguaje.
@@ -1090,7 +1157,7 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
 * **LLM**: El motor principal del chatbot para consultas relevantes, responsable de generar respuestas coherentes y detalladas en base a la consulta contextualizada por el RAG.
 * **Sistema de reportes automatizados**: Procesa los datos del `message_backup` en MongoDB para generar *insights* sobre el uso del chatbot, intereses de los clientes, costos y rendimiento.
 
-### 4.2 Flujo de interacción principal
+### 4.2. Flujo de interacción principal
 1. El **usuario** interactúa con el **widget del chatbot** en la página web.
 2. La consulta se envía a la **API del chatbot** (**potencialmente vía el servicio intermediario PHP**)
 3. La API crea o continúa una **sesión de conversación**, y la consulta es pasada al asistente conversacional.
@@ -1103,11 +1170,10 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
 6. Todas las interacciones (consultas y respuestas) se registran en las colecciones `sessions` y `message_backup` en **MongoDB**.
 7. El **sistema de reportes automatizados** accede a `message_backup` para generar análisis de datos.
 
-### 4.3 Flujo de datos
+### 4.3. Flujo de datos
 1. El **módulo ETL** extrae datos de **MySQL** y el **servicio de fichas técnicas**.
 2. Los datos se transforman y las fichas técnicas se cargan en **MongoDB** (colección `specifications`).
 3. Los datos transformados  de `products` y `sales` (incluyendo las fichas técnicas obtenidas de MongoDB) son utilizados por el **módulo ETL** para construir y actualizar la **base de datos vectorial**.
 
 ![Arquitectura del sistema](./arquitectura.jpg){width=120%}
-
 :::

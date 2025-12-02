@@ -1,3 +1,6 @@
+# This code was based on 
+# https://github.com/langchain-ai/langchain/issues/3114#issuecomment-1570180270 
+
 from langchain.callbacks.base import AsyncCallbackHandler
 from langchain.schema import LLMResult
 from typing import Any, Dict, List
@@ -83,5 +86,3 @@ class CostCalcAsyncHandler(AsyncCallbackHandler):
     async def on_llm_new_token(self, token: str, **kwargs):
         if self.token_cost_process:
             self.token_cost_process.sum_output_tokens(1)
-
-     

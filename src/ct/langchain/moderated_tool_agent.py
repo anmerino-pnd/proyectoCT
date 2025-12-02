@@ -1,7 +1,7 @@
 from typing import AsyncGenerator
 from ct.settings.cache import set_llm_cache
 from ct.langchain.tool_agent import ToolAgent
-from ct.moderation.query_moderator import QueryModerator
+from ct.langchain.moderator_agent import QueryModerator
 
 
 class ModeratedToolAgent:

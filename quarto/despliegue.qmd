@@ -9,7 +9,7 @@ toc-depth: 3
 ---
 
 ::: {style="text-align: justify"}
-## 1 Revisión del proceso
+## 1. Revisión del proceso
 
 El desarrollo del proyecto de Chatbot siguió un enfoque iterativo, basado en los principios del ciclo CRISP-DM. Esta metodología estructurada permitió abordar las distintas fases del proyecto de manera organizada, con un énfasis continuo en la mejora del diseño, la calidad del código y, fundamentalmente, el rendimiento del sistema en sus componentes clave.
 
@@ -21,7 +21,7 @@ A lo largo de los ciclos de desarrollo, se han cumplido los hitos establecidos, 
 
 La fase de evaluación, aunque continua, ha mostrado resultados prometedores que sugieren que el sistema, en su estado actual, posee la robustez necesaria para avanzar a una etapa de prueba en un entorno controlado y, posteriormente, al entorno de producción.
 
-### 1.1 Determinar próximos pasos
+### 1.1. Determinar próximos pasos
 
 Considerando los avances y los aprendizajes obtenidos, se evaluaron dos opciones principales para la continuación del proyecto:
 
@@ -29,17 +29,17 @@ Considerando los avances y los aprendizajes obtenidos, se evaluaron dos opciones
 * **Pasar a la fase de implementación en un entorno de prueba:** Desplegar el sistema en un entorno controlado que simule las condiciones de uso real, permitiendo obtener *feedback* directo y validar el comportamiento del chatbot en interacción con usuarios y la infraestructura existente.
 
 
-### 1.2 Decisión
+### 1.2. Decisión
 
 Se ha decidido priorizar la **implementación en la página de pruebas** de la empresa. Esta decisión se fundamenta en la necesidad de validar el sistema en un entorno lo más cercano posible a producción, identificar rápidamente fallos en la integración, la experiencia del usuario, y orientar los ciclos de mejora futuros con base en datos de uso real. La implementación en pruebas servirá como una plataforma funcional sobre la cual se podrá continuar iterando y perfeccionando la solución de manera incremental, hasta llevarlo a una etapa de producción por etapas; siendo usuarios de la empresa los primeros en probarlo, hasta los usuarios finales (externos).
 :::
 
 ::: {style="text-align: justify"}
-## 2 Plan de implementación
+## 2. Plan de implementación
 
 La fase de implementación implica el despliegue de los componentes desarrollados y su integración en el entorno web de pruebas de CT Online. El objetivo es habilitar el widget de chatbot para un grupo controlado de usuarios.
 
-### 2.1. Arquitectura de Despliegue y Conexión
+### 2.1. Arquitectura de despliegue y conexión
 
 La fase de implementación en el entorno de pruebas requiere el despliegue de la API del chatbot (desarrollada en Python con FastAPI) y la integración del widget (desarrollado en JavaScript, HTML y CSS) en la página web de pruebas de CT Online.
 
@@ -57,7 +57,7 @@ Para superar este obstáculo y permitir la comunicación segura entre el fronten
 
 Este enfoque de proxy en el backend PHP resuelve el problema del contenido mixto al asegurar que la comunicación entre el navegador (frontend) y la infraestructura del backend de la empresa siempre se realice a través de HTTPS. El desafío de integrar una fuente HTTP en un entorno HTTPS queda encapsulado en la comunicación de servidor a servidor.
 
-### 2.2 Gestión de Persistencia de Datos con MongoDB
+### 2.2. Gestión de persistencia de datos con MongoDB
 
 Una mejora significativa en la arquitectura del chatbot ha sido la migración de la gestión del historial de conversaciones desde archivos JSON locales a una base de datos NoSQL, específicamente MongoDB. Esta decisión se tomó para optimizar el almacenamiento, mejorar el rendimiento y facilitar el análisis de datos, especialmente considerando el volumen y la frecuencia de las interacciones de los usuarios.
 
@@ -71,11 +71,11 @@ Esta estrategia de persistencia de datos en MongoDB ha permitido superar las lim
 
 ![Schema MongoDB](./mongodb.png){width=90%}
 
-### 2.3 Desarrollo del widget frontend
+### 2.3. Desarrollo del widget frontend
 
 Se desarrolló un widget de chat personalizado e integrable mediante un simple script (`sdk.js`). Este widget se encarga de inyectar la interfaz de usuario (`html`) y cargar la lógica de la aplicación (`app.js`) y los estilos (`styles.css`) de forma dinámica en cualquier página web.
 
-### 2.4 Plan de monitoreo
+### 2.4. Plan de monitoreo
 
 Durante la fase de pruebas, se implementará un plan de monitoreo para evaluar el rendimiento y comportamiento del sistema. Las métricas clave a seguir incluirán:
 
@@ -85,7 +85,7 @@ Durante la fase de pruebas, se implementará un plan de monitoreo para evaluar e
 * **Frecuencia de uso del widget:** Número de aperturas del chat y cantidad de interacciones por usuario.
 * **Errores en la consola del navegador:** Monitoreo de errores de JavaScript o CSS reportados por los usuarios durante el uso del widget.
 
-### 2.5 Plan de mantenimiento
+### 2.5. Plan de mantenimiento
 
 Se establecerá un plan de mantenimiento periódico para asegurar la estabilidad y el buen funcionamiento del sistema desplegado:
 
@@ -94,11 +94,11 @@ Se establecerá un plan de mantenimiento periódico para asegurar la estabilidad
 * **Auditoría de calidad de datos y respuestas:** Realizar evaluaciones regulares de la calidad de los datos de origen y verificar la calidad de las respuestas generadas por el modelo con el tiempo.
 * **Refactorización y optimización:** A medida que se identifiquen áreas de mejora o cambien los requisitos, planificar tareas de refactorización de código para mejorar la modularidad, el rendimiento o la mantenibilidad.
 
-### 2.6 Experiencia de desarrollo
+### 2.6. Experiencia de desarrollo
 
 El proyecto ha permitido consolidar la experiencia en el ciclo completo de desarrollo de una aplicación basada en modelos de lenguaje, desde la comprensión y preparación de datos complejos, pasando por el prototipado con herramientas como Langchain, hasta el desarrollo de una API robusta con FastAPI y la implementación de una interfaz de usuario dinámica y reusable (widget frontend desarrollado en `JS`, `HTML` y `CSS`). La resolución de desafíos específicos como el manejo de diferentes estructuras de datos para las vector stores y la integración segura de una API a un entorno web real (HTTPS/contenido mixto, CORS, permisos de red) han sido aprendizajes clave con complicaciones y problemas que se pudieron corregir y solucionar. Se han seguido buenas prácticas de desarrollo, enfocándose en la modularidad para facilitar futuras expansiones (ej: integración de LangGraph) y el mantenimiento del código.
 
-### 2.7 Despliegue del chatbot en el sistema de desarrollo
+### 2.7. Despliegue del chatbot en el sistema de desarrollo
 
 El chatbot fue desplegado exitosamente en el entorno de pruebas de CT Online, habilitado específicamente para fines de desarrollo e integración continua. Este entorno permite validar en condiciones casi reales el comportamiento tanto del frontend (widget) como de la API conversacional.
 
@@ -116,7 +116,7 @@ La imagen a continuación muestra el chatbot funcionando en su entorno de desarr
 
 Este hito marca un avance significativo hacia la validación en entorno real del sistema conversacional, permitiendo recopilar feedback de usuarios internos antes de considerar un despliegue completo en producción.
 
-### 2.8 Despliegue del chatbot en el sistema de producción
+### 2.8. Despliegue del chatbot en el sistema de producción
 
 A partir del despliegue en el ambiente de pruebas, donde recopilamos retroalimentación e hicimos iteraciones sobre el modelo, finalmente pudimos desplegarlo al ambiente de producción. Este despliegue es escalonado, empezando por la sucursal de Hermosillo y con los vendedores de la empresa, recopilando nuevamente retroalimentación pero más pegada a casos de estudio concretos y reales.
 

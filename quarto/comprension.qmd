@@ -23,7 +23,7 @@ La empresa se estaría adaptando a la nueva era tecnológica, consolidando su li
 :::
 
 ::: {style="text-align: justify"}
-## 0.1 Objetivos de la línea de investigación
+## 0.1. Objetivos de la línea de investigación
 
 Esta línea de investigación se enfoca en aprovechar la información disponible sobre los productos de la empresa, incluyendo características técnicas, precios y disponibilidad, con el objetivo de optimizar su accesibilidad y uso en procesos comerciales.
 
@@ -66,7 +66,7 @@ Desarrollar un chatbot inteligente para la recomendación de productos, conectad
 :::
 
 ::: {style="text-align: justify"}
-## 0.2 Evaluación de la situación actual
+## 0.2. Evaluación de la situación actual
 
 Los recursos que se tienen actualmente para este proyecto son:
 
@@ -74,7 +74,7 @@ Los recursos que se tienen actualmente para este proyecto son:
 * **Herramientas:** [Python](#terminologia), servicios de OpenAI y bases de datos SQL.
 * **Equipo humano:** Especialistas en el sistema de distribución de la empresa, expertos en la estructura y manejo de la base de datos para facilitar la extracción de datos, y científicos de datos encargados del desarrollo y evaluación del sistema junto con los especialistas.
 
-### 0.2.1 Requisitos, supuestos y restricciones
+### 0.2.1. Requisitos, supuestos y restricciones
 
 **Requisitos:**
 
@@ -95,7 +95,7 @@ Los recursos que se tienen actualmente para este proyecto son:
 ::: 
 
 ::: {style="text-align: justify"}
-## 0.3 Terminología {#terminologia}
+## 0.3. Terminología {#terminologia}
 
 Algunas de las terminologías clave para este proyecto son:
 
@@ -129,7 +129,7 @@ Algunas de las terminologías clave para este proyecto son:
 ::: 
 
 ::: {style="text-align: justify"}
-## 0.4 Beneficios
+## 0.4. Beneficios
 
 * **Innovación en la oferta de productos:** Introducir un nuevo enfoque en la recomendación de productos, brindando una experiencia más personalizada y efectiva tanto para la empresa como para los clientes.
 * **Optimización de la estrategia del mercado:** La implementación del sistema abre oportunidades para nuevas estrategias de negocio, mejorando la eficiencia y el alcance en la comercialización de productos.
@@ -138,7 +138,7 @@ Algunas de las terminologías clave para este proyecto son:
 ::: 
 
 ::: {style="text-align: justify"}
-## 0.5 Costos
+## 0.5. Costos
 
 * **Tiempo:** El proyecto tiene un plazo estimado de 3 meses para desarrollar una versión funcional y tangible que sirva como punto de partida para futuras mejoras e implementación en el flujo de trabajo.
 * **Financieros:** Se consideran costos asociados a suscripciones de herramientas de pago necesarias para el desarrollo e implementación del sistema.
