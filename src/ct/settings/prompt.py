@@ -64,9 +64,10 @@ prompt_dict = {
                 "sucursal", "ubicacion", "direccion", "telefono",
                 "horario", "puesto", "nombre", "correo"
             ],
-            "nota": (
-                "Si da error, usa groupby y .head() para explorar los datos antes de reintentar"
-            )
+            "nota": [
+                "Procura al inicia buscar los valores únicos para evitar que el DF devuelva listas vacías"
+                "Si da error, usa groupby y .head() para explorar los datos antes de reintentar",
+            ]
         },
         "sales_rules_tool": {
             "objetivo":"Cada producto que aparece en promoción, busca su promoción ya que debe seguir ciertas reglas y/o verificar si sigue en promoción",
