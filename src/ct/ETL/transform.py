@@ -1,6 +1,7 @@
 import pandas as pd
-from ct.ETL.extraction import Extraction
+from pymongo import UpdateOne
 from pymongo import MongoClient
+from ct.ETL.extraction import Extraction
 from ct.settings.clients import mongo_db, mongo_collection_specifications 
 
 
@@ -82,13 +83,18 @@ class Transform:
             raw_new_specs = self.data.get_specifications(claves_a_buscar)
             new_specs = self.transform_specifications(raw_new_specs)
 
-            for clave, data in new_specs.items():
-                self.specifications_collection.update_one(
+            bulk_operations = [
+                UpdateOne(
                     {"clave": clave},
                     {"$set": {"clave": clave, "data": data}},
                     upsert=True
                 )
-            print(f"Guardadas {len(new_specs)} fichas técnicas nuevas en MongoDB.")
+                for clave, data in new_specs.items()
+            ]
+            
+            if bulk_operations:
+                result = self.specifications_collection.bulk_write(bulk_operations, ordered=False)
+                print(f"✅ Guardadas {result.upserted_count} nuevas, {result.modified_count} actualizadas.")
         
         return {**fichas_tecnicas_existentes, **new_specs}
 

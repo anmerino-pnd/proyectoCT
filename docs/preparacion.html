@@ -187,7 +187,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#carga-de-los-datos" id="toc-carga-de-los-datos" class="nav-link" data-scroll-target="#carga-de-los-datos">1.3. Carga de los datos</a>
   <ul>
-  <li><a href="#destinos-de-carga" id="toc-destinos-de-carga" class="nav-link" data-scroll-target="#destinos-de-carga">1.3.1 Destinos de carga</a></li>
+  <li><a href="#destinos-de-carga" id="toc-destinos-de-carga" class="nav-link" data-scroll-target="#destinos-de-carga">1.3.1. Destinos de carga</a></li>
   <li><a href="#estrategia-de-carga-en-mongodb" id="toc-estrategia-de-carga-en-mongodb" class="nav-link" data-scroll-target="#estrategia-de-carga-en-mongodb">1.3.2. Estrategia de carga en MongoDB</a></li>
   <li><a href="#construcción-y-actualización-del-vector-store" id="toc-construcción-y-actualización-del-vector-store" class="nav-link" data-scroll-target="#construcción-y-actualización-del-vector-store">1.3.3. Construcción y actualización del vector store</a></li>
   </ul></li>
@@ -229,7 +229,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h4 class="anchored" data-anchor-id="fuentes-de-datos">1.1.1. Fuentes de datos</h4>
 <p>Los datos principales provienen de tres fuentes:</p>
 <ol type="1">
-<li><strong>Base de datos MySQL</strong>: Contiene los productos disponibles en la plataforma y los productos en promoción. De aquí se extraen atributos como <code>nombre</code>, <code>clave</code>, <code>categoria</code>, <code>marca</code>, <code>tipo</code>, <code>modelo</code>, <code>descripcion</code>, <code>descripcion_corta</code>, y <code>palabrasClave</code>.</li>
+<li><strong>Base de datos MySQL:</strong> Contiene los productos disponibles en la plataforma y los productos en promoción. De aquí se extraen atributos como <code>nombre</code>, <code>clave</code>, <code>categoria</code>, <code>marca</code>, <code>tipo</code>, <code>modelo</code>, <code>descripcion</code>, <code>descripcion_corta</code>, y <code>palabrasClave</code>.</li>
 <li><strong>Servicio local de fichas técnicas (XML)</strong>: Proporciona información detallada y semi-estructurada de las fichas técnicas de los productos en formato XML.</li>
 </ol>
 <p>Todos los productos se relacionan a través de la claves <code>idProducto</code> y <code>Clave del producto</code>.</p>
@@ -237,18 +237,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="métodos-y-frecuencia-de-extracción" class="level4">
 <h4 class="anchored" data-anchor-id="métodos-y-frecuencia-de-extracción">1.1.2. Métodos y frecuencia de extracción</h4>
 <ul>
-<li><strong>Extracción de MySQL</strong>: La conexión se realiza mediante <code>mysql.connector-python</code>. Se ejecutan consultas SQL específicas (<code>ids_query</code>, <code>product_query</code>, <code>current_sales_query</code> en <code>ct/ETL/extraction.py</code>) para obtener los IDs de productos válidos, los detalles de los productos y las promociones vigentes.</li>
-<li><strong>Extracción de fichas técnicas</strong>: Se interactúa con el servicio de fichas técnicas a través de solicitudes HTTP POST utilizando la librería <code>cloudscraper</code>. Esta librería es crucial para manejar posibles protecciones como Cloudflare, que podrían bloquear las solicitudes directas. Los headers incluyen tokens de API y cookies para autenticación.</li>
-<li><strong>Frecuencia</strong>: Este proceso de extracción está diseñado para ejecutarse periódicamente (e.g., diariamente o semanalmente) para asegurar que la base de conocimientos del chatbot esté siempre actualizada con la información más reciente de productos y promociones.</li>
+<li><strong>Extracción de MySQL:</strong> La conexión se realiza mediante <code>mysql.connector-python</code>. Se ejecutan consultas SQL específicas (<code>ids_query</code>, <code>product_query</code>, <code>current_sales_query</code> en <code>ct/ETL/extraction.py</code>) para obtener los IDs de productos válidos, los detalles de los productos y las promociones vigentes.</li>
+<li><strong>Extracción de fichas técnicas:</strong> Se interactúa con el servicio de fichas técnicas a través de solicitudes HTTP POST utilizando la librería <code>cloudscraper</code>. Esta librería es crucial para manejar posibles protecciones como Cloudflare, que podrían bloquear las solicitudes directas. Los headers incluyen tokens de API y cookies para autenticación.</li>
+<li><strong>Frecuencia:</strong> Este proceso de extracción está diseñado para ejecutarse periódicamente (e.g., diariamente o semanalmente) para asegurar que la base de conocimientos del chatbot esté siempre actualizada con la información más reciente de productos y promociones.</li>
 </ul>
 </section>
 <section id="manejo-de-error-en-la-extracción" class="level4">
 <h4 class="anchored" data-anchor-id="manejo-de-error-en-la-extracción">1.1.3. Manejo de error en la extracción</h4>
 <p>Se implementan mecanismos de manejo de errores para garantizar la robustez del proceso:</p>
 <ul>
-<li><strong>Reintentos con Backoff exponencial</strong>: Para las llamadas al servicio de fichas técnicas, se utilizan reintentos con un <em>backoff</em> exponencial controlado (<code>max_retries</code>, <code>sleep_seconds</code> en <code>get_specifications_cloudscraper</code> de <code>ct/ETL/extraction.py</code>). Esto ayuda a superar problemas temporales de red o sobrecarga del servicio.</li>
-<li><strong>Manejo de errores HTTP</strong>: Se capturan errores HTTP específicos, como el <code>403 Forbidden</code>, que puede indicar un bloqueo de IP. En estos casos, se registra el error y se maneja la situación para evitar interrupciones completas del proceso.</li>
-<li><strong>Registro de fallos</strong>: Las claves de productos para las cuales no se pudo obtener la ficha técnica se registran, permitiendo una revisión manual o una re-extracción posterior. En caso de fallo persistente, se añadirá una ficha técnica vacía para mantener la integridad de la estructura de datos.</li>
+<li><strong>Reintentos con backoff exponencial:</strong> Para las llamadas al servicio de fichas técnicas, se utilizan reintentos con un <em>backoff</em> exponencial controlado (<code>max_retries</code>, <code>sleep_seconds</code> en <code>get_specifications_cloudscraper</code> de <code>ct/ETL/extraction.py</code>). Esto ayuda a superar problemas temporales de red o sobrecarga del servicio.</li>
+<li><strong>Manejo de errores HTTP:</strong> Se capturan errores HTTP específicos, como el <code>403 Forbidden</code>, que puede indicar un bloqueo de IP. En estos casos, se registra el error y se maneja la situación para evitar interrupciones completas del proceso.</li>
+<li><strong>Registro de fallos:</strong> Las claves de productos para las cuales no se pudo obtener la ficha técnica se registran, permitiendo una revisión manual o una re-extracción posterior. En caso de fallo persistente, se añadirá una ficha técnica vacía para mantener la integridad de la estructura de datos.</li>
 </ul>
 </section>
 </section>
@@ -292,18 +292,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h4 class="anchored" data-anchor-id="limpieza-y-normalización">1.2.2. Limpieza y normalización</h4>
 <p>Para las columnas textuales en los datos de <code>productos</code> y <code>promociones</code> (<code>descripcion</code>, <code>descripcion_corta</code>, <code>palabrasClave</code>), se aplican los siguientes pasos de limpieza para asegurar la calidad del texto y evitar ruido en los embeddings:</p>
 <ol type="1">
-<li><strong>Reemplazo de valores nulos</strong>: Los valores nulos (<code>NaN</code>) se reemplazan por un espacio vácio (<code>''</code>).</li>
-<li><strong>Sustitución de ‘0’ en descripciones</strong>: Los caracteres ‘0’ (que a menudo representan valores nulos o ausentes en la fuente original) en la columna <code>descripcion</code> se sustituyen por un espacio vacío (<code>''</code>).</li>
-<li><strong>Conversión a tipo <code>string</code></strong>: Todas las columnas relevantes se convierten explícitamente a tipo <code>string</code> para asegurar consistencia en el manejo del texto.</li>
-<li><strong>Eliminación de espacios extra</strong>: Se eliminan los espacios en blanco al inicio y al final de las cadenas (<code>.str.strip()</code>).</li>
+<li><strong>Reemplazo de valores nulos:</strong> Los valores nulos (<code>NaN</code>) se reemplazan por un espacio vácio (<code>''</code>).</li>
+<li><strong>Sustitución de ‘0’ en descripciones:</strong> Los caracteres ‘0’ (que a menudo representan valores nulos o ausentes en la fuente original) en la columna <code>descripcion</code> se sustituyen por un espacio vacío (<code>''</code>).</li>
+<li><strong>Conversión a tipo <code>string</code>:</strong> Todas las columnas relevantes se convierten explícitamente a tipo <code>string</code> para asegurar consistencia en el manejo del texto.</li>
+<li><strong>Eliminación de espacios extra:</strong> Se eliminan los espacios en blanco al inicio y al final de las cadenas (<code>.str.strip()</code>).</li>
 </ol>
 <p>Esta limpieza es fundamental para asegurar la calidad del texto que será utilizado en los embeddings, evitando ruido y mejorando la relevancia de las búsquedas.</p>
 </section>
 <section id="enriquecimiento-y-consolidación" class="level4">
 <h4 class="anchored" data-anchor-id="enriquecimiento-y-consolidación">1.2.3. Enriquecimiento y consolidación</h4>
 <ul>
-<li><strong>Concatenación de <code>detalles</code></strong>: Las columnas <code>descripcion</code>, <code>descripcion_corta</code> y <code>palabrasClave</code> se concatenan en una nueva columna llamada <code>detalles</code>. Esto se hace con el fin de crear un campo textual más completo y denso para la generación de embeddings, capturando la mayor cantidad de información descriptiva relevante para cada producto en un solo lugar.</li>
-<li><strong>Integración de fichas técnicas</strong>: Una vez transformadas, la <code>fichaTecnica</code> y el <code>resumen</code> se incorporan como campos anidados a los diccionarios de productos y promociones, utilizando la <code>clave</code> del producto como identificador común. Esto enriquece cada registro con información técnica detallada y resúmenes generados.</li>
+<li><strong>Concatenación de <code>detalles</code>:</strong> Las columnas <code>descripcion</code>, <code>descripcion_corta</code> y <code>palabrasClave</code> se concatenan en una nueva columna llamada <code>detalles</code>. Esto se hace con el fin de crear un campo textual más completo y denso para la generación de embeddings, capturando la mayor cantidad de información descriptiva relevante para cada producto en un solo lugar.</li>
+<li><strong>Integración de fichas técnicas:</strong> Una vez transformadas, la <code>fichaTecnica</code> y el <code>resumen</code> se incorporan como campos anidados a los diccionarios de productos y promociones, utilizando la <code>clave</code> del producto como identificador común. Esto enriquece cada registro con información técnica detallada y resúmenes generados.</li>
 </ul>
 </section>
 <section id="lógica-de-negocio-aplicada" class="level4">
@@ -315,10 +315,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="carga-de-los-datos">1.3. Carga de los datos</h3>
 <p>La etapa de carga es donde los datos limpios y transformados se persisten en los destinos finales y se preparan para el consumo del chatbot.</p>
 <section id="destinos-de-carga" class="level4">
-<h4 class="anchored" data-anchor-id="destinos-de-carga">1.3.1 Destinos de carga</h4>
+<h4 class="anchored" data-anchor-id="destinos-de-carga">1.3.1. Destinos de carga</h4>
 <p>Los datos limpios y transformados se persisten en <strong>MongoDB</strong>, específicamente en una colección principal:</p>
 <ul>
-<li><code>specifications</code>: Respalda las fichas técnicas transformadas de los productos, evitando llamadas repetidas al servicio XML.</li>
+<li><code>tbl_mongo_collection_specifications</code>: Respalda las fichas técnicas transformadas de los productos, evitando llamadas repetidas al servicio XML.</li>
 </ul>
 <p>Los datos de productos y promociones, una vez transformados, se utilizan directamente para la construcción de la base de datos vectorial sin una carga intermedia en colecciones dedicadas de MongoDB.</p>
 </section>
@@ -330,12 +330,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h4 class="anchored" data-anchor-id="construcción-y-actualización-del-vector-store">1.3.3. Construcción y actualización del vector store</h4>
 <p>La información de productos y promociones se utilizan para construir y mantener la base de datos vectorial FAISS, que es el corazón del sistema RAG.</p>
 <ul>
-<li><strong>Conversión a documentos LangChain</strong>: Los datos limpios de productos y promociones, obtenidos directamente de la etapa de transformación (<code>clean_products</code>, <code>clean_sales</code> en <code>ct/ETL/load.py</code>), se convierten en objetos <code>langchain.schema.Document</code>. Estos documentos incluyen el contenido textual (<code>page_content</code> construido por build_content) y metadatos relevantes como la clave y la colección de origen (<code>productos</code> o <code>promociones</code>)</li>
+<li><strong>Conversión a documentos LangChain:</strong> Los datos limpios de productos y promociones, obtenidos directamente de la etapa de transformación (<code>clean_products</code>, <code>clean_sales</code> en <code>ct/ETL/load.py</code>), se convierten en objetos <code>langchain.schema.Document</code>. Estos documentos incluyen el contenido textual (<code>page_content</code> construido por build_content) y metadatos relevantes como la clave y la colección de origen (<code>productos</code> o <code>promociones</code>)</li>
 <li><strong>Generación de embeddings</strong>: Se utilizan <code>OpenAIEmbeddings</code> para transformar el contenido textual de cada documento en representaciones vectoriales numéricas de alta dimensionalidad.</li>
 <li><strong>Creación y actualización de FAISS</strong>:
 <ul>
 <li><strong>Para productos (<code>productos_vs</code>)</strong>: Se crea un índice FAISS inicial a partir de los documentos de productos. Este proceso se realiza en lotes (e.g., lotes de 150 documentos) para gestionar eficientemente el consumo de memoria y cumplir con los límites de tasa de la API de OpenAI. El índice resultante se guarda localmente en <code>PRODUCTS_VECTOR_PATH</code>.</li>
-<li><strong>Para promociones (<code>sales_products_vs</code>)</strong>: Las ofertas se añaden incrementalmente al vector store de productos ya existente. Se carga el índice de productos desde <code>PRODUCTS_VECTOR_PATH</code> y luego se utilizan <code>add_documents</code> para incorporar los documentos de ofertas al mismo índice. Esta estrategia evita la necesidad de re-vectorizar todo el catálogo de productos cada vez que se actualizan las ofertas, optimizando el tiempo y los recursos. El índice combinado (productos + ofertas) se guarda en <code>SALES_PRODUCTS_VECTOR_PATH</code>.</li>
+<li><strong>Para promociones (<code>sales_products_vs</code>)</strong>: Las ofertas se añaden incrementalmente al vector store de productos ya existente. Se carga el índice de productos desde <code>PRODUCTS_VECTOR_PATH</code>.</li>
+<li><code>add_documents</code>: Para incorporar los documentos de ofertas y/o productos a sus índices correspondientes. Esta estrategia evita la necesidad de re-vectorizar todo el catálogo de productos u ofertas cada vez que se actualizan, optimizando el tiempo y los recursos. Finalmente, el índice es combinado (productos + ofertas) y se guarda en <code>SALES_PRODUCTS_VECTOR_PATH</code>.</li>
 </ul></li>
 </ul>
 </section>

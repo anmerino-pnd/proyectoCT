@@ -790,27 +790,45 @@ Este módulo define la herramienta `status_tool`, que permite al chatbot obtener
    
 ##### **tools/sucursales.py**
 
-Permite al agente realizar análisis de datos sobre la red de sucursales ejecutando código Python de manera controlada.
+Permite consultar y ejecutar código de pandas para analizar un Dataframe con la información de las sucursales.
 
-* **Funcionamiento**:
+* **Clases y funciones clave**:
+  * `class SucursalesInput`:
+    * **Propósito**: Modelo de datos Pydantic para validar y describir el argumento de entrada `code` requerido por la herramienta.
+    * **Comportamiento**: Asegura que el valor entrante sea un string.
+  
+  * `get_sucursales_info() -> str`:
+    * **Propósito**: Ejecutar código de pandas capaz de analizar y recuperar valores del Dataframe, que sean relevantes a la consulta del usuario.
+    * **Parámetros**: `code (str)`: Código de pandas aplicable sobre el Dataframe.
+    * **Retorna**: `str`: El resultado que devolvió el Dataframe con el código dado.
 
-  * Carga un agente de Pandas con información de sucursales.csv.
-
-  * **get_sucursales_info**(): Recibe código Python generado por el LLM, lo ejecuta en un entorno seguro local (exec) y captura la salida estándar (stdout) o el valor de la variable result.
-
-  * **Uso**: Ideal para preguntas complejas como "¿Qué sucursales tienen zona extendida?" o "¿Cuál es la dirección de la sucursal más al norte?", permitiendo al LLM operar los datos matemáticamente en lugar de alucinar.
 
 ##### **tools/moneda_api.py**
-Herramienta utilitaria para conversión de divisas en tiempo real.
 
-Funcionamiento:
+Herramienta utilitaria para conversión de divisas en tiempo real. Las divisas de la empresa son diferentes a las que aparecen en internet. Utilizar la tabla de *monedas_api* es vital.
 
-Consulta la tabla monedas_api en MySQL para obtener el tipo de cambio actual.
-
-Realiza la conversión matemática de USD a MXN y devuelve el resultado formateado.
+* **Clases y funciones clave**:
+  * `class DolarInput`:
+    * **Propósito**: Modelo de datos Pydantic para validar y describir el argumento de entrada `dolar` requerido por la herramienta.
+    * **Comportamiento**: Asegura que el valor entrante sea un flotante.
+  
+  * `dolar_convertion_tool() -> str`:
+    * **Propósito**: Consulta la base de datos y extrae el valor actual del dólar contra el peso.
+    * **Parámetros**: `dolar (float)`: El valor de un producto en dólares.
+    * **Retorna**: `str`: La conversión exacta del valor de USD a MXN.
+    * **Comportamiento**:
+      * Toma el precio del producto en dólares.
+      * Hace una llama a la base de datos y extrae el valor de 1 dólar a peso mexicano.
+      * En un string se hace la conversión del original en USD a MXN.
 
 ##### **tools/ct_info.py**
-Provee información estática corporativa ("Quiénes somos", "Misión", "Visión") para asegurar que el agente responda preguntas institucionales con el tono y datos exactos de la empresa.
+
+Provee información estática corporativa ("Quiénes somos", "Misión", "Visión") para asegurar que el agente responda preguntas institucionales con el tono y datos exactos de la empresa. 
+
+* **Clases y funciones clave**:
+  * `who_are_we()`:
+    * **Propósito**: Darle el conocimiento al sistema sobre quiénes somos, la visión y misión de la empresa.
+    * **Retorna**: La información que se necesita saber para contestar a preguntas como "¿Qué es CT?".
 
 #### 2.1.4. Unión de agentes
 
@@ -985,8 +1003,8 @@ Módulo de la capa de Transformación. Se encarga de limpiar, unificar y normali
       * **Comportamiento**:
         1. Busca cada clave en la colección specifications de MongoDB.
         2. Si no existe, la agrega a una lista de pendientes.
-        3. Llama a extraction.get_specifications solo para las pendientes.
-        4. Transforma y guarda las nuevas fichas en MongoDB (upsert=True).
+        3. Llama a `extraction.get_specifications()` solo para las pendientes.
+        4. Transforma y guarda las nuevas fichas en MongoDB (bluk_write).
         5. Retorna la combinación de fichas existentes y nuevas.
 
     * `transform_specifications(specs: dict) -> dict`: 
@@ -1043,25 +1061,36 @@ Módulo de la capa de Carga. Maneja la creación de documentos, el chunking inte
       * **Propósito**: Extrae todas las ofertas válidas, ejecuta la limpieza y los convierte en objetos `langchain.schema.Document`.
       * **Retorna**: Una instancia del índice FAISS.
     
-    * `vector_store`: 
+    * `vector_store() -> FAISS`: 
+      * **Propósito**: Recibe una lista de documentos y crea la base de datos vectorial.
+      * **Parámetros**:
+        * `docs (Document)`: Lista de documentos generados con `_create_documents_with_context(data, collection_name) -> list[Document]`.
+      * **Retorna**: Base de datos vectorial con documentos cargados.
      
     * `products_vs()`: 
       * **Propósito**: Crea o actualiza el *vector store* para productos.
-      * **Comportamiento**: Carga los productos desde MongoDB, los vectoriza en lotes (`batch_size = 250`) para optimizar el uso de memoria, y guarda el índice FAISS localmente en `PRODUCTS_VECTOR_PATH`.
+      * **Parámetros**:
+        * `docs (Document)`: Lista de documentos generados con `_create_documents_with_context(data, collection_name) -> list[Document]`.
+      * **Comportamiento**: Carga los productos desde la base de datos, los vectoriza en lotes (`batch_size = 500`) para optimizar el uso de memoria, y guarda el índice FAISS localmente en `PRODUCTS_VECTOR_PATH`.
     
     * `sales_vs()`:
+      * **Propósito**: Crea o actualiza el *vector store* para productos.
+      * **Parámetros**:
+        * `docs (Document)`: Lista de documentos generados con `_create_documents_with_context(data, collection_name) -> list[Document]`.
+      * **Comportamiento**: Carga los productos desde la base de datos, los vectoriza en lotes (`batch_size = 500`) para optimizar el uso de memoria, y guarda el índice FAISS localmente en `SALES_VECTOR_PATH`.
         
-    * `sales_products_vs()`: 
-      * **Propósito**: Crea o actualiza el *vector store* para ventas/ofertas.
-      * **Comportamiento**: Carga las ofertas desde MongoDB. Luego, carga el *vector store* de productos existente desde `PRODUCTS_VECTOR_PATH` y añade las ofertas a este índice (también en lotes), guardando el índice combinado en `SALES_PRODUCTS_VECTOR_PATH`.
+    * `sales_products_vs() -> str`: 
+      * **Propósito**: Concatenar las bases de datos vectoriales de productos y ofertas.
+      * **Comportamiento**: Carga las bases vectoriales de ambas colecciones, utiliza la función `merge_from()` y luego guarda localmente.
+      * **Retorna**: Un mensaje confirmando que el proceso fue éxitoso.
     
     * `add_products() -> bool`: 
       * **Propósito**: Realiza una actualización incremental del vector store en disco, agregando nuevos items y eliminando los obsoletos.
       * **Parámetros**:
-        * folder_path (str): Ruta al directorio del índice FAISS.
-        * collection_name (str): Tipo de colección ("productos" o "promociones").
+        * `folder_path (str)`: Ruta al directorio del índice FAISS.
+        * `collection_name (str)`: Tipo de colección ("productos" o "promociones").
       * **Retorna**: True si hubo cambios en el índice, False si no.
-      * Comportamiento:
+      * **Comportamiento**:
         1. Carga el índice local.
         2. Llama a la función de actualización correspondiente (update_products o update_sales) para obtener deltas.
         3. Elimina del índice los IDs de claves sobrantes.
@@ -1070,18 +1099,55 @@ Módulo de la capa de Carga. Maneja la creación de documentos, el chunking inte
 
 ##### **ETL/pipeline.py**
 
-Este módulo actúa como el orquestador principal del proceso ETL (Extracción, Transformación, Carga). Centraliza la ejecución de las etapas de obtención, limpieza, enriquecimiento y carga de datos, asegurando que los vector stores de productos y promociones estén siempre actualizados.
+Este módulo actúa como el orquestador principal del proceso ETL (Extracción, Transformación, Carga). Centraliza la ejecución de las etapas de obtención, limpieza, enriquecimiento y carga de datos, asegurando que las bases vectoriales de productos y promociones estén siempre actualizadas.
 
-* **Clases y funciones clave**:
-  * `run_etl_pipeline()`:
-    * **Propósito**: Función principal que coordina la ejecución secuencial de todas las fases del pipeline ETL.
+* **Funciones clave**:
+  * `load_products()`:
+    * **Propósito**: Ejecuta el flujo de cargar todos los productos activos encontrados en la base de datos de la empresa y los guarda en una nueva base de datos vectorial.
     * **Comportamiento**:
-      1. Inicializa una instancia de la clase `Load`.
-      2. Invoca `load.products_vs()` para crear o actualizar el vector store de productos con los datos preparados.
-      3. Invoca `load.products_vs()` para crear o actualizar el vector store de productos con los datos preparados.
-      4. Invoca `load.load_sales()` para extraer, transformar y preparar los datos de promociones.
-      5. Invoca `load.sales_products_vs()` para crear o actualizar el vector store de promociones, integrándolos con el vector store de productos existente,
-    * **Uso**: Diseñada para ser el punto de entrada para la actualización programada o manual de la base de conocimientos del chatbot.
+      1. Llama la función de la clase `Load.load_products()`.
+      2. Esta función se encarga de extraer y transformar los productos, finalmente regresa una lista de documentos para su vectorización.
+      3. La lista de documentos pasa a la función `Load.products_vs()`.
+    * **Uso**: El principal uso de esta función viene de una creación desde cero, utilizamos esta base para trabajar con ella y actualizar productos.
+
+  * `update_products()`:
+    * **Propósito**: Actualizar periódicamente, agregar los productos nuevos y eliminar los productos que ya no se encuentran activos.
+    * **Comportamiento**:
+      1. Crea una lista con las claves de los productos que se encuentran en la base de datos vectorial. 
+      2. Extrae las claves de los productos actualmente activos.
+      3. Compara ambas listas, productos que falten en una u otra lista, significa que es un producto nuevo o viejo según la lista de referencia.
+      4. Toma las claves nuevas y las viejas.
+      5. Para las claves nuevas, extrae, transforma y añade a la base de datos de productos.
+      6. Para las claves viejas, toma los índices y los elimina de la base de datos vectorial.
+    * **Retorna**: Un booleano donde True es que hay productos añadidos o eliminados, False si no.
+    * **Uso**: Añadir productos sin necesidad de cargarlos desde 0.
+
+  * `load_sales()`:
+    * **Propósito**: Carga todas las ofertas que se encuentran en el momento y las guarda en una nueva base de datos vectorial.
+    * **Comportamiento**:
+      1. Llama la función de la clase `Load.load_sales()`.
+      2. Esta función se encarga de extraer y transformar las ofertas, finalmente regresa una lista de documentos para su vectorización.
+      3. La lista de documentos pasa a la función `Load.sales_vs()`.
+    * **Uso**: El principal uso de esta función viene de una creación desde cero, utilizamos esta base para trabajar con ella y actualizar ofertas.
+
+  * `update_sales()`:
+    * **Propósito**: Actualizar periódicamente, agregar las ofertas nuevas y eliminar las ofertas que ya no apliquen.
+    * **Comportamiento**:
+      1. Crea una lista con las claves de las ofertas que se encuentran en la base de datos vectorial. 
+      2. Extrae las claves de las ofertas actualmente activas.
+      3. Compara ambas listas, ofertas que falten en una u otra lista, significa que es una oferta nueva o vieja según la lista de referencia.
+      4. Toma las claves nuevas y las viejas.
+      5. Para las claves nuevas, extrae, transforma y añade a la base de datos de ofertas.
+      6. Para las claves viejas, toma los índices y los elimina de la base de datos vectorial.
+    * **Retorna**: Un booleano donde True es que hay ofertas añadidas o eliminadas, False si no.
+    * **Uso**: Añadir ofertas sin necesidad de cargarlos desde 0.
+
+  * `update_all()`: Ejecuta el pipeline completo de regeneración (Full Load).
+    * **Propósito**: En caso de querer hacer una actualización completa tanto para ofertas como productos.
+    * **Comportamiento**:
+      1. Ejecuta `load.load_products()` y `load.load_sales()` secuencialmente.
+      2. Extrae, transforma y carga una base de datos completa y actualizada.
+    * **Uso**: Es una función deprecada.
 
 ### 2.2. Modelos LLM utilizados
 
@@ -1104,7 +1170,7 @@ El sistema utiliza una combinación estratégica de modelos de lenguaje para opt
 
 La información que alimenta la base de conocimientos del chatbot sigue un proceso ETL (Extracción, Transformación, Carga) estructurado que garantiza que el modelo tenga acceso a datos actualizados, limpios y ricos en contexto semántico.
 
-**Para una descripción detallada de cada etapa del proceso ETL (Extracción de MySQL y servicio externo de fichas técnicas, Transformación para limpieza, unificación y estructuración, y Carga en MongoDB y la base de datos vectorial FAISS), por favor, consulta el documento "Preparación de los datos".**
+**Para una descripción detallada de cada etapa del proceso ETL (Extracción de MySQL y servicio externo de fichas técnicas, Transformación para limpieza, unificación y estructuración, y Carga de la base de datos vectorial FAISS), por favor, consulta el documento "Preparación de los datos".**
 
 
 ### 3.1. Generación de la base de datos vectorial
@@ -1175,5 +1241,5 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
 2. Los datos se transforman y las fichas técnicas se cargan en **MongoDB** (colección `specifications`).
 3. Los datos transformados  de `products` y `sales` (incluyendo las fichas técnicas obtenidas de MongoDB) son utilizados por el **módulo ETL** para construir y actualizar la **base de datos vectorial**.
 
-![Arquitectura del sistema](./arquitectura.jpg){width=120%}
+![Arquitectura del sistema](./images/arquitectura.jpg){width=120%}
 :::

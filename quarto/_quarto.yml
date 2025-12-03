@@ -2,33 +2,33 @@ project:
   type: website
   output-dir: ../docs
   render: # Renderizar todos los archivos .qmd
-    - home.qmd
-    - comprension.qmd
-    - comprension_datos.qmd
-    - preparacion.qmd
-    - modelado.qmd
-    - despliegue.qmd
-    - documentacion.qmd
+    - 0_home.qmd
+    - 1_comprension.qmd
+    - 2_comprension_datos.qmd
+    - 3_preparacion.qmd
+    - 4_modelado.qmd
+    - 5_despliegue.qmd
+    - 6_documentacion.qmd
 
 
 website:
-  favicon: favicon.png
+  favicon: ./images/favicon.png
   navbar:
-    logo: ctlogo.png
+    logo: ./images/ctlogo.png
     left:
-      - href: home.qmd
+      - href: 0_home.qmd
         text: Home
-      - href: comprension.qmd
+      - href: 1_comprension.qmd
         text: Comprensión del negocio
-      - href: comprension_datos.qmd
+      - href: 2_comprension_datos.qmd
         text: Comprensión de los datos
-      - href: preparacion.qmd
+      - href: 3_preparacion.qmd
         text: Preparación
-      - href: modelado.qmd
+      - href: 4_modelado.qmd
         text: Modelado y Evaluación
-      - href: despliegue.qmd
+      - href: 5_despliegue.qmd
         text: Despliegue
-      - href: documentacion.qmd
+      - href: 6_documentacion.qmd
         text: Documentación
       
   back-to-top-navigation: true

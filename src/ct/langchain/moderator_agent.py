@@ -53,6 +53,7 @@ Criterios de Clasificación
     * Consultas Comerciales y de Producto:
         * Búsqueda, recomendación, precios, cotizaciones, disponibilidad, promociones.
         * Búsqueda por códigos, SKUs o números de parte (ej: 'ACCITL5520', 'c008').
+        * Búsqueda de información sobre sucursales, usuarios, PM's.
         * Detalles sobre políticas, garantías, devoluciones, términos y condiciones.
         * Estatus de pedidos, envíos o devoluciones.
         * Saludos iniciales y mensajes con errores de tipeo pero con intención clara (ej: 'hols', 'cpuevo').

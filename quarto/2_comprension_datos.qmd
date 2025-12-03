@@ -73,13 +73,13 @@ Para comenzar, examinaremos la distribución de categorías dentro del catálogo
 
 El siguiente análisis nos permitirá visualizar las 10 categorías más frecuentes, lo que nos dará una mejor comprensión de la composición del inventario.
 
-![Top 10 categorías](./top_10_categorias.jpg){width=120%}
+![Top 10 categorías](./images/top_10_categorias.jpg){width=120%}
 
 Vemos que los tóners destacan como la categoría predominante, seguidos por las aplicaciones de seguridad, aunque en este último caso, la diferencia con el resto de las categorías es menos marcada en comparación con la primera.
 
 Del mismo modo, exploraremos la distribución de marcas en los productos y visualizaremos las 10 más comunes dentro de un total de 195 marcas registradas.
 
-![Top 10 marcas](./top_10_marcas.png){width=120%}
+![Top 10 marcas](./images/top_10_marcas.png){width=120%}
 
 En este análisis, observamos que la marca BROBOTIX sobresale como la más frecuente en el catálogo. Le sigue MANHATTAN, con una diferencia más reducida respecto a las siguientes marcas, en un patrón similar al que se observó en las categorías.
 
@@ -94,7 +94,7 @@ Para ello, compararemos la distribución de palabras en los siguientes atributos
 * Palabras clave asociadas
 Este análisis nos ayudará a identificar patrones en la longitud de las descripciones y su posible impacto en la categorización y búsqueda de los productos.
 
-![Comparación de distribuciones](./distribuciones.jpg){width=120%}
+![Comparación de distribuciones](./images/distribuciones.jpg){width=120%}
 
 Al analizar las distribuciones, observamos que muchas de las instancias de la descripción corta comienzan con 0, pero luego la distribución se aproxima a una distribución quasi-normal, con un promedio de 5 palabras por instancia. En el caso de las descripciones, aunque no todas las instancias comienzan con 0, la distribución de palabras muestra un promedio de 1 palabra. Finalmente, las palabras en los nombres siguen una distribución aparentemente normal, con un promedio de 8 palabras por instancia.
 

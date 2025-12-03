@@ -69,7 +69,7 @@ La implementación en MongoDB se estructura en dos colecciones principales:
 
 Esta estrategia de persistencia de datos en MongoDB ha permitido superar las limitaciones de los archivos JSON, que no eran escalables para una gran cantidad de usuarios, ofreciendo un camino más robusto y óptimo para almacenar la información de las conversaciones.
 
-![Schema MongoDB](./mongodb.png){width=90%}
+![Schema MongoDB](./images/mongodb.png){width=90%}
 
 ### 2.3. Desarrollo del widget frontend
 
@@ -112,7 +112,7 @@ El proceso de despliegue consistió en los siguientes pasos:
 
 La imagen a continuación muestra el chatbot funcionando en su entorno de desarrollo, con el widget incrustado en la página de pruebas de CT Online:
 
-![Chatbot desplegado en el ambiente de desarrollo](./ctdev.jpg){width=90%}
+![Chatbot desplegado en el ambiente de desarrollo](./images/ctdev.jpg){width=90%}
 
 Este hito marca un avance significativo hacia la validación en entorno real del sistema conversacional, permitiendo recopilar feedback de usuarios internos antes de considerar un despliegue completo en producción.
 
@@ -120,5 +120,5 @@ Este hito marca un avance significativo hacia la validación en entorno real del
 
 A partir del despliegue en el ambiente de pruebas, donde recopilamos retroalimentación e hicimos iteraciones sobre el modelo, finalmente pudimos desplegarlo al ambiente de producción. Este despliegue es escalonado, empezando por la sucursal de Hermosillo y con los vendedores de la empresa, recopilando nuevamente retroalimentación pero más pegada a casos de estudio concretos y reales.
 
-![Chatbot desplegado en el ambiente de producción](./ctonline.jpg){width=90%}
+![Chatbot desplegado en el ambiente de producción](./images/ctonline.jpg){width=90%}
 :::

@@ -1,4 +1,4 @@
-def who_are_we():
+def who_are_we() -> str:
     return """
 ¿Quiénes somos?
 CT Internacional es una empresa 100% mexicana y el distribuidor líder de soluciones en Tecnologías de la Información (TI). Somos la opción preferida de distribuidores e integradores de tecnología para hacer negocios.

@@ -116,7 +116,7 @@ La etapa de carga es donde los datos limpios y transformados se persisten en los
 
 Los datos limpios y transformados se persisten en **MongoDB**, específicamente en una colección principal:
 
-* `specifications`: Respalda las fichas técnicas transformadas de los productos, evitando llamadas repetidas al servicio XML.
+* `tbl_mongo_collection_specifications`: Respalda las fichas técnicas transformadas de los productos, evitando llamadas repetidas al servicio XML.
 
 Los datos de productos y promociones, una vez transformados, se utilizan directamente para la construcción de la base de datos vectorial sin una carga intermedia en colecciones dedicadas de MongoDB.
 

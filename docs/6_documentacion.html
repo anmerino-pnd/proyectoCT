@@ -64,7 +64,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<link href="./favicon.png" rel="icon" type="image/png">
+<link href="././images/favicon.png" rel="icon" type="image/png">
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -116,7 +116,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <div class="navbar-container container-fluid">
       <div class="navbar-brand-container mx-auto">
     <a href="./index.html" class="navbar-brand navbar-brand-logo">
-    <img src="./ctlogo.png" alt="" class="navbar-logo">
+    <img src="././images/ctlogo.png" alt="" class="navbar-logo">
     </a>
   </div>
             <div id="quarto-search" class="" title="Buscar"></div>
@@ -126,31 +126,31 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="./home.html"> 
+    <a class="nav-link" href="./0_home.html"> 
 <span class="menu-text">Home</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./comprension.html"> 
+    <a class="nav-link" href="./1_comprension.html"> 
 <span class="menu-text">Comprensión del negocio</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./comprension_datos.html"> 
+    <a class="nav-link" href="./2_comprension_datos.html"> 
 <span class="menu-text">Comprensión de los datos</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./preparacion.html"> 
+    <a class="nav-link" href="./3_preparacion.html"> 
 <span class="menu-text">Preparación</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./modelado.html"> 
+    <a class="nav-link" href="./4_modelado.html"> 
 <span class="menu-text">Modelado y Evaluación</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./despliegue.html"> 
+    <a class="nav-link" href="./5_despliegue.html"> 
 <span class="menu-text">Despliegue</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./documentacion.html" aria-current="page"> 
+    <a class="nav-link active" href="./6_documentacion.html" aria-current="page"> 
 <span class="menu-text">Documentación</span></a>
   </li>  
 </ul>
@@ -1133,26 +1133,63 @@ about the RDB error.</code></pre>
 </section>
 <section id="toolssucursales.py" class="level5">
 <h5 class="anchored" data-anchor-id="toolssucursales.py"><strong>tools/sucursales.py</strong></h5>
-<p>Permite al agente realizar análisis de datos sobre la red de sucursales ejecutando código Python de manera controlada.</p>
+<p>Permite consultar y ejecutar código de pandas para analizar un Dataframe con la información de las sucursales.</p>
 <ul>
-<li><p><strong>Funcionamiento</strong>:</p>
+<li><strong>Clases y funciones clave</strong>:
 <ul>
-<li><p>Carga un agente de Pandas con información de sucursales.csv.</p></li>
-<li><p><strong>get_sucursales_info</strong>(): Recibe código Python generado por el LLM, lo ejecuta en un entorno seguro local (exec) y captura la salida estándar (stdout) o el valor de la variable result.</p></li>
-<li><p><strong>Uso</strong>: Ideal para preguntas complejas como “¿Qué sucursales tienen zona extendida?” o “¿Cuál es la dirección de la sucursal más al norte?”, permitiendo al LLM operar los datos matemáticamente en lugar de alucinar.</p></li>
+<li><code>class SucursalesInput</code>:
+<ul>
+<li><strong>Propósito</strong>: Modelo de datos Pydantic para validar y describir el argumento de entrada <code>code</code> requerido por la herramienta.</li>
+<li><strong>Comportamiento</strong>: Asegura que el valor entrante sea un string.</li>
+</ul></li>
+<li><code>get_sucursales_info() -&gt; str</code>:
+<ul>
+<li><strong>Propósito</strong>: Ejecutar código de pandas capaz de analizar y recuperar valores del Dataframe, que sean relevantes a la consulta del usuario.</li>
+<li><strong>Parámetros</strong>: <code>code (str)</code>: Código de pandas aplicable sobre el Dataframe.</li>
+<li><strong>Retorna</strong>: <code>str</code>: El resultado que devolvió el Dataframe con el código dado.</li>
+</ul></li>
 </ul></li>
 </ul>
 </section>
 <section id="toolsmoneda_api.py" class="level5">
 <h5 class="anchored" data-anchor-id="toolsmoneda_api.py"><strong>tools/moneda_api.py</strong></h5>
-<p>Herramienta utilitaria para conversión de divisas en tiempo real.</p>
-<p>Funcionamiento:</p>
-<p>Consulta la tabla monedas_api en MySQL para obtener el tipo de cambio actual.</p>
-<p>Realiza la conversión matemática de USD a MXN y devuelve el resultado formateado.</p>
+<p>Herramienta utilitaria para conversión de divisas en tiempo real. Las divisas de la empresa son diferentes a las que aparecen en internet. Utilizar la tabla de <em>monedas_api</em> es vital.</p>
+<ul>
+<li><strong>Clases y funciones clave</strong>:
+<ul>
+<li><code>class DolarInput</code>:
+<ul>
+<li><strong>Propósito</strong>: Modelo de datos Pydantic para validar y describir el argumento de entrada <code>dolar</code> requerido por la herramienta.</li>
+<li><strong>Comportamiento</strong>: Asegura que el valor entrante sea un flotante.</li>
+</ul></li>
+<li><code>dolar_convertion_tool() -&gt; str</code>:
+<ul>
+<li><strong>Propósito</strong>: Consulta la base de datos y extrae el valor actual del dólar contra el peso.</li>
+<li><strong>Parámetros</strong>: <code>dolar (float)</code>: El valor de un producto en dólares.</li>
+<li><strong>Retorna</strong>: <code>str</code>: La conversión exacta del valor de USD a MXN.</li>
+<li><strong>Comportamiento</strong>:
+<ul>
+<li>Toma el precio del producto en dólares.</li>
+<li>Hace una llama a la base de datos y extrae el valor de 1 dólar a peso mexicano.</li>
+<li>En un string se hace la conversión del original en USD a MXN.</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
 </section>
 <section id="toolsct_info.py" class="level5">
 <h5 class="anchored" data-anchor-id="toolsct_info.py"><strong>tools/ct_info.py</strong></h5>
 <p>Provee información estática corporativa (“Quiénes somos”, “Misión”, “Visión”) para asegurar que el agente responda preguntas institucionales con el tono y datos exactos de la empresa.</p>
+<ul>
+<li><strong>Clases y funciones clave</strong>:
+<ul>
+<li><code>who_are_we()</code>:
+<ul>
+<li><strong>Propósito</strong>: Darle el conocimiento al sistema sobre quiénes somos, la visión y misión de la empresa.</li>
+<li><strong>Retorna</strong>: La información que se necesita saber para contestar a preguntas como “¿Qué es CT?”.</li>
+</ul></li>
+</ul></li>
+</ul>
 </section>
 </section>
 <section id="unión-de-agentes" class="level4">
@@ -1707,7 +1744,7 @@ about the RDB error.</code></pre>
 </ol>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="./arquitectura.jpg" class="img-fluid figure-img" style="width:120.0%"></p>
+<p><img src="./images/arquitectura.jpg" class="img-fluid figure-img" style="width:120.0%"></p>
 <figcaption>Arquitectura del sistema</figcaption>
 </figure>
 </div>

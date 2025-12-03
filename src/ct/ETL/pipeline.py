@@ -8,8 +8,7 @@ load = Load()
 
 def load_products():
     """
-    Actualiza únicamente el vector store de productos.
-    Extrae y transforma los productos y actualiza su vector store.
+    Carga únicamente el vector store de productos.
     """
     print("\n--- Actualizando productos ---")
     products_docs = load.load_products()
@@ -19,9 +18,10 @@ def load_products():
     else:
         print("No se pudo actualizar el vector store de productos.")
 
-def update_products():
+def update_products() -> bool:
     """
-    Actualiza la lista de productos, insertando los faltantes sin procesar todos los productos ya procesados.
+    Actualiza la lista de productos, 
+    insertando los faltantes sin procesar todos los productos ya procesados.
     """
     flag = load.add_products(folder_path=PRODUCTS_VECTOR_PATH, collection_name='productos')
     if flag == True:
@@ -66,7 +66,6 @@ def update_all():
     products_docs = load.load_products()
     if not products_docs:
         print("El pipeline de productos no se pudo completar. Saliendo.")
-        return
     load.products_vs(products_docs)
 
     # Ventas
@@ -74,7 +73,6 @@ def update_all():
     sales_docs = load.load_sales()
     if not sales_docs:
         print("El pipeline de ventas no se pudo completar. Saliendo.")
-        return
     load.sales_products_vs(sales_docs)
 
     print("\n✅ Pipeline completo (productos y ventas) actualizado exitosamente.")
