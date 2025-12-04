@@ -20,8 +20,12 @@ MODEL_COST_PER_1K_TOKENS = {
         "output": 0.0006       # $0.600 por 1M → $0.0006 por 1K
     },
     "gpt-4.1" : {
-        "input": 0.0020,      # $0.150 por 1M → $0.00015 por 1K
-        "output": 0.008
+        "input": 0.0020,      # $2.00 por 1M → $0.0020 por 1K
+        "output": 0.008       # $8.00 por 1M → $0.0080 por 1K
+    },
+    "gpt-4.1-mini" : {
+        "input": 0.00040,      # $0.40 por 1M → $0.0004 por 1K
+        "output": 0.0016
     },
     "gpt-5" :{
         "input": 0.00125,

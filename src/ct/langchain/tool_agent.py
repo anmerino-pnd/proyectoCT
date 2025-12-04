@@ -15,6 +15,8 @@ from langchain_core.messages import trim_messages
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
+from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain.memory import ConversationSummaryMemory
 
 from ct.tools.ct_info import who_are_we
 from ct.tools.status import status_tool, StatusInput
@@ -26,14 +28,20 @@ from ct.tools.sales_rules_tool import sales_rules_tool, SalesInput
 from ct.tools.sucursales import get_sucursales_info, SucursalesInput
 from ct.tools.search_information import search_information_tool, search_by_key_tool, ClaveInput
 
-from ct.settings.clients import openai_api_key
+from ct.settings.timing_tools import TimingCallbackHandler
 from ct.settings.tokens import TokenCostProcess, CostCalcAsyncHandler
-from ct.settings.clients import mongo_uri, mongo_collection_sessions, mongo_collection_message_backup
+from ct.settings.clients import (
+    openai_api_key,
+    mongo_uri, 
+    mongo_collection_sessions, 
+    mongo_collection_message_backup
+)
 
-        
+timing_callback = TimingCallbackHandler()
+
 class ToolAgent:
     def __init__(self):
-        self.model = "gpt-4.1"
+        self.model = "gpt-4.1-mini"
         print("Cache actual:", get_llm_cache())
         
         self.rate_limiter = InMemoryRateLimiter(
@@ -47,7 +55,7 @@ class ToolAgent:
             model_name=self.model,
             rate_limiter=self.rate_limiter,
             cache=True,
-            streaming=False
+            streaming=True
             )
         try:
             self.client = MongoClient(mongo_uri).get_default_database()
@@ -151,7 +159,7 @@ class ToolAgent:
             agent=agent,
             tools=self.tools,
             verbose=True,
-            max_iterations=40,
+            max_iterations=12,
             return_intermediate_steps=False
         )
 
@@ -198,7 +206,9 @@ class ToolAgent:
             #     content = output.get("output", "")
             #     full_answer += content
             #     yield content
-            result = await self.executor.ainvoke(inputs, config={"callbacks": [cost_handler]})
+            result = await self.executor.ainvoke(
+                inputs, 
+                config={"callbacks": [cost_handler, timing_callback]})
             full_answer = result.get("output", "")
             yield full_answer
         finally:

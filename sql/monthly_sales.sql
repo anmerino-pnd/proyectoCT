@@ -24,6 +24,7 @@ WHERE
     -- más validaciones
     AND pro.descripcion_corta_icecat != ''
     AND pre.idMoneda IS NOT NULL
+    
 
 GROUP BY 
     pros.idProducto 
