@@ -438,7 +438,7 @@ python -m spacy download es_core_news_sm
 
 ### 2.1. Estructura de carpetas y módulos
 
-El proyecto sigue una estructura modular para facilitar la gestión y el mantenimiento. A continuación, se detalla el propósito de los módulos principales y algunas de sus funciones clave:
+El proyecto sigue una estructura modular para facilitar la gestión y el mantenimiento. A continuación, se detalla el propósito de los módulos principales y algunas de sus funciones clave.
 
 #### 2.1.1. Agente
 
