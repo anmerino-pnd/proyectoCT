@@ -172,16 +172,22 @@ def algolia_search_tool(
             
             # Verificar promoción
             cliente_promo = producto.get('cliente_promo', [])
-            en_promocion = promo_key in cliente_promo
+            en_promocion = 'Sí' if promo_key in cliente_promo else 'No'
+            existencia_sucursales = (
+                producto.get('existencia_total', 0)
+            )
+            existencia_sucursal = (
+                producto.get("existencia", {}).get(id_sucursal, 0)
+            )
             
             resultados[clave] = {
                 'marca': producto.get('marca', ''),
                 'modelo': producto.get('modelo', ''),
                 'descripcion': producto.get('descripcion', ''),
                 'ficha_tecnica': producto.get('icecat', ''),
-                'existencia_todas_sucursales': producto.get('existencia_total', 0),
-                'existencia_su_sucursal' : producto['existencia'][id_sucursal],
                 'precio': precios[lista_precio],
+                'total_en_otras_sucursales': existencia_sucursales if existencia_sucursales != 0 else "Sobre pedido",
+                'total_en_su_sucursal' : existencia_sucursal if existencia_sucursal != 0 else "Sobre pedido",
                 'moneda': producto.get('moneda', 'MXN'),
                 'en_promocion': en_promocion,
                 'url': producto.get('url', ''),

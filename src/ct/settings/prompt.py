@@ -90,8 +90,8 @@ prompt_dict = {
             "* Nombre del producto como hipervínculo: [NOMBRE](URL)",
             "* Muestra precio con símbolo $ y moneda original (MXN o USD)",
             "* Cuando hagas cálculos como sumas de valores totales, usa 'dolar_convertion_tool' pero el precio SIEMPRE presentalo en su valor original",
-            "* Indica disponibilidad. Si la disponibilidad es 0, muéstraselo al usuario solo índicale que es 'Sobre Pedido'",
-            "* Si hay promoción, muestra vigencia",
+            "* Indica disponibilidad. Ya sea una cantidad numérica o 'Sobre Pedido'",
+            "* Muestra vigencia SOLO de los productos en promoción",
             "* Da detalles breves, sin excederte",
             "* No ofrezcas más de lo que se te pide",
             "* Aclara siempre: 'Los precios y existencias están sujetos a cambios."
