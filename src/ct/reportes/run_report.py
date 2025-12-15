@@ -221,14 +221,14 @@ def calculate_cost_split(row):
     total_cost_db = row.get('estimated_cost', 0.0)
     input_tok = row.get('input_tokens', 0)
     output_tok = row.get('output_tokens', 0)
-    model = row.get('model_used', 'default')
+    model = row.get('model_used', '')
 
     # Si no hay costo o tokens, retornamos 0
     if total_cost_db == 0 or (input_tok + output_tok) == 0:
         return 0.0, 0.0
 
     # Obtener precios del modelo o usar default
-    pricing = MODEL_PRICING.get(model, MODEL_PRICING["default"])
+    pricing = MODEL_PRICING.get(model, '')
     price_in = pricing["input"]
     price_out = pricing["output"]
 
@@ -263,7 +263,7 @@ if data:
                 'input_tokens': doc.get('input_tokens', 0),
                 'output_tokens': doc.get('output_tokens', 0),
                 'total_tokens': doc.get('total_tokens', 0),
-                'estimated_cost': doc.get('estimated_cost', 0.0), # Mantenemos nombre original raw
+                'estimated_cost': doc.get('estimated_cost', 0.0), 
                 'response_time': doc.get('duration_seconds', 0.0),
                 'tokens_per_second': doc.get('tokens_per_second', 0.0),
                 'model_used': doc.get('model_used')
