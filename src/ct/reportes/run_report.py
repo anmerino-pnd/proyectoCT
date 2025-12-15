@@ -15,6 +15,16 @@ from nltk.corpus import stopwords as nltk_stopwords
 from sklearn.feature_extraction.text import CountVectorizer
 from ct.settings.clients import mongo_uri, mongo_collection_message_backup
 
+# --- CONFIGURACIÓN DE PRECIOS (USD por 1 Millón de tokens) ---
+# Ajusta estos valores según la lista de precios vigente de tu proveedor
+MODEL_PRICING = {
+    "gpt-5-mini": {"input": 0.25, "output": 2.00},
+    "gpt-5-nano": {"input": 0.05, "output": 0.40},
+    "gpt-5": {"input": 1.25, "output": 10.00}, 
+    "gpt-4.1-nano": {"input": 0.10, "output": 0.40},
+    "gpt-4.1": {"input": 2.00, "output": 8.00},
+}
+
 nltk_needed = ['wordnet', 'punkt', 'stopwords']
 for resource in nltk_needed:
     try:
@@ -202,6 +212,45 @@ def fetch_messages_from_db(_coleccion, query_filter):
     
 data = fetch_messages_from_db(coleccion, query_filter)
 
+# --- FUNCIÓN AUXILIAR PARA CALCULAR SPLIT DE COSTOS ---
+def calculate_cost_split(row):
+    """
+    Calcula el desglose de costos (input vs output) basado en el costo total almacenado
+    y los precios de lista del modelo usado.
+    """
+    total_cost_db = row.get('estimated_cost', 0.0)
+    input_tok = row.get('input_tokens', 0)
+    output_tok = row.get('output_tokens', 0)
+    model = row.get('model_used', 'default')
+
+    # Si no hay costo o tokens, retornamos 0
+    if total_cost_db == 0 or (input_tok + output_tok) == 0:
+        return 0.0, 0.0
+
+    # Obtener precios del modelo o usar default
+    pricing = MODEL_PRICING.get(model, MODEL_PRICING["default"])
+    price_in = pricing["input"]
+    price_out = pricing["output"]
+
+    # Calcular costo "teórico" según lista de precios
+    theoretical_cost_in = (input_tok / 1_000_000) * price_in
+    theoretical_cost_out = (output_tok / 1_000_000) * price_out
+    theoretical_total = theoretical_cost_in + theoretical_cost_out
+
+    # Si el teórico es 0 (evitar división por cero), hacemos split simple por cantidad de tokens
+    if theoretical_total == 0:
+        total_toks = input_tok + output_tok
+        return (input_tok/total_toks) * total_cost_db, (output_tok/total_toks) * total_cost_db
+
+    # Regla de 3 ponderada: Ajustamos el teórico al real almacenado en DB
+    # Factor de ajuste = Real / Teórico
+    adjustment_factor = total_cost_db / theoretical_total
+    
+    real_cost_in = theoretical_cost_in * adjustment_factor
+    real_cost_out = theoretical_cost_out * adjustment_factor
+
+    return real_cost_in, real_cost_out
+
 if data:
     def preprocess_docs(_docs):
         processed_docs = []
@@ -214,13 +263,21 @@ if data:
                 'input_tokens': doc.get('input_tokens', 0),
                 'output_tokens': doc.get('output_tokens', 0),
                 'total_tokens': doc.get('total_tokens', 0),
-                'cost': doc.get('estimated_cost', 0.0),
+                'estimated_cost': doc.get('estimated_cost', 0.0), # Mantenemos nombre original raw
                 'response_time': doc.get('duration_seconds', 0.0),
                 'tokens_per_second': doc.get('tokens_per_second', 0.0),
-                'model': doc.get('model_used')
+                'model_used': doc.get('model_used')
             }
             processed_docs.append(row_data)
         df = pd.DataFrame(processed_docs)
+
+        # Aplicar cálculo de costos desglosados
+        cost_splits = df.apply(calculate_cost_split, axis=1, result_type='expand')
+        df['cost_input'] = cost_splits[0]
+        df['cost_output'] = cost_splits[1]
+        
+        # Alias 'cost' para compatibilidad con código anterior
+        df['cost'] = df['estimated_cost']
 
         df['full_date'] = pd.to_datetime(df['timestamp'], utc=True, errors='coerce')
         tz = pytz.timezone("America/Hermosillo")
@@ -580,7 +637,9 @@ if data:
                         .groupby(df_bot_answers['full_date'].dt.date)
                         .agg({
                             'total_tokens': 'sum',
-                            'cost': 'sum'
+                            'cost': 'sum',
+                            'cost_input': 'sum',  # Agregar sumas de nuevos campos
+                            'cost_output': 'sum'
                         })
                         .reset_index()
                         .rename(columns= {'full_date' : 'date'})
@@ -596,7 +655,9 @@ if data:
                         .groupby('year_month')
                         .agg({
                             'total_tokens' : 'sum',
-                            'cost' : 'sum'
+                            'cost' : 'sum',
+                            'cost_input': 'sum',
+                            'cost_output': 'sum'
                         }).reset_index()
                     )
                     
@@ -611,6 +672,7 @@ if data:
                         promedio_diario_tokens = total_tokens_periodo / num_dias_en_periodo
 
                 if not df_tokens.empty:
+                    # GRAFICA DE TOKENS
                     avg_tokens_real = promedio_diario_tokens
                     std_tokens = df_tokens['total_tokens'].std()
     
@@ -688,6 +750,11 @@ if data:
             if 'cost' in df_bot_answers.columns and df_bot_answers['cost'].sum() > 0:
                 
                 total_cost_periodo = df_bot_answers['cost'].sum()
+                
+                # --- NUEVAS MÉTRICAS DE DESGLOSE ---
+                total_cost_input = df_bot_answers['cost_input'].sum()
+                total_cost_output = df_bot_answers['cost_output'].sum()
+
                 promedio_diario_costo = 0
                 if start_date_dt and end_date_dt:
                     num_dias_en_periodo = (end_date_dt.date() - start_date_dt.date()).days
@@ -697,6 +764,7 @@ if data:
                 avg_cost_real = promedio_diario_costo
                 std_cost = df_tokens['cost'].std()
     
+                # --- GRÁFICO 1: EVOLUCIÓN TOTAL (El original) ---
                 fig2 = go.Figure()
     
                 fig2.add_trace(go.Scatter(
@@ -704,7 +772,7 @@ if data:
                     y=df_tokens['cost'],
                     mode='lines+markers',
                     line=dict(color='#1f77b4'),
-                    name='Costos'
+                    name='Costo Total'
                 ))
     
                 if std_cost > 0:
@@ -752,19 +820,69 @@ if data:
                         x=1
                     )
                 )
-    
-                st.plotly_chart(fig2, use_container_width=True)
+
+                # --- GRÁFICO 2: DESGLOSE (Stacked Bar) ---
+                # "Y dejar ese total (fig2) y al lado el desglose"
+                
+                fig_breakdown = go.Figure()
+                fig_breakdown.add_trace(go.Bar(
+                    x=df_tokens['date'],
+                    y=df_tokens['cost_input'],
+                    name='Costo Input (Usuario)',
+                    marker_color='#4292C6'
+                ))
+                fig_breakdown.add_trace(go.Bar(
+                    x=df_tokens['date'],
+                    y=df_tokens['cost_output'],
+                    name='Costo Output (IA)',
+                    marker_color='#08519C'
+                ))
+                
+                fig_breakdown.update_layout(
+                    barmode='stack',
+                    title=f'Desglose de Costos (Input vs Output) {periodo_grafico_costos}',
+                    xaxis_title='Fecha',
+                    yaxis_title='Costo ($USD)',
+                    xaxis=dict(
+                        tickformat=tokens_date_format,
+                        tickangle=0
+                    ),
+                    legend=dict(
+                        orientation='h',
+                        yanchor='bottom',
+                        y=1.02,
+                        xanchor='right',
+                        x=1
+                    )
+                )
+                
+                # Renderizar los dos gráficos uno al lado del otro
+                col_g1, col_g2 = st.columns(2)
+                with col_g1:
+                    st.plotly_chart(fig2, use_container_width=True)
+                with col_g2:
+                    st.plotly_chart(fig_breakdown, use_container_width=True)
     
                 max_cost_agrupado = df_tokens['cost'].max()
                 avg_cost_agrupado = df_tokens['cost'].mean()
     
+                # Métricas generales
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    st.metric(f"Costo total en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}", f"${total_cost_periodo:.4f}")
+                    st.metric(f"Costo total en el periodo", f"${total_cost_periodo:.4f}")
                 with col2:
                     st.metric(f"Costo promedio {unidad_temporal}", f"${avg_cost_agrupado:.4f}")
                 with col3:
                     st.metric(f"Costo máximo {unidad_temporal}", f"${max_cost_agrupado:.4f}")
+
+                # Métricas de desglose
+                st.markdown("##### Desglose del Costo Total")
+                col_d1, col_d2 = st.columns(2)
+                with col_d1:
+                     st.metric("Total Costo Input", f"${total_cost_input:.4f}", help="Costo generado por lo que escriben los usuarios")
+                with col_d2:
+                     st.metric("Total Costo Output", f"${total_cost_output:.4f}", help="Costo generado por las respuestas de la IA")
+
     
                 cost_by_conversation = df_bot_answers.groupby('session_id')['cost'].sum().reset_index()
     
