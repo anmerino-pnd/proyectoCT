@@ -218,9 +218,9 @@ def calculate_cost_split(row):
     Calcula el desglose de costos (input vs output) basado en el costo total almacenado
     y los precios de lista del modelo usado.
     """
-    total_cost_db = row.get('estimated_cost', 0.0)
-    input_tok = row.get('input_tokens', 0)
-    output_tok = row.get('output_tokens', 0)
+    total_cost_db = int(row.get('estimated_cost', 0.0))
+    input_tok = int(row.get('input_tokens', 0))
+    output_tok = int(row.get('output_tokens', 0))
     model = row.get('model_used', '')
 
     # Si no hay costo o tokens, retornamos 0
