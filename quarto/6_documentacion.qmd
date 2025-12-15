@@ -425,6 +425,7 @@ Estas configuraciones son necesarias para que no hayan problemas dentro del sist
 ```bash
 python -m spacy download es_core_news_lg
 python -m spacy download es_core_news_sm
+python -c "import nltk; nltk.download('punkt')"
 ```
 
 ### 1.8. Notas adicionales

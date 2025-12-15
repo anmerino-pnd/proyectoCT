@@ -25,7 +25,7 @@ MODEL_PRICING = {
     "gpt-4.1": {"input": 2.00, "output": 8.00},
 }
 
-nltk_needed = ['wordnet', 'punkt', 'stopwords']
+nltk_needed = ['wordnet', 'punkt', 'punkt_tab', 'stopwords']
 for resource in nltk_needed:
     try:
         nltk.data.find(resource)
