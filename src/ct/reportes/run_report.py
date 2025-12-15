@@ -16,7 +16,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 from ct.settings.clients import mongo_uri, mongo_collection_message_backup
 
 # --- CONFIGURACIÓN DE PRECIOS (USD por 1 Millón de tokens) ---
-# Ajusta estos valores según la lista de precios vigente de tu proveedor
 MODEL_PRICING = {
     "gpt-5-mini": {"input": 0.25, "output": 2.00},
     "gpt-5-nano": {"input": 0.05, "output": 0.40},
@@ -212,25 +211,35 @@ def fetch_messages_from_db(_coleccion, query_filter):
     
 data = fetch_messages_from_db(coleccion, query_filter)
 
-# --- FUNCIÓN AUXILIAR PARA CALCULAR SPLIT DE COSTOS ---
 def calculate_cost_split(row):
     """
-    Calcula el desglose de costos (input vs output) basado en el costo total almacenado
-    y los precios de lista del modelo usado.
+    Calcula el desglose de costos (input vs output) basado en Tokens y Lista de Precios.
+    Sin reglas de 3 ni ajustes complejos.
     """
-    input_tok = int(row.get('input_tokens', 0))
-    output_tok = int(row.get('output_tokens', 0))
-    model = row.get('model_used', '')
+    # Convertir a float de manera segura, default 0 si falla
+    try:
+        input_tok = float(row.get('input_tokens', 0) or 0)
+        output_tok = float(row.get('output_tokens', 0) or 0)
+    except ValueError:
+        input_tok = 0.0
+        output_tok = 0.0
 
-    # Obtener precios del modelo o usar default
-    pricing = MODEL_PRICING.get(model, '')
-    price_in = pricing["input"]
-    price_out = pricing["output"]
+    model = row.get('model_used')
 
-    # Calcular costo "teórico" según lista de precios
+    # Obtener precios de manera segura. Si el modelo no existe, usamos "default".
+    # Importante: MODEL_PRICING.get(..., default_value) devuelve un diccionario.
+    if not model or not isinstance(model, str):
+         pricing = MODEL_PRICING["default"]
+    else:
+         pricing = MODEL_PRICING.get(model, MODEL_PRICING["default"])
+
+    # Extraer precios del diccionario
+    price_in = pricing.get("input", 0.0)
+    price_out = pricing.get("output", 0.0)
+
+    # Calcular costo simple (Precio por Millón de tokens)
     theoretical_cost_in = (input_tok / 1_000_000) * price_in
     theoretical_cost_out = (output_tok / 1_000_000) * price_out
-    theoretical_total = theoretical_cost_in + theoretical_cost_out
     
     return theoretical_cost_in, theoretical_cost_out
 
@@ -246,7 +255,7 @@ if data:
                 'input_tokens': doc.get('input_tokens', 0),
                 'output_tokens': doc.get('output_tokens', 0),
                 'total_tokens': doc.get('total_tokens', 0),
-                'estimated_cost': doc.get('estimated_cost', 0.0), 
+                'estimated_cost': doc.get('estimated_cost', 0.0),
                 'response_time': doc.get('duration_seconds', 0.0),
                 'tokens_per_second': doc.get('tokens_per_second', 0.0),
                 'model_used': doc.get('model_used')
@@ -254,12 +263,11 @@ if data:
             processed_docs.append(row_data)
         df = pd.DataFrame(processed_docs)
 
-        # Aplicar cálculo de costos desglosados
+        # Aplicamos la función segura
         cost_splits = df.apply(calculate_cost_split, axis=1, result_type='expand')
         df['cost_input'] = cost_splits[0]
         df['cost_output'] = cost_splits[1]
         
-        # Alias 'cost' para compatibilidad con código anterior
         df['cost'] = df['estimated_cost']
 
         df['full_date'] = pd.to_datetime(df['timestamp'], utc=True, errors='coerce')
@@ -621,7 +629,7 @@ if data:
                         .agg({
                             'total_tokens': 'sum',
                             'cost': 'sum',
-                            'cost_input': 'sum',  # Agregar sumas de nuevos campos
+                            'cost_input': 'sum',
                             'cost_output': 'sum'
                         })
                         .reset_index()
@@ -734,7 +742,7 @@ if data:
                 
                 total_cost_periodo = df_bot_answers['cost'].sum()
                 
-                # --- NUEVAS MÉTRICAS DE DESGLOSE ---
+                # --- MÉTRICAS DE DESGLOSE ---
                 total_cost_input = df_bot_answers['cost_input'].sum()
                 total_cost_output = df_bot_answers['cost_output'].sum()
 
@@ -804,48 +812,8 @@ if data:
                     )
                 )
 
-                # --- GRÁFICO 2: DESGLOSE (Stacked Bar) ---
-                # "Y dejar ese total (fig2) y al lado el desglose"
+                st.plotly_chart(fig2, use_container_width=True)
                 
-                fig_breakdown = go.Figure()
-                fig_breakdown.add_trace(go.Bar(
-                    x=df_tokens['date'],
-                    y=df_tokens['cost_input'],
-                    name='Costo Input (Usuario)',
-                    marker_color='#4292C6'
-                ))
-                fig_breakdown.add_trace(go.Bar(
-                    x=df_tokens['date'],
-                    y=df_tokens['cost_output'],
-                    name='Costo Output (IA)',
-                    marker_color='#08519C'
-                ))
-                
-                fig_breakdown.update_layout(
-                    barmode='stack',
-                    title=f'Desglose de Costos (Input vs Output) {periodo_grafico_costos}',
-                    xaxis_title='Fecha',
-                    yaxis_title='Costo ($USD)',
-                    xaxis=dict(
-                        tickformat=tokens_date_format,
-                        tickangle=0
-                    ),
-                    legend=dict(
-                        orientation='h',
-                        yanchor='bottom',
-                        y=1.02,
-                        xanchor='right',
-                        x=1
-                    )
-                )
-                
-                # Renderizar los dos gráficos uno al lado del otro
-                col_g1, col_g2 = st.columns(2)
-                with col_g1:
-                    st.plotly_chart(fig2, use_container_width=True)
-                with col_g2:
-                    st.plotly_chart(fig_breakdown, use_container_width=True)
-    
                 max_cost_agrupado = df_tokens['cost'].max()
                 avg_cost_agrupado = df_tokens['cost'].mean()
     
