@@ -218,14 +218,9 @@ def calculate_cost_split(row):
     Calcula el desglose de costos (input vs output) basado en el costo total almacenado
     y los precios de lista del modelo usado.
     """
-    total_cost_db = int(row.get('estimated_cost', 0.0))
     input_tok = int(row.get('input_tokens', 0))
     output_tok = int(row.get('output_tokens', 0))
     model = row.get('model_used', '')
-
-    # Si no hay costo o tokens, retornamos 0
-    if total_cost_db == 0 or (input_tok + output_tok) == 0:
-        return 0.0, 0.0
 
     # Obtener precios del modelo o usar default
     pricing = MODEL_PRICING.get(model, '')
@@ -236,20 +231,8 @@ def calculate_cost_split(row):
     theoretical_cost_in = (input_tok / 1_000_000) * price_in
     theoretical_cost_out = (output_tok / 1_000_000) * price_out
     theoretical_total = theoretical_cost_in + theoretical_cost_out
-
-    # Si el teórico es 0 (evitar división por cero), hacemos split simple por cantidad de tokens
-    if theoretical_total == 0:
-        total_toks = input_tok + output_tok
-        return (input_tok/total_toks) * total_cost_db, (output_tok/total_toks) * total_cost_db
-
-    # Regla de 3 ponderada: Ajustamos el teórico al real almacenado en DB
-    # Factor de ajuste = Real / Teórico
-    adjustment_factor = total_cost_db / theoretical_total
     
-    real_cost_in = theoretical_cost_in * adjustment_factor
-    real_cost_out = theoretical_cost_out * adjustment_factor
-
-    return real_cost_in, real_cost_out
+    return theoretical_cost_in, theoretical_cost_out
 
 if data:
     def preprocess_docs(_docs):
