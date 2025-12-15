@@ -225,13 +225,9 @@ def calculate_cost_split(row):
         output_tok = 0.0
 
     model = row.get('model_used')
+    print(model)
 
-    # Obtener precios de manera segura. Si el modelo no existe, usamos "default".
-    # Importante: MODEL_PRICING.get(..., default_value) devuelve un diccionario.
-    if not model or not isinstance(model, str):
-         pricing = MODEL_PRICING["default"]
-    else:
-         pricing = MODEL_PRICING.get(model, MODEL_PRICING["default"])
+    pricing = MODEL_PRICING.get(model, MODEL_PRICING["default"])
 
     # Extraer precios del diccionario
     price_in = pricing.get("input", 0.0)
