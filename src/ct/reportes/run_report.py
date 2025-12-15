@@ -16,6 +16,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from ct.settings.clients import mongo_uri, mongo_collection_message_backup
 
 # --- CONFIGURACIÓN DE PRECIOS (USD por 1 Millón de tokens) ---
+# Actualizado con la configuración específica solicitada
 MODEL_PRICING = {
     "gpt-5-mini": {"input": 0.25, "output": 2.00},
     "gpt-5-nano": {"input": 0.05, "output": 0.40},
@@ -25,6 +26,7 @@ MODEL_PRICING = {
     "gpt-4o": {"input": 2.50, "output": 10.00}
 }
 
+# --- NLTK SETUP ---
 nltk_needed = ['wordnet', 'punkt', 'punkt_tab', 'stopwords']
 for resource in nltk_needed:
     try:
@@ -215,9 +217,7 @@ data = fetch_messages_from_db(coleccion, query_filter)
 def calculate_cost_split(row):
     """
     Calcula el desglose de costos (input vs output) basado en Tokens y Lista de Precios.
-    Sin reglas de 3 ni ajustes complejos.
     """
-    # Convertir a float de manera segura, default 0 si falla
     try:
         input_tok = float(row.get('input_tokens', 0) or 0)
         output_tok = float(row.get('output_tokens', 0) or 0)
@@ -226,15 +226,15 @@ def calculate_cost_split(row):
         output_tok = 0.0
 
     model = row.get('model_used')
-    print(model)
 
-    pricing = MODEL_PRICING.get(model, MODEL_PRICING["default"])
+    # Corrección: Eliminada la referencia a "default" para evitar KeyError.
+    # Si el modelo no existe, se usa un dict vacío que resultará en costos 0.
+    # Opcional: Podrías poner MODEL_PRICING.get("gpt-4o") si quisieras un fallback específico.
+    pricing = MODEL_PRICING.get(model, {})
 
-    # Extraer precios del diccionario
     price_in = pricing.get("input", 0.0)
     price_out = pricing.get("output", 0.0)
 
-    # Calcular costo simple (Precio por Millón de tokens)
     theoretical_cost_in = (input_tok / 1_000_000) * price_in
     theoretical_cost_out = (output_tok / 1_000_000) * price_out
     
