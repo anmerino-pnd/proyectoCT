@@ -41,7 +41,7 @@ timing_callback = TimingCallbackHandler()
 
 class ToolAgent:
     def __init__(self):
-        self.model = "o4-mini-2025-04-16"
+        self.model = "gpt-4.1-mini"
         print("Cache actual:", get_llm_cache())
         
         self.rate_limiter = InMemoryRateLimiter(
