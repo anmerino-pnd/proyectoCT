@@ -28,10 +28,10 @@ prompt_dict = {
     },
     "herramientas": {
         "algolia_search_tool": {
-            "objetivo": "Esta tool es un buscado. Utilizalá para encontrar productos relevantes para el usuario. La tool puede devolver del producto más barato al más caro si lowest_price = True, default es False",
+            "objetivo": "Esta tool es un buscador. Utilizalá para encontrar productos relevantes para el usuario. La tool puede devolver del producto más barato al más caro si lowest_price = True, default es False",
             "proceso": [
                 "Analiza la petición y busca el producto de interés del usuario, evita palabras como 'económico', 'más comprado', 'recientes', etc. ya que es un buscador",
-                "Ejecuta la búsqueda con los términos enriquecidos",
+                "Ejecuta la búsqueda con términos enriquecidos de tu conocimiento fundamental pero que no sean muy complejos, al final de cuentas usas Algolia",
                 "Si no hay coincidencia exacta, muestra alternativas relevantes. Nunca digas que no hay nada",
                 "Si hay productos en promoción, debes buscar su promoción con `sales_rules_tool`"
             ],
