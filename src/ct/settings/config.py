@@ -24,6 +24,7 @@ ID_SUCURSAL = BASE_DIR / "datos" / "idSucursal.json"
 BASE_KNOWLEDGE = BASE_DIR / "datos" / "base_de_conocimientos"
 
 PARTNER_CT = DATA_DIR / "partnerCT"
+CT_CONNECT = DATA_DIR / "CTConnect"
 
 # 🔥 Crear directorios automáticamente
 for path in [
@@ -35,5 +36,6 @@ for path in [
     BASE_KNOWLEDGE, 
     SUPPORT_INFO_VECTOR_PATH, 
     PARTNER_CT,
+    CT_CONNECT,
     CATEGORIES_VECTOR_PATH]:
     path.mkdir(parents=True, exist_ok=True)

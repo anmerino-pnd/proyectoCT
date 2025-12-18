@@ -107,7 +107,7 @@ class ToolAgent:
             StructuredTool.from_function(
                 func=get_support_info,
                 name="get_support_info",
-                description="Cuando necesites saber sobre cómo hacer compras en líneas, compras y envíos de ESD, políticas, garantías, devoluciones, términos y condiciones, partnerCT (ventas e-commerce), Directorio de Product Managers",
+                description="Cuando necesites saber sobre cómo hacer compras en líneas, compras y envíos de ESD, políticas, garantías, devoluciones, términos y condiciones, partnerCT (ventas e-commerce), Directorio de Product Managers, CT Connect",
                 args_schema=SupportInput
         ),
             StructuredTool.from_function(

@@ -3,19 +3,22 @@ import ollama
 
 def _get_paragraphs(text: str, n_chars: int):
     """
-    Obtiene los últimos párrafos hasta alcanzar aproximadamente target_chars.
-    Siempre devuelve párrafos completos.
+    Obtiene los últimos párrafos completos para el contexto.
+    Estrategia robusta para mantener coherencia semántica.
     """
     if not text: 
         return ""
     
+    # Separamos por doble salto para identificar bloques lógicos
     paragraphs = text.split('\n\n')
     paragraphs = [p.strip() for p in paragraphs if p.strip()]
 
     result = []
     char_count = 0
 
-    for paragraph in  reversed(paragraphs):
+    # Vamos de atrás hacia adelante llenando el buffer
+    for paragraph in reversed(paragraphs):
+        # Insertamos al inicio para mantener el orden original de lectura
         result.insert(0, paragraph)
         char_count += len(paragraph)
         if char_count >= n_chars:
@@ -23,59 +26,78 @@ def _get_paragraphs(text: str, n_chars: int):
     
     return '\n\n'.join(result)
 
-def guide_creation(folder_path: str, model: str = "gemma3:27b", context_size: int = 500):
-    """
-    Genera tutorial con ventana deslizante de contexto.
-    
-    Args:
-        context_size: Caracteres aproximados de contexto a incluir (default: 2000)
-    """
+def guide_creation(folder_path: str, model: str = "gemma2:27b", context_size: int = 1000):
+    # 1. Validación robusta de imágenes
+    valid_exts = (".jpg", ".jpeg", ".png")
     image_paths = [
         os.path.join(folder_path, f)
         for f in os.listdir(folder_path)
-        if f.lower().endswith((".jpg", ".jpeg", ".png"))
+        if f.lower().endswith(valid_exts)
     ]
-    image_paths.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
+
+    # Ordenamiento seguro (Intenta numérico, si falla usa alfabético)
+    try:
+        image_paths.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
+    except ValueError:
+        print("⚠️ Advertencia: Se detectaron nombres no numéricos. Ordenando alfabéticamente.")
+        image_paths.sort()
 
     full_answer = ''
     total_batches = (len(image_paths) + 2) // 3
+    
+    print(f"🚀 Iniciando generación de guía con {len(image_paths)} imágenes.")
 
     for batch_num, i in enumerate(range(0, len(image_paths), 3), start=1):
-        print(f"Lote {batch_num} de {total_batches}")
+        print(f"📸 Procesando Lote {batch_num}/{total_batches}...")
 
+        # Obtener contexto
         if full_answer:
             prev_fragment = _get_paragraphs(full_answer, n_chars=context_size)
-            print(f"  📝 Contexto: {len(prev_fragment)} chars ({len(prev_fragment.split())} palabras)")
+            # Pequeño log visual para saber qué está "leyendo" el modelo
+            print(f"   📝 Contexto inyectado: {len(prev_fragment)} caracteres finales.")
         else:
-            prev_fragment =  "Ninguno (este es el inicio)"
+            prev_fragment = "Inicio del tutorial."
 
         current_group = image_paths[i:i+3]
 
-        response = ollama.chat(
-            model=model,
-            messages=[
-                {"role": "system", "content": f"""
-Eres un asistente que redacta tutoriales claros y completos para la empresa CT Internacional.
+        # 2. Prompt Optimizado para Estructura
+        system_instructions = f"""
+Eres un redactor técnico experto creando documentación para CT Internacional.
+Tu objetivo es escribir un tutorial paso a paso basado en las capturas de pantalla.
 
-INSTRUCCIONES:             
-- Explica de forma clara para personas sin experiencia técnica.
-- No omitas información importante visible en las imágenes.
-- No inventes información que no aparezca en las imágenes.
-- Continúa naturalmente desde donde quedó el fragmento anterior.
-- NO menciones "lotes", "batches", ni fragmentos, ni imágenes.
+CONTEXTO PREVIO (Lo que ya escribiste):
+"... {prev_fragment}"
 
-FRAGMENTO ANTERIOR DEL TUTORIAL:
-{prev_fragment}
+INSTRUCCIONES:
+1. Analiza las imágenes del Lote {batch_num} y describe las acciones técnicas.
+2. Continúa la redacción fluidamente desde el contexto previo.
+3. Usa formato Markdown: Negritas para botones/menús (ej: **Guardar**) y listas numéricas para pasos.
+4. NO repitas la última frase del contexto.
+5. NO menciones "lotes" ni "imágenes", escribe directo para el usuario final.
+"""
 
-Lote {batch_num}/{total_batches}
-    """}, 
-                {"role": "user",
-                 "content": "Redacta un tutorial con las imágenes proporcionadas",
-                 "images": current_group}
-            ],
-            options={"temperature": 0},
-        )
+        try:
+            response = ollama.chat(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_instructions}, 
+                    {"role": "user",
+                     "content": "Describe los pasos siguientes basados en estas imágenes.",
+                     "images": current_group}
+                ],
+                options={"temperature": 0.1}, # Temperatura baja para precisión técnica
+            )
 
-        full_answer += response['message']['content']
+            new_content = response['message']['content']
+
+            # 3. Concatenación Segura (Evita que el texto se pegue feo)
+            if full_answer:
+                full_answer += "\n\n" + new_content
+            else:
+                full_answer = new_content
+
+        except Exception as e:
+            print(f"❌ Error en lote {batch_num}: {e}")
+            # Opcional: break o continue dependiendo de qué tan crítico sea fallar un lote
 
     return full_answer

@@ -2,6 +2,7 @@
 
 archivos_clave/
 data_pipeline/
+
 datos/base_de_conocimientos
 datos/Tutorial  - ESD
 datos/Tutorial - compra en línea
@@ -10,6 +11,8 @@ datos/idSucursal.json
 datos/productos_raw.json
 datos/sucursales.csv
 datos/partnerCT
+datos/CTConnect
+
 notebooks/
 src/proyectoct.egg-info/
 static/ssl/
