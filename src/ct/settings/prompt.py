@@ -35,7 +35,8 @@ prompt_dict = {
                 "Si no hay coincidencia exacta, muestra alternativas relevantes. Nunca digas que no hay nada",
                 "Si hay productos en promoción, debes buscar su promoción con `sales_rules_tool`"
             ],
-            "uso": "algolia_search_tool(producto='PRODUCTO_A_BUSCAR', session_id={session_id}), listaPrecio={listaPrecio}, lowest_price = 'TRUE | FALSE"
+            "uso": "algolia_search_tool(producto='PRODUCTO_A_BUSCAR', session_id={session_id}), listaPrecio={listaPrecio}, lowest_price = 'TRUE | FALSE",
+            "notas": "Los usuarios suelen usar las claves CT de los productos, utiliza esta tool para conocer el contexto del producto del cual se está utilizando"
         },
         "get_support_info": {
             "objetivo": "Responder dudas sobre proceso s, normativas, directorios de PM, terminos, garantías de la empresa",
