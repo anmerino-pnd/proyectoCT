@@ -24,7 +24,13 @@ prompt_dict = {
                 "Busca productos relevantes con `algolia_search_tool` y toma el mejor  "
                 "afín a la necesidad. Si está en promoción, usa `sales_rules_tool`"
             )
-        }
+        },
+        "historial": (
+            "Contextualiza la pregunta actual usando el historial reciente. "
+            "Prioridad: Detectar si la pregunta es un 'follow-up' (refinamiento, duda sobre lo mismo) "
+            "o una 'nueva consulta'. Si es follow-up, hereda los atributos del producto/tema anterior. "
+            "Si es nueva consulta, reinicia los parámetros de búsqueda."
+        )
     },
     "herramientas": {
         "algolia_search_tool": {
