@@ -25,6 +25,10 @@ BASE_KNOWLEDGE = BASE_DIR / "datos" / "base_de_conocimientos"
 
 PARTNER_CT = DATA_DIR / "partnerCT"
 CT_CONNECT = DATA_DIR / "CTConnect"
+CT_ARRENDAMIENTO = DATA_DIR / "CTArrendamiento"
+CT_CLOUD = DATA_DIR / "CTCloud"
+DOCUSMART = DATA_DIR / "Docusmart"
+
 
 # 🔥 Crear directorios automáticamente
 for path in [
@@ -37,5 +41,8 @@ for path in [
     SUPPORT_INFO_VECTOR_PATH, 
     PARTNER_CT,
     CT_CONNECT,
-    CATEGORIES_VECTOR_PATH]:
+    CT_CLOUD,
+    CT_ARRENDAMIENTO,
+    CATEGORIES_VECTOR_PATH,
+    DOCUSMART]:
     path.mkdir(parents=True, exist_ok=True)

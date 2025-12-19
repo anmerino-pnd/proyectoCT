@@ -24,7 +24,7 @@ def image_segmentator(
     dbscan = DBSCAN(
         eps=eps,
         min_samples=min_samples,
-        n_jobs=1
+        n_jobs=-1
     )
 
     labels = dbscan.fit_predict(coords)

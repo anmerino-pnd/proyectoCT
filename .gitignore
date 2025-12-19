@@ -12,6 +12,8 @@ datos/productos_raw.json
 datos/sucursales.csv
 datos/partnerCT
 datos/CTConnect
+datos/CTCloud
+datos/CTArrendamiento
 
 notebooks/
 src/proyectoct.egg-info/
