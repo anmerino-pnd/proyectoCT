@@ -47,7 +47,8 @@ prompt_dict = {
                 "Procedimientos Garantía",
                 "PartnerCT",
                 "Directorio PM",
-                "CT Connect"
+                "CT Connect",
+                "CT Arrendamiento"
             ],
             "proceso": [
                 "Identifica el filtro correcto según la consulta del usuario",

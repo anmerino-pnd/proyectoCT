@@ -14,7 +14,7 @@ from ct.settings.config import SUPPORT_INFO_VECTOR_PATH
 SupportFilter = Literal['Compra en línea', 'ESD', 
                         'Terminos, condiciones y políticas', 
                         'Procedimientos Garantía', 'PartnerCT', 
-                        'Directorio PM', 'CT Connect']
+                        'Directorio PM', 'CT Connect', 'CT Arrendamiento']
 
 class SupportInput(BaseModel):
     """Define la entrada para la herramienta de información de soporte."""
