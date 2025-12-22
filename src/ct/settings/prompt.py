@@ -24,13 +24,7 @@ prompt_dict = {
                 "Busca productos relevantes con `algolia_search_tool` y toma el mejor  "
                 "afín a la necesidad. Si está en promoción, usa `sales_rules_tool`"
             )
-        },
-        "historial": (
-            "Contextualiza la pregunta actual usando el historial reciente. "
-            "Prioridad: Detectar si la pregunta es un 'follow-up' (refinamiento, duda sobre lo mismo) "
-            "o una 'nueva consulta'. Si es follow-up, hereda los atributos del producto/tema anterior. "
-            "Si es nueva consulta, reinicia los parámetros de búsqueda."
-        )
+        }
     },
     "herramientas": {
         "algolia_search_tool": {
@@ -42,9 +36,7 @@ prompt_dict = {
                 "Si hay productos en promoción, debes buscar su promoción con `sales_rules_tool`"
             ],
             "uso": "algolia_search_tool(producto='PRODUCTO_A_BUSCAR', session_id={session_id}), listaPrecio={listaPrecio}, lowest_price = 'TRUE | FALSE",
-            "notas": [
-                "Los usuarios suelen usar las claves CT de los productos, utiliza esta tool para conocer el contexto del producto del cual se está utilizando",
-                "Si Algolia devuelve productos que no tienen relación a la necesidad del usuario, utiliza sinónimos u otras palabras de búsqueda que puedan servir"]
+            "notas": "Los usuarios suelen usar las claves CT de los productos, utiliza esta tool para conocer el contexto del producto del cual se está utilizando"
         },
         "get_support_info": {
             "objetivo": "Responder dudas sobre proceso s, normativas, directorios de PM, terminos, garantías de la empresa",
