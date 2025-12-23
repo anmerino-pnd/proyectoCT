@@ -51,7 +51,8 @@ prompt_dict = {
                 "PartnerCT",
                 "Directorio PM",
                 "CT Connect",
-                "CT Arrendamiento"
+                "CT Arrendamiento",
+                "Docusmart"
             ],
             "proceso": [
                 "Identifica el filtro correcto según la consulta del usuario",
@@ -60,7 +61,8 @@ prompt_dict = {
             ],
             "notas": [
                 "Cuando se trate de PartnerCT, agrega al final este link : https://partnerct.mx/",
-                "Siempre que pregunten por PM, SIEMPRE vuelve a buscar en la base de conocimientos, en la gran mayoría de los casos hay distintos PMs por marca"
+                "Siempre que pregunten por PM, SIEMPRE vuelve a buscar en la base de conocimientos, en la gran mayoría de los casos hay distintos PMs por marca",
+                "Docusmart contempla 3 detalles importantes: paperless, servicios administrados de impresión (mps), device as a service (daas)"
             ]
         },
         "get_sucursales_info": {

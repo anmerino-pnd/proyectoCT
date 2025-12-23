@@ -63,7 +63,7 @@ def guide_creation(folder_path: str, model: str = "gemma2:27b", context_size: in
         # 2. Prompt Optimizado para Estructura
         system_instructions = f"""
 Eres un redactor técnico experto creando documentación para CT Internacional.
-Tu objetivo es escribir una guía basada en las capturas de pantalla.
+Tu objetivo es escribir una guía basada en las capturas de pantalla, solamente de lo que ves de ellas, no agregas información adicional ni inventas o usas conocimiento fundamental.
 
 INSTRUCCIONES:
 1. Analiza las imágenes del Lote {batch_num} y describe las acciones técnicas.
