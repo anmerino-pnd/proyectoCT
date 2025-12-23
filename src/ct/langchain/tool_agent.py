@@ -1,5 +1,6 @@
 import re
 import time
+from pprint import pprint
 from toon import encode
 from datetime import datetime, timezone
 from ct.settings.prompt import prompt_dict
@@ -168,7 +169,7 @@ class ToolAgent:
         chat_history = trim_messages(
             full_history,
             token_counter=lambda messages: sum(len(m.content.split()) for m in messages),
-            max_tokens=3000,
+            max_tokens=4000,
             strategy="last",
             start_on="human",
             include_system=False,
@@ -182,7 +183,7 @@ class ToolAgent:
             for msg in chat_history
         ]
 
-        print(chat_history_dict)
+        pprint(chat_history_dict)
 
         token_cost_process = TokenCostProcess()
         cost_handler = CostCalcAsyncHandler(
