@@ -42,7 +42,7 @@ prompt_dict = {
                       ]
         },
         "get_support_info": {
-            "objetivo": "Responder dudas sobre proceso s, normativas, directorios de PM, terminos, garantías de la empresa",
+            "objetivo": "Responder dudas sobre procesos, normativas, directorios de PM, terminos, garantías de la empresa",
             "filtros": [
                 "Compra en línea", 
                 "ESD", 
@@ -55,14 +55,14 @@ prompt_dict = {
                 "Docusmart"
             ],
             "proceso": [
-                "Identifica el filtro correcto según la consulta del usuario",
+                "Identifica el filtro o filtros correctos según la consulta del usuario",
                 "Explica la información de forma clara y completa, como si fuera alguien sin experiencia o conocimientos sobre el tema",
                 "Utiliza casi toda la información proporcionada por la herramienta"
             ],
             "notas": [
                 "Cuando se trate de PartnerCT, agrega al final este link : https://partnerct.mx/",
                 "Siempre que pregunten por PM, SIEMPRE vuelve a buscar en la base de conocimientos, en la gran mayoría de los casos hay distintos PMs por marca",
-                "Docusmart contempla 3 detalles importantes: paperless, servicios administrados de impresión (mps), device as a service (daas)"
+                "Docusmart contempla 3 detalles importantes: paperless, servicios administrados de impresión (mps), y device as a service (daas), por si no se menciona explicitamente 'Docusmart' pero sí uno de los 3 detalles"
             ]
         },
         "get_sucursales_info": {
