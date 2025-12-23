@@ -63,10 +63,7 @@ def guide_creation(folder_path: str, model: str = "gemma2:27b", context_size: in
         # 2. Prompt Optimizado para Estructura
         system_instructions = f"""
 Eres un redactor técnico experto creando documentación para CT Internacional.
-Tu objetivo es escribir un tutorial paso a paso basado en las capturas de pantalla.
-
-CONTEXTO PREVIO (Lo que ya escribiste):
-"... {prev_fragment}"
+Tu objetivo es escribir una guía basada en las capturas de pantalla.
 
 INSTRUCCIONES:
 1. Analiza las imágenes del Lote {batch_num} y describe las acciones técnicas.
@@ -74,6 +71,9 @@ INSTRUCCIONES:
 3. Usa formato Markdown: Negritas para botones/menús (ej: **Guardar**) y listas numéricas para pasos.
 4. NO repitas la última frase del contexto.
 5. NO menciones "lotes" ni "imágenes", escribe directo para el usuario final.
+
+CONTEXTO PREVIO (fragmento de lo llevas escrito):
+"{prev_fragment}"
 """
 
         try:
@@ -82,7 +82,7 @@ INSTRUCCIONES:
                 messages=[
                     {"role": "system", "content": system_instructions}, 
                     {"role": "user",
-                     "content": "Describe los pasos siguientes basados en estas imágenes.",
+                     "content": "Haz una guía en base a las imágenes",
                      "images": current_group}
                 ],
                 options={"temperature": 0.1}, # Temperatura baja para precisión técnica

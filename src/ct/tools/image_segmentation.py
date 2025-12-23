@@ -158,6 +158,9 @@ def image_cropper(
         bboxes: list, 
         output_dir: Path = PARTNER_CT):
     
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True, exist_ok=True)
+    
     for i, bbox_info in enumerate(bboxes):
         x1, y1, x2, y2 = bbox_info['bbox']
 

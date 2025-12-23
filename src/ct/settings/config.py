@@ -28,6 +28,9 @@ CT_CONNECT = DATA_DIR / "CTConnect"
 CT_ARRENDAMIENTO = DATA_DIR / "CTArrendamiento"
 CT_CLOUD = DATA_DIR / "CTCloud"
 DOCUSMART = DATA_DIR / "Docusmart"
+PAPERLESS = DOCUSMART / "paperless"
+MPS = DOCUSMART / "mps"
+DAAS = DOCUSMART / "daas"
 
 
 # 🔥 Crear directorios automáticamente
@@ -44,5 +47,8 @@ for path in [
     CT_CLOUD,
     CT_ARRENDAMIENTO,
     CATEGORIES_VECTOR_PATH,
-    DOCUSMART]:
+    DOCUSMART,
+    PAPERLESS,
+    MPS,
+    DAAS]:
     path.mkdir(parents=True, exist_ok=True)
