@@ -44,3 +44,67 @@ def get_screenshot(url: str) -> str:
     driver.quit()
     return screenshot_as_base64
 
+def get_full_loaded_screenshot(url: str) -> str:
+    options = ChromeOptions()
+    options.add_argument("--headless=new") 
+    options.add_argument("--no-sandbox")
+    options.add_argument("--hide-scrollbars")
+    # Es vital desactivar la aceleración por hardware en headless para capturas grandes
+    options.add_argument("--disable-gpu") 
+    
+    driver = webdriver.Chrome(options=options)
+    
+    try:
+        driver.get(url)
+        time.sleep(4) # Espera inicial de carga
+
+        # -----------------------------------------------------------
+        # PASO 1: FORZAR EL RENDERIZADO (Truco de CSS)
+        # Inyectamos estilos para obligar a que las barras de scroll internas desaparezcan
+        # y el contenido se expanda completamente. Esto arregla el problema de "capas".
+        # -----------------------------------------------------------
+        driver.execute_script("""
+            var style = document.createElement('style');
+            style.type = 'text/css';
+            style.innerHTML = 'body, html { height: auto !important; overflow: visible !important; }';
+            document.getElementsByTagName('head')[0].appendChild(style);
+        """)
+        
+        # -----------------------------------------------------------
+        # PASO 2: CALCULAR DIMENSIONES REALES
+        # Usamos una métrica compuesta para asegurar que abarque todo
+        # -----------------------------------------------------------
+        metrics = driver.execute_script("""
+            return {
+                width: Math.max(document.body.scrollWidth, document.body.offsetWidth, document.documentElement.clientWidth, document.documentElement.scrollWidth, document.documentElement.offsetWidth),
+                height: Math.max(document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight)
+            };
+        """)
+        
+        print(f"Dimensiones detectadas: {metrics['width']}x{metrics['height']}")
+
+        # -----------------------------------------------------------
+        # PASO 3: USAR CDP PARA LA CAPTURA
+        # Esto le habla directo al núcleo de Chrome, ignorando el viewport visible
+        # -----------------------------------------------------------
+        
+        # Ajustamos el dispositivo virtual al tamaño total del contenido
+        driver.execute_cdp_cmd('Emulation.setDeviceMetricsOverride', {
+            'mobile': False,
+            'width': metrics['width'],
+            'height': metrics['height'],
+            'deviceScaleFactor': 1,
+            'screenOrientation': {'angle': 0, 'type': 'portraitPrimary'},
+        })
+        
+        # Tomamos la captura usando el comando nativo de DevTools
+        result = driver.execute_cdp_cmd('Page.captureScreenshot', {
+            'format': 'png',
+            'fromSurface': True, 
+            'captureBeyondViewport': True
+        })
+        
+        return result['data'] # Esto ya es el string base64
+        
+    finally:
+        driver.quit()

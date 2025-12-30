@@ -73,7 +73,7 @@ class ToolAgent:
             ("user", "{input}"),
             ("placeholder", "{agent_scratchpad}")
         ])
-
+        print(self.prompt)
         self.tools = [
             StructuredTool.from_function(
                 name='algolia_tool',
@@ -108,7 +108,7 @@ class ToolAgent:
             StructuredTool.from_function(
                 func=get_support_info,
                 name="get_support_info",
-                description="Cuando necesites saber sobre cómo hacer compras en líneas, compras y envíos de ESD, políticas, garantías, devoluciones, términos y condiciones, partnerCT (ventas e-commerce), Directorio de Product Managers, CT Connect",
+                description="Cuando necesites saber sobre cómo hacer compras en líneas, compras y envíos de ESD, políticas, garantías, devoluciones, términos y condiciones, partnerCT (ventas e-commerce), Directorio de Product Managers, CT Connect, CT Cloud",
                 args_schema=SupportInput
         ),
             StructuredTool.from_function(
@@ -183,7 +183,7 @@ class ToolAgent:
             for msg in chat_history
         ]
 
-        pprint(chat_history_dict)
+        chat_history_dict
 
         token_cost_process = TokenCostProcess()
         cost_handler = CostCalcAsyncHandler(
@@ -197,7 +197,7 @@ class ToolAgent:
 
         inputs = {
             "input": query,
-            "chat_history": encode(chat_history_dict),
+            "chat_history": chat_history_dict,
             "listaPrecio": lista_precio,
             "session_id" : session_id
         }

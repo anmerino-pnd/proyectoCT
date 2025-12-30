@@ -15,7 +15,7 @@ SupportFilter = Literal['Compra en línea', 'ESD',
                         'Terminos, condiciones y políticas', 
                         'Procedimientos Garantía', 'PartnerCT', 
                         'Directorio PM', 'CT Connect', 'CT Arrendamiento',
-                        'Docusmart']
+                        'CT Cloud', 'Docusmart']
 
 class SupportInput(BaseModel):
     """Define la entrada para la herramienta de información de soporte."""
