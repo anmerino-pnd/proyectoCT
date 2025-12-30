@@ -73,7 +73,6 @@ class ToolAgent:
             ("user", "{input}"),
             ("placeholder", "{agent_scratchpad}")
         ])
-        print(self.prompt)
         self.tools = [
             StructuredTool.from_function(
                 name='algolia_tool',
