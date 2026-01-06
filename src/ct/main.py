@@ -1,11 +1,22 @@
-from fastapi import FastAPI
+from bson import ObjectId
+from typing import Optional
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
+from pymongo import MongoClient, DESCENDING, ASCENDING
 from ct.chat import (
     QueryRequest, 
     get_chat_history, 
     async_chat_endpoint, 
     delete_chat_history_endpoint
     )
+from ct.settings.clients import (
+    openai_api_key,
+    mongo_uri, 
+    mongo_collection_sessions, 
+    mongo_collection_message_backup
+)
 from ct.tools.search_information import reload_vector_store
 
 app = FastAPI()
@@ -37,6 +48,42 @@ async def reload_vectors():
         return {"status": "ok", "message": "Vector store recargado."}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+templates = Jinja2Templates(directory="ui")
+
+@app.get("/logs", response_class=HTMLResponse)
+async def msg_log(request: Request, msg_id: Optional[str] = None):
+    client = MongoClient(mongo_uri).get_default_database()
+    message_backup = client[mongo_collection_message_backup]
+    
+    context = {
+        "request": request,
+        "found": False,
+        "msg_id_input": msg_id if msg_id else "", 
+        "error_msg": None
+    }
+
+    if msg_id:
+        try:
+            obj_id = ObjectId(msg_id.strip())
+            msg = message_backup.find_one({"_id": obj_id})
+            
+            if msg:
+                context["found"] = True
+                context.update({
+                    "session_id": msg.get("session_id", "N/A"),
+                    "question": msg.get("question", "-"),
+                    "answer": msg.get("answer", "-"),
+                    "verbose_log": msg.get("verbose_log", {}),
+                    "model_used": msg.get("model_used", "Unknown"),
+                    "timestamp": msg.get("timestamp", "")
+                })
+            else:
+                context["error_msg"] = "No se encontró ningún log con ese ID."
+        except Exception as e:
+            context["error_msg"] = f"ID inválido: {str(e)}"
+
+    return templates.TemplateResponse("msg_log.html", context)
 
 if __name__ == "__main__":
     import uvicorn

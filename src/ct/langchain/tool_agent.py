@@ -1,7 +1,9 @@
+import io
 import re
 import time
-from pprint import pprint
 from toon import encode
+from pprint import pprint
+from contextlib import redirect_stdout
 from datetime import datetime, timezone
 from ct.settings.prompt import prompt_dict
 
@@ -16,8 +18,6 @@ from langchain_core.messages import trim_messages
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
-from langchain.memory import ConversationSummaryMemory
 
 from ct.tools.ct_info import who_are_we
 from ct.tools.status import status_tool, StatusInput
@@ -202,28 +202,32 @@ class ToolAgent:
         }
 
         full_answer = ""
+        
+        verbose_log_capture = io.StringIO()
+        with redirect_stdout(verbose_log_capture):
+            try:
+                result = await self.executor.ainvoke(
+                    inputs, 
+                    config={"callbacks": [cost_handler, timing_callback]})
+                full_answer = result.get("output", "")
+                yield full_answer
+            finally:
+                duration = time.perf_counter() - start_time
+                metadata = self.make_metadata(token_cost_process, duration)
 
-        try:
-            # async for output in self.executor.astream(inputs, config={"callbacks": [cost_handler]}):
-            #     content = output.get("output", "")
-            #     full_answer += content
-            #     yield content
-            result = await self.executor.ainvoke(
-                inputs, 
-                config={"callbacks": [cost_handler, timing_callback]})
-            full_answer = result.get("output", "")
-            yield full_answer
-        finally:
-            duration = time.perf_counter() - start_time
-            metadata = self.make_metadata(token_cost_process, duration)
-
-            if full_answer:
-                try:
-                    self.add_message(session_id, "human", query)
-                    self.add_message(session_id, "assistant", full_answer)
-                    self.add_message_backup(session_id, query, full_answer, metadata)
-                except Exception:
-                    pass
+                if full_answer:
+                    try:
+                        verbose_log = verbose_log_capture.getvalue()
+                        self.add_message(session_id, "human", query)
+                        self.add_message(session_id, "assistant", full_answer)
+                        self.add_message_backup(
+                            session_id, 
+                            query, 
+                            full_answer, 
+                            metadata,
+                            verbose_log=verbose_log)
+                    except Exception:
+                        pass
 
     def get_session_history(self, session_id: str) -> list[BaseMessage]: 
         messages_data = []
@@ -270,13 +274,19 @@ class ToolAgent:
         except Exception as e:
             pass
 
-    def add_message_backup(self, session_id: str, question: str, full_answer: str, metadata: dict):
+    def add_message_backup(self, 
+                           session_id: str, 
+                           question: str, 
+                           full_answer: str, 
+                           metadata: dict,
+                           verbose_log: str = ""):
         timestamp = datetime.now(timezone.utc)
 
         message_doc = {
             "session_id": session_id,
             "question": question,
             "answer": full_answer,
+            "verbose_log": verbose_log,
             "timestamp": timestamp,
             "input_tokens": metadata["tokens"]["input"],
             "output_tokens": metadata["tokens"]["output"],

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CT Log Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --ct-blue: rgb(16, 24, 133);
+            --ct-blue-hover: rgb(12, 18, 100);
+            --ct-red: #b01c1c; 
+            --bg-color: #f4f6f8;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--ct-blue);
+            color: white;
+            padding: 1.5rem 1rem 3.5rem 3.5rem;
+            text-align: center;
+        }
+
+        header h1 { margin: 0; font-size: 1.8rem; }
+        header p { margin: 5px 0 0; opacity: 0.8; font-size: 0.9rem; }
+
+        .container {
+            max-width: 900px;
+            margin: -30px auto 2rem; /* Sube un poco sobre el header */
+            padding: 0 1rem;
+            position: relative;
+        }
+
+        /* --- ESTILOS DEL BUSCADOR --- */
+        .search-box {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .search-box input {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--ct-blue);
+        }
+
+        .search-box button {
+            background-color: var(--ct-blue);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        .search-box button:hover {
+            background-color: var(--ct-blue-hover);
+        }
+
+        /* Mensajes de Estado */
+        .error-msg {
+            background-color: #fee;
+            color: var(--ct-red);
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid #fcc;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #888;
+            margin-top: 3rem;
+        }
+
+        /* --- TARJETAS DE DATOS (Solo visibles si found=True) --- */
+        .meta-info {
+            display: flex;
+            justify-content: space-between;
+            background: #eef2f5;
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            color: #555;
+            font-size: 0.9rem;
+            border-left: 4px solid var(--ct-blue);
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-top: 4px solid transparent;
+        }
+
+        .card.user { border-top-color: var(--ct-blue); }
+        .card.system { border-top-color: var(--ct-red); }
+        
+        h2 {
+            margin-top: 0;
+            font-size: 1.1rem;
+            color: #444;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Log Técnico */
+        .verbose-container pre {
+            background-color: #1e1e1e;
+            color: #dcdcdc;
+            padding: 1.2rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            border: 1px solid #333;
+        }
+        .markdown-content {
+        line-height: 1.6;
+        color: #333;
+    }
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+            color: var(--ct-blue);
+            margin-top: 1.5rem;
+        }
+        .markdown-content p {
+            margin-bottom: 1rem;
+        }
+        .markdown-content ul, .markdown-content ol {
+            margin-left: 20px;
+            margin-bottom: 1rem;
+        }
+        .markdown-content code {
+            background-color: #f1f1f1;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            color: #d63384; /* Color distintivo para código inline */
+        }
+        .markdown-content pre {
+            background-color: #2d2d2d; /* Fondo oscuro para bloques de código */
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        .markdown-content pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        .markdown-content blockquote {
+            border-left: 4px solid var(--ct-red);
+            margin: 0;
+            padding-left: 1rem;
+            color: #666;
+            font-style: italic;
+        }
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        .markdown-content th, .markdown-content td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .markdown-content th {
+            background-color: #f2f2f2;
+            color: var(--ct-blue);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Análisis de Logs</h1>
+    </header>
+
+    <div class="container">
+        
+        <div class="search-box">
+            <form action="/logs" method="get" style="display: flex; width: 100%; gap: 10px;">
+                <input type="text" name="msg_id" placeholder="Ingresa el _id de Mongo (ej. 65a9f...)" value="{{ msg_id_input }}" required>
+                <button type="submit"> Analizar</button>
+            </form>
+        </div>
+
+        {% if error_msg %}
+            <div class="error-msg">
+                <strong>Error:</strong> {{ error_msg }}
+            </div>
+        {% endif %}
+
+        {% if found %}
+            
+            <div class="meta-info">
+                <span><strong>Session ID:</strong> {{ session_id }}</span>
+                <span><strong>Model:</strong> {{ model_used }}</span>
+                <span><strong>Time:</strong> {{ timestamp }}</span>
+            </div>
+
+            <div class="card user">
+                <h2>Input Usuario</h2>
+                <p>{{ question }}</p>
+            </div>
+
+            <div class="card system">
+                <h2>Output Sistema</h2>
+                <div id="markdown-output" class="markdown-content"></div>
+            </div>
+
+            <div class="card">
+                <h2>Verbose Log (Inferencia)</h2>
+                <div class="verbose-container">
+                    <pre>{{ verbose_log }}</pre>
+                </div>
+            </div>
+
+        {% else %}
+            {% if not error_msg %}
+                <div class="empty-state">
+                    <h3>Esperando ID...</h3>
+                    <p>Ingresa un ID de mensaje arriba para ver el detalle de la ejecución.</p>
+                </div>
+            {% endif %}
+        {% endif %}
+
+    </div>
+{% if found %}
+<script id="raw-data-answer" type="application/json">
+    {{ answer | tojson }}
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 2. Leemos el contenido del bloque JSON
+        const dataElement = document.getElementById('raw-data-answer');
+        
+        // JSON.parse convierte el texto guardado en la variable real
+        const rawMarkdown = JSON.parse(dataElement.textContent);
+
+        const outputDiv = document.getElementById('markdown-output');
+
+        if (rawMarkdown) {
+            outputDiv.innerHTML = marked.parse(rawMarkdown);
+        } else {
+            outputDiv.innerHTML = "<em>Sin respuesta generada.</em>";
+        }
+    });
+</script>
+{% endif %}
+</body>
+</html>
