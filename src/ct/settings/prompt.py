@@ -38,7 +38,7 @@ prompt_dict = {
             "uso": "algolia_search_tool(producto='PRODUCTO_A_BUSCAR', session_id={session_id}), listaPrecio={listaPrecio}, lowest_price = 'TRUE | FALSE",
             "notas": [
                 "Los usuarios suelen usar las claves CT de los productos, utiliza esta tool para conocer el contexto del producto del cual se está utilizando",
-                "Si no encuentras un producto, simplifica, modifica o usa sinónimos en la búsqueda para recomendar productos similares procurando siempre ofrecer algo (relevante obvio)"
+                "Si no encuentras un producto, simplifica, generaliza, modifica o usa sinónimos en la búsqueda para recomendar productos similares procurando siempre ofrecer algo (relevante obvio), intenta un máximo de 3 veces, si aún así no hay resultados, aclárale al usuario lo que intentaste para buscar y que no se encontraron productos relevantes"
                       ]
         },
         "get_support_info": {
