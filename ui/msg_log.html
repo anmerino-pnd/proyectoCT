@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CT Log Viewer</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ansi_up/5.1.0/ansi_up.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
             --ct-blue: rgb(16, 24, 133);
@@ -136,8 +138,8 @@
 
         /* Log Técnico */
         .verbose-container pre {
-            background-color: #1e1e1e;
-            color: #dcdcdc;
+            background-color: #1e1e1e; 
+            color: #cccccc;
             padding: 1.2rem;
             border-radius: 6px;
             overflow-x: auto;
@@ -264,20 +266,42 @@
     {{ answer | tojson }}
 </script>
 
+<script id="raw-data-log" type="application/json">
+    {{ verbose_log | tojson }}
+</script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 2. Leemos el contenido del bloque JSON
-        const dataElement = document.getElementById('raw-data-answer');
-        
-        // JSON.parse convierte el texto guardado en la variable real
-        const rawMarkdown = JSON.parse(dataElement.textContent);
-
+        // --- PARTE A: Renderizar Markdown (Output Sistema) ---
+        const answerElement = document.getElementById('raw-data-answer');
+        const rawMarkdown = JSON.parse(answerElement.textContent);
         const outputDiv = document.getElementById('markdown-output');
 
         if (rawMarkdown) {
             outputDiv.innerHTML = marked.parse(rawMarkdown);
         } else {
             outputDiv.innerHTML = "<em>Sin respuesta generada.</em>";
+        }
+
+        // --- PARTE B: Renderizar Colores ANSI (Verbose Log) ---
+        const logElement = document.getElementById('raw-data-log');
+        // Aseguramos que sea string, por si viene null o vacio
+        let rawLog = JSON.parse(logElement.textContent) || ""; 
+        
+        // Si por alguna razón el log es un objeto (dict), lo convertimos a string bonito
+        if (typeof rawLog === 'object') {
+            rawLog = JSON.stringify(rawLog, null, 2);
+        }
+
+        const ansi_up = new AnsiUp();
+        
+        // Convertimos los códigos ANSI a HTML spans con colores
+        const htmlWithColors = ansi_up.ansi_to_html(rawLog);
+
+        // Inyectamos el resultado en el <pre>
+        const logBlock = document.querySelector('.verbose-container pre');
+        if (logBlock) {
+            logBlock.innerHTML = htmlWithColors;
         }
     });
 </script>
