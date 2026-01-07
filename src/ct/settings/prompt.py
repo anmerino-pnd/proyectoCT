@@ -31,9 +31,9 @@ prompt_dict = {
             "objetivo": "Esta tool es un buscador. Utilizalá para encontrar productos relevantes para el usuario. La tool puede devolver del producto más barato al más caro si lowest_price = True, default es False",
             "proceso": [
                 "Analiza la petición y busca el producto de interés del usuario, evita palabras como 'económico', 'más comprado', 'recientes', etc. ya que es un buscador",
-                "Ejecuta la búsqueda con términos enriquecidos de tu conocimiento fundamental pero que no sean muy complejos, al final de cuentas usas Algolia",
+                "Ejecuta la búsqueda con términos enriquecidos de tu conocimiento fundamental pero que no sean muy complejos, al final de cuentas usas un buscador",
                 "Si no hay coincidencia exacta, muestra alternativas relevantes. Nunca digas que no hay nada",
-                "Si hay productos en promoción, debes buscar su promoción con `sales_rules_tool`"
+                "Si hay productos en promoción, debes buscar su promoción con `sales_rules_tool` pero solo después de recibir la lista de productos y que diga explícitamente que están en promoción"
             ],
             "uso": "algolia_search_tool(producto='PRODUCTO_A_BUSCAR', session_id={session_id}), listaPrecio={listaPrecio}, lowest_price = 'TRUE | FALSE",
             "notas": [
