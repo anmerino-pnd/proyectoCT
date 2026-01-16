@@ -76,7 +76,8 @@ async def msg_log(request: Request, msg_id: Optional[str] = None):
                     "answer": msg.get("answer", "-"),
                     "verbose_log": msg.get("verbose_log", {}),
                     "model_used": msg.get("model_used", "Unknown"),
-                    "timestamp": msg.get("timestamp", "")
+                    "timestamp": msg.get("timestamp", ""),
+                    "duration": msg.get("duration_seconds", "")
                 })
             else:
                 context["error_msg"] = "No se encontró ningún log con ese ID."
