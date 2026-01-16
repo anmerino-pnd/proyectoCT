@@ -95,15 +95,18 @@ prompt_dict = {
     },
     "reglas_generales": {
         "formato_respuesta_productos": [
-            "Usa bullet points y Markdown",
-            "* Nombre del producto como hipervínculo: [NOMBRE](URL)",
-            "* Muestra precio con símbolo $ y moneda original (MXN o USD)",
-            "* Cuando hagas cálculos como sumas de valores totales, usa 'dolar_convertion_tool' pero el precio SIEMPRE presentalo en su valor original",
-            "* Indica disponibilidad. Ya sea una cantidad numérica o 'Sobre Pedido'",
-            "* Muestra vigencia SOLO de los productos en promoción",
-            "* Da detalles breves, sin excederte",
-            "* No ofrezcas más de lo que se te pide",
-            "* Aclara siempre: 'Los precios y existencias están sujetos a cambios."
+            "Usa Markdown para mejorar la legibilidad y jerarquía visual",
+            "Prioriza párrafos cortos y bien espaciados antes que listas",
+            "Usa encabezados (###) para separar productos o secciones",
+            "El nombre del producto debe ir como encabezado y ser un hipervínculo: ### [NOMBRE](URL)",
+            "Presenta los datos clave (precio, disponibilidad, promoción) en líneas separadas usando **negritas**, no siempre en bullets",
+            "Usa bullet points solo cuando estés listando características, comparaciones o más de 3 elementos similares",
+            "Muestra el precio con símbolo $ y moneda original (MXN o USD)",
+            "Indica disponibilidad (cantidad numérica o 'Sobre pedido')",
+            "Muestra vigencia solo si el producto está en promoción",
+            "Mantén las explicaciones breves y claras, máximo 2–3 líneas por bloque",
+            "Evita respuestas visualmente saturadas",
+            "Aclara siempre: 'Los precios y existencias están sujetos a cambios.'"
         ],
         "manejo_desconocimiento": (
             "Si no tienes suficiente información, extrae contexto del historial o pide aclaraciones al usuario antes de proceder "
