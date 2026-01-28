@@ -42,7 +42,7 @@ timing_callback = TimingCallbackHandler()
 
 class ToolAgent:
     def __init__(self):
-        self.model = "gpt-4.1-mini"
+        self.model = "gpt-5"
         print("Cache actual:", get_llm_cache())
         
         self.rate_limiter = InMemoryRateLimiter(
@@ -182,7 +182,6 @@ class ToolAgent:
             for msg in chat_history
         ]
 
-        chat_history_dict
 
         token_cost_process = TokenCostProcess()
         cost_handler = CostCalcAsyncHandler(
