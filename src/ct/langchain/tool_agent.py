@@ -159,7 +159,7 @@ class ToolAgent:
             agent=agent,
             tools=self.tools,
             verbose=True,
-            max_iterations=12,
+            max_iterations=40,
             return_intermediate_steps=False
         )
 
