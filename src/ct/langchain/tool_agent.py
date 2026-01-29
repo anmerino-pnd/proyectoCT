@@ -9,12 +9,12 @@ from ct.settings.prompt import prompt_dict
 
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
-
 from langchain_openai import ChatOpenAI
-from langchain.globals import get_llm_cache
-from langchain.tools import Tool, StructuredTool 
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.globals import get_llm_cache
+from langchain.agents.structured_output import StructuredTool 
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import trim_messages
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.rate_limiters import InMemoryRateLimiter
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
@@ -33,6 +33,7 @@ from ct.settings.timing_tools import TimingCallbackHandler
 from ct.settings.tokens import TokenCostProcess, CostCalcAsyncHandler
 from ct.settings.clients import (
     openai_api_key,
+    gemini_api_key,
     mongo_uri, 
     mongo_collection_sessions, 
     mongo_collection_message_backup
@@ -42,7 +43,8 @@ timing_callback = TimingCallbackHandler()
 
 class ToolAgent:
     def __init__(self):
-        self.model = "gpt-5"
+        #self.model = "gpt-5"
+        self.model = "gemini-3-flash-preview"
         print("Cache actual:", get_llm_cache())
         
         self.rate_limiter = InMemoryRateLimiter(
@@ -51,13 +53,19 @@ class ToolAgent:
             max_bucket_size=100,
         )
 
-        self.llm = ChatOpenAI(
-            openai_api_key=openai_api_key,
-            model_name=self.model,
-            rate_limiter=self.rate_limiter,
-            cache=True,
-            streaming=True
-            )
+        # self.llm = ChatOpenAI(
+        #     openai_api_key=openai_api_key,
+        #     model_name=self.model,
+        #     rate_limiter=self.rate_limiter,
+        #     cache=True,
+        #     streaming=True
+        #     )
+        self.llm = ChatGoogleGenerativeAI(
+            model=self.model,
+            temperature=0,
+            max_retries=2
+        )
+
         try:
             self.client = MongoClient(mongo_uri).get_default_database()
             self.sessions = self.client[mongo_collection_sessions]
@@ -159,7 +167,7 @@ class ToolAgent:
             agent=agent,
             tools=self.tools,
             verbose=True,
-            max_iterations=40,
+            max_iterations=15,
             return_intermediate_steps=False
         )
 
@@ -233,7 +241,7 @@ class ToolAgent:
         try:
             session = self.sessions.find_one(
                 {"session_id": session_id},
-                {"last_messages": {"$slice": -10}}
+                {"last_messages": {"$slice": -15}}
             )
             if session and "last_messages" in session:
                 for m in session["last_messages"]:

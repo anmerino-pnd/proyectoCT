@@ -32,7 +32,7 @@ prompt_dict = {
             "proceso": [
                 "Analiza la petición y busca el producto de interés del usuario, evita palabras como 'económico', 'más comprado', 'recientes', etc. ya que es un buscador",
                 "Si no hay coincidencia exacta, vuelve a buscar de forma más general y muestra alternativas relevantes. Procura intentar no decir que no hay nada",
-                "Ejecuta la búsqueda con términos enriquecidos de tu conocimiento fundamental pero que no sean muy complejos, búsquedas generales a específicas, al final de cuentas usas un buscador",
+                "Ejecuta la búsqueda con términos enriquecidos de tu conocimiento fundamental que no sean muy complejos, búsquedas generales a específicas, al final de cuentas usas un buscador",
                 "Si hay productos en promoción, debes buscar su promoción con `sales_rules_tool` pero solo después de recibir la lista de productos y que diga explícitamente que están en promoción"
             ],
             "uso": "algolia_search_tool(producto='PRODUCTO_A_BUSCAR', session_id={session_id}), listaPrecio={listaPrecio}, lowest_price = 'TRUE | FALSE",

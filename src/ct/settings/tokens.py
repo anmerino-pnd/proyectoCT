@@ -1,8 +1,7 @@
 # This code was based on 
 # https://github.com/langchain-ai/langchain/issues/3114#issuecomment-1570180270 
 
-from langchain.callbacks.base import AsyncCallbackHandler
-from langchain.schema import LLMResult
+from langchain_core.callbacks.base import AsyncCallbackHandler
 from typing import Any, Dict, List
 import tiktoken
 
@@ -40,8 +39,16 @@ MODEL_COST_PER_1K_TOKENS = {
         "output": 0.0020       # $2.00 por 1M → $0.0020 por 1K
     },
     "o4-mini-2025-04-16" :{
-        "input": 0.0011,
+        "input": 0.00011,
         "output": 0.0044
+    },
+    "gemini-3-flash-preview" :{
+        "input": 0.0005,
+        "output": 0.003
+    },
+    "gemini-2.5-flash" :{
+        "input": 0.0003,
+        "output": 0.0025
     }
 }
 

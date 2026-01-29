@@ -1,5 +1,6 @@
 import os
 import openai as openai_api
+import google.genai as google_api
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -46,6 +47,8 @@ mongo_collection_pedidos: str = os.getenv("MONGO_COLLECTION_PEDIDOS")
 # Credenciales de OpenAI
 openai_api_key: str = os.getenv("OPENAI_API_KEY")
 openai = openai_api.OpenAI(api_key=openai_api_key)
+gemini_api_key: str = os.getenv("GOOGLE_API_KEY")
+gemini = google_api.Client(api_key=gemini_api_key)
 
 podman_redis_url: str = os.getenv("PODMAN_REDIS_URL")
 reload_vectors_post : str = os.getenv("RELOAD_VECTORS_POST")

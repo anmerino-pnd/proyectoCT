@@ -1,6 +1,6 @@
 from typing import AsyncGenerator
 from fastapi import HTTPException
-from langchain.schema import HumanMessage
+from langchain.messages import HumanMessage
 from ct.settings.clients import QueryRequest
 from fastapi.responses import StreamingResponse
 from ct.langchain.moderated_tool_agent import ModeratedToolAgent
