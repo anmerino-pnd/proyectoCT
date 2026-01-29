@@ -47,7 +47,7 @@ toc-depth: 5
 #### 1.4.1. Clonar el repositorio
 
 ```bash
-gh repo fork https://github.com/anmerino-pnd/proyectoCT
+git clone https://github.com/anmerino-pnd/proyectoCT
 cd proyectoCT
 ```
 
