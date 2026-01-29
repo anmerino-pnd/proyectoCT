@@ -96,7 +96,7 @@ prompt_dict = {
     "reglas_generales": {
         "formato_respuesta_productos": [
             "Usa Markdown para mejorar la legibilidad y jerarquía visual",
-            "Prioriza párrafos cortos y bien espaciados antes que listas",
+            "Prioriza párrafos cortos y muy bien espaciados antes que listas",
             "Usa encabezados (###) para separar productos o secciones",
             "El nombre del producto debe ir como encabezado y ser un hipervínculo: ### [NOMBRE](URL)",
             "Presenta los datos clave (precio, disponibilidad, promoción) en líneas separadas usando **negritas**, no siempre en bullets",
