@@ -1,36 +1,32 @@
-import io
-import re
 import time
+import traceback
 from toon import encode
-from pprint import pprint
-from contextlib import redirect_stdout
 from datetime import datetime, timezone
 from ct.settings.prompt import prompt_dict
+from ct.settings.schemas import UserContext
 
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
-from langchain_openai import ChatOpenAI
+from langchain.agents import create_agent
+from langchain_core.caches import InMemoryCache
 from langchain_core.globals import get_llm_cache
-from langchain.agents.structured_output import StructuredTool 
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import trim_messages
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.rate_limiters import InMemoryRateLimiter
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.messages import AIMessage, HumanMessage, BaseMessage
+from langchain_core.messages import AIMessage, HumanMessage, BaseMessage, ToolMessage
 
 from ct.tools.ct_info import who_are_we
 from ct.tools.status import status_tool, StatusInput
-from ct.tools.algolia import algolia_search_tool, AlgoliaInput
 from ct.tools.support import get_support_info, SupportInput
 from ct.tools.inventory import inventory_tool, InventoryInput 
+from ct.tools.algolia import algolia_search_tool, AlgoliaInput
 from ct.tools.moneda_api import dolar_convertion_tool, DolarInput
 from ct.tools.sales_rules_tool import sales_rules_tool, SalesInput
 from ct.tools.sucursales import get_sucursales_info, SucursalesInput
 from ct.tools.search_information import search_information_tool, search_by_key_tool, ClaveInput
 
 from ct.settings.timing_tools import TimingCallbackHandler
-from ct.settings.tokens import TokenCostProcess, CostCalcAsyncHandler
+from ct.settings.tokens import TokenCostProcess, MODEL_COST_PER_1K_TOKENS
 from ct.settings.clients import (
     openai_api_key,
     gemini_api_key,
@@ -40,12 +36,11 @@ from ct.settings.clients import (
 )
 
 timing_callback = TimingCallbackHandler()
+token_cost_process = TokenCostProcess()
 
 class ToolAgent:
     def __init__(self):
-        #self.model = "gpt-5"
-        self.model = "gemini-3-flash-preview"
-        print("Cache actual:", get_llm_cache())
+        self.model = "openai:gpt-4.1"
         
         self.rate_limiter = InMemoryRateLimiter(
             requests_per_second=0.1,
@@ -53,18 +48,12 @@ class ToolAgent:
             max_bucket_size=100,
         )
 
-        # self.llm = ChatOpenAI(
-        #     openai_api_key=openai_api_key,
-        #     model_name=self.model,
-        #     rate_limiter=self.rate_limiter,
-        #     cache=True,
-        #     streaming=True
-        #     )
-        self.llm = ChatGoogleGenerativeAI(
-            model=self.model,
-            temperature=0,
-            max_retries=2
-        )
+        # self.llm = ChatGoogleGenerativeAI(
+        #     model = self.model,
+        #     api_key = gemini_api_key,
+        #     project = "ct-project",
+        #     vertexai = True
+        # )
 
         try:
             self.client = MongoClient(mongo_uri).get_default_database()
@@ -76,61 +65,16 @@ class ToolAgent:
         except Exception as e:
             raise
 
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", encode(prompt_dict)),
-            ("user", "{input}"),
-            ("placeholder", "{agent_scratchpad}")
-        ])
         self.tools = [
-            StructuredTool.from_function(
-                name='algolia_tool',
-                func=algolia_search_tool,
-                description="Utiliza el buscador de la empresa para encontrar productos que el usuario esté buscando",
-                args_schema=AlgoliaInput
-            ),
-            StructuredTool.from_function(
-                func=sales_rules_tool,
-                name='sales_rules_tool',
-                description="Aplica reglas de promoción, devuelve el precio final y mensaje para mostrar al usuario",
-                args_schema=SalesInput
-        ),
-            StructuredTool.from_function(
-                func=dolar_convertion_tool,
-                name='dolar_convertion_tool',
-                description="Solo usa la tool para convertir el precio de un producto de USD a MXN y hacer cuentas",
-                args_schema=DolarInput
-        ),
-            StructuredTool.from_function(
-                func=status_tool,
-                name='status_tool',
-                description="Cuando pregunten por el estatus de algún pedido hecho, pide la factura y busca dicho estatus y no ofrezcas más detalles, solo los regresados por la tool",
-                args_schema=StatusInput
-        ),
-            StructuredTool.from_function(
-                func=search_by_key_tool,
-                name="search_by_key_tool",
-                description="Busca en el docstore un producto o promoción EXACTA usando su clave CT, una sola clave en mayusculas. Búsqueda más específica",
-                args_schema=ClaveInput
-        ),
-            StructuredTool.from_function(
-                func=get_support_info,
-                name="get_support_info",
-                description="Cuando necesites saber sobre cómo hacer compras en líneas, compras y envíos de ESD, políticas, garantías, devoluciones, términos y condiciones, partnerCT (ventas e-commerce), Directorio de Product Managers, CT Connect, CT Cloud",
-                args_schema=SupportInput
-        ),
-            StructuredTool.from_function(
-                func=who_are_we,
-                name="who_are_we",
-                description="SIEMPRE que te pregunten por CT y quién es, qué es, valores, etc., usa esta herramienta.",
-        ),
-            StructuredTool.from_function(
-                func=get_sucursales_info,
-                name="get_sucursales_info",
-                description="Código Python para analizar el DataFrame 'df' con información de las sucursales. Debe usar print() para mostrar resultados o asignar el resultado a la variable 'result'.",
-                args_schema=SucursalesInput
-            )
+            algolia_search_tool,
+            sales_rules_tool,
+            dolar_convertion_tool,
+            status_tool,
+            get_support_info,
+            who_are_we,
+            get_sucursales_info,
 ]
-        self.executor = None
+        self.graph = None
 
     def clear_session_history(self, session_id: str) -> bool:
         try:
@@ -157,19 +101,15 @@ class ToolAgent:
         # 👉 retornar directamente la sesión actualizada
         return self.sessions.find_one({"session_id": session_id}) or {}
 
-    def build_executor(self):
-        agent = create_tool_calling_agent(
-            llm=self.llm,
-            tools=self.tools,
-            prompt=self.prompt
-        )
-        self.executor = AgentExecutor.from_agent_and_tools(
-            agent=agent,
-            tools=self.tools,
-            verbose=True,
-            max_iterations=15,
-            return_intermediate_steps=False
-        )
+    def build_graph(self):
+
+        self.graph = create_agent(
+            model= self.model,
+            tools= self.tools,
+            system_prompt= encode(prompt_dict),
+            context_schema=UserContext,
+            cache=InMemoryCache()
+            )
 
     async def run(self, query: str, session_id: str, lista_precio: int):
         full_history = self.get_session_history(session_id)
@@ -182,59 +122,57 @@ class ToolAgent:
             include_system=False,
             allow_partial=False,
         )
-        chat_history_dict = [
-            {
-                "role": "human" if isinstance(msg, HumanMessage) else "assistant",
-                "content": msg.content
-            }
-            for msg in chat_history
-        ]
 
-
-        token_cost_process = TokenCostProcess()
-        cost_handler = CostCalcAsyncHandler(
-            self.model,
-            token_cost_process=token_cost_process
-        )
         start_time = time.perf_counter()
 
-        if self.executor is None:
-            self.build_executor()
+        if self.graph is None:
+            self.build_graph()
 
-        inputs = {
-            "input": query,
-            "chat_history": chat_history_dict,
-            "listaPrecio": lista_precio,
-            "session_id" : session_id
-        }
+        current_context = UserContext(
+            session_id=session_id, 
+            lista_precio=lista_precio
+        )
+
+        messages = chat_history + [HumanMessage(content=query)]
+
+        inputs = {"messages": messages}
 
         full_answer = ""
-        
-        verbose_log_capture = io.StringIO()
-        with redirect_stdout(verbose_log_capture):
-            try:
-                result = await self.executor.ainvoke(
-                    inputs, 
-                    config={"callbacks": [cost_handler, timing_callback]})
-                full_answer = result.get("output", "")
-                yield full_answer
-            finally:
-                duration = time.perf_counter() - start_time
-                metadata = self.make_metadata(token_cost_process, duration)
+        result = None
 
-                if full_answer:
-                    try:
-                        verbose_log = verbose_log_capture.getvalue()
-                        self.add_message(session_id, "human", query)
-                        self.add_message(session_id, "assistant", full_answer)
-                        self.add_message_backup(
-                            session_id, 
-                            query, 
-                            full_answer, 
-                            metadata,
-                            verbose_log=verbose_log)
-                    except Exception:
-                        pass
+        try:
+            result = await self.graph.ainvoke(
+                inputs,
+                context=current_context
+                )
+            full_answer = result['messages'][-1].content
+            yield full_answer
+        finally:
+            duration = time.perf_counter() - start_time
+            
+            if result is not None and full_answer:
+                try:
+            
+                    last_msg = result['messages'][-1]
+                    usage_metadata = getattr(last_msg, 'usage_metadata', {}) or {}
+                    
+                    metadata = self.make_metadata(usage_metadata, duration)
+
+                    verbose_log_str = self._generate_verbose_log(result['messages'])
+                    
+                    self.add_message(session_id, "human", query)
+                    self.add_message(session_id, "assistant", full_answer)
+                    self.add_message_backup(
+                        session_id, 
+                        query, 
+                        full_answer, 
+                        metadata,
+                        verbose_log=verbose_log_str
+                    )
+                    
+                except Exception as e:
+                    print(f"❌ ERROR al guardar: {type(e).__name__}: {e}")
+                    traceback.print_exc()
 
     def get_session_history(self, session_id: str) -> list[BaseMessage]: 
         messages_data = []
@@ -251,7 +189,7 @@ class ToolAgent:
                         messages_data.append(AIMessage(content=m["content"]))
         except PyMongoError as e:
             pass
-        return messages_data
+        return messages_data 
 
     def add_message(self, session_id: str, message_type: str, content: str):
         timestamp = datetime.now(timezone.utc)
@@ -291,13 +229,15 @@ class ToolAgent:
 
         message_doc = {
             "session_id": session_id,
-            "question": question,
+            "question": question,  
             "answer": full_answer,
             "verbose_log": verbose_log,
             "timestamp": timestamp,
             "input_tokens": metadata["tokens"]["input"],
             "output_tokens": metadata["tokens"]["output"],
             "total_tokens": metadata["tokens"]["total"],
+            "cached_tokens": metadata['tokens']['cached_tokens'],
+            "reasoning": metadata['tokens']['reasoning'],
             "estimated_cost": metadata["tokens"]["estimated_cost"],
             "duration_seconds": metadata["duration"]["seconds"],
             "tokens_per_second": metadata["duration"]["tokens_per_second"],
@@ -323,20 +263,56 @@ class ToolAgent:
         }
         self.message_backup.insert_one(message_doc)
 
-    def make_metadata(self, token_cost_process: TokenCostProcess, duration: float = None) -> dict:
-        cost = token_cost_process.get_total_cost_for_model(self.model)
+    def make_metadata(self, usage_metadata: dict, duration: float = None) -> dict:
+        if not usage_metadata:
+            usage_metadata = {}
+    
+        input_tokens = usage_metadata.get('input_tokens', 0)
+        output_tokens = usage_metadata.get('output_tokens', 0)
+        total_tokens = usage_metadata.get('total_tokens', input_tokens + output_tokens)
+        
+        # Acceso seguro a diccionarios anidados
+        input_details = usage_metadata.get('input_token_details', {})
+        output_details = usage_metadata.get('output_token_details', {})
+        
+        cached_tokens = input_details.get('cache_read', 0)
+        reasoning_tokens = output_details.get('reasoning', 0)
 
-        metadata = {
+        # Obtener precios (con fallback)
+        prices = MODEL_COST_PER_1K_TOKENS.get(self.model, {"input": 0.001, "output": 0.002})
+    
+        estimated_cost = (input_tokens / 1000) * prices['input'] + (output_tokens / 1000) * prices['output']
+
+        metadata = { 
             "cost_model": self.model,
             "tokens": {
-                "input": token_cost_process.input_tokens,
-                "output": token_cost_process.output_tokens,
-                "total": token_cost_process.total_tokens,
-                "estimated_cost": cost
+                "input": input_tokens,
+                "output": output_tokens,
+                "total": total_tokens,
+                "cached_tokens": cached_tokens,
+                "reasoning": reasoning_tokens,
+                "estimated_cost": round(estimated_cost, 6)
             },
             "duration": {
-                "seconds": duration,
-                "tokens_per_second": token_cost_process.total_tokens / duration if duration and duration > 0 else 0
+                "seconds": round(duration, 2) if duration else 0,
+                "tokens_per_second": round(total_tokens / duration, 2) if duration and duration > 0 else 0
             }
         }
         return metadata
+
+    def _generate_verbose_log(self, messages: list[BaseMessage]) -> str:
+        log_buffer = []
+        for msg in messages:
+            # Verifica explícitamente si tiene tool_calls y que no esté vacío
+            if isinstance(msg, AIMessage) and getattr(msg, 'tool_calls', None):
+                for tool_call in msg.tool_calls:
+                    name = tool_call.get('name', 'Unknown Tool')
+                    args = tool_call.get('args', {})
+                    log_buffer.append(f"🤖 [Thinking] El asistente decidió usar: {name}")
+                    log_buffer.append(f"   Args: {args}")
+            
+            elif isinstance(msg, ToolMessage): 
+                tool_name = msg.name if msg.name else "Tool"
+                log_buffer.append(f"🛠️ [Tool Output - {tool_name}]: {msg.content}")
+        
+        return "\n".join(log_buffer)

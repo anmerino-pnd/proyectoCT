@@ -3,8 +3,10 @@ import json
 import mysql.connector
 from datetime import datetime
 from pydantic import BaseModel, Field
-from ct.settings.clients import ip, port, user, pwd, database
 from ct.settings.config import ID_SUCURSAL
+from ct.settings.schemas import UserContext
+from langchain.tools import ToolRuntime, tool
+from ct.settings.clients import ip, port, user, pwd, database
 import pymysql
 pymysql.install_as_MySQLdb()
 
@@ -14,8 +16,6 @@ with open(ID_SUCURSAL, "r", encoding="utf-8") as f:
 
 class SalesInput(BaseModel):
     clave: str = Field(description="Clave del producto")
-    listaPrecio: int = Field(description="Lista de precio al que pertenece el usuario")
-    session_id: str = Field(description="Sesión del usuario")
 
 def get_id_sucursal(session_id: str) -> str:
     match_ctin = re.match(r"^(\d{2})CTIN", session_id)
@@ -67,18 +67,21 @@ ORDER BY
 LIMIT 1;
 """
 
-def sales_rules_tool(clave: str, listaPrecio: int, session_id: str) -> str:
+@tool(args_schema=SalesInput)
+def sales_rules_tool(clave: str,
+                     runtime: ToolRuntime[UserContext]) -> str:
+    """Función de las reglas de ofertas y promociones que se deben seguir"""
     cnx = None
     cursor = None
     try:
-        id_sucursal = get_id_sucursal(session_id)
+        id_sucursal = get_id_sucursal(runtime.context.session_id)
 
         cnx = mysql.connector.connect(
             host=ip, port=port, user=user, password=pwd, database=database,
             read_timeout=60, write_timeout=15
         )
         cursor = cnx.cursor()
-        cursor.execute(query_sales(), (listaPrecio, clave, id_sucursal))
+        cursor.execute(query_sales(), (runtime.context.lista_precio, clave, id_sucursal))
         result = cursor.fetchone()
 
         if result:

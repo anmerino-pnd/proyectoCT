@@ -1,4 +1,9 @@
+from ct.settings.schemas import UserContext
+from langchain.tools import ToolRuntime, tool
+
+@tool
 def who_are_we() -> str:
+    """¿Quiénes somos?, ¿qué es CT Internacional?"""
     return """
 ¿Quiénes somos?
 CT Internacional es una empresa 100% mexicana y el distribuidor líder de soluciones en Tecnologías de la Información (TI). Somos la opción preferida de distribuidores e integradores de tecnología para hacer negocios.

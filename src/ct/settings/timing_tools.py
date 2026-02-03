@@ -1,5 +1,5 @@
 import time
-from langchain.callbacks.base import BaseCallbackHandler
+from langchain_core.callbacks.base import BaseCallbackHandler
 
 class TimingCallbackHandler(BaseCallbackHandler):
     """Callback para medir tiempos de ejecución de cada herramienta."""

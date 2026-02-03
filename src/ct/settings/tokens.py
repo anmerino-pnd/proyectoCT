@@ -18,7 +18,7 @@ MODEL_COST_PER_1K_TOKENS = {
         "input": 0.00015,      # $0.150 por 1M → $0.00015 por 1K
         "output": 0.0006       # $0.600 por 1M → $0.0006 por 1K
     },
-    "gpt-4.1" : {
+    "openai:gpt-4.1" : {
         "input": 0.0020,      # $2.00 por 1M → $0.0020 por 1K
         "output": 0.008       # $8.00 por 1M → $0.0080 por 1K
     },
@@ -70,7 +70,6 @@ class TokenCostProcess:
     def get_total_cost_for_model(self, model: str) -> float:
         cost_config = MODEL_COST_PER_1K_TOKENS.get(model, {})
         
-        # Tokens nuevos (no cacheados)
         input_cost = (self.input_tokens * cost_config["input"]) / 1000
         output_cost = (self.output_tokens * cost_config["output"]) / 1000
         return input_cost + output_cost

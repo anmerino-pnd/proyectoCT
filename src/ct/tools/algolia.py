@@ -19,8 +19,11 @@ import mysql.connector
 from toon import encode
 from string import Template
 pymysql.install_as_MySQLdb()
+from typing import Annotated
 from pydantic import BaseModel, Field
 from ct.settings.config import ID_SUCURSAL
+from ct.settings.schemas import UserContext
+from langchain.tools import ToolRuntime, tool
 from ct.tools.sales_rules_tool import get_id_sucursal
 
 with open(ID_SUCURSAL, "r", encoding="utf-8") as f:
@@ -28,8 +31,6 @@ with open(ID_SUCURSAL, "r", encoding="utf-8") as f:
 
 class AlgoliaInput(BaseModel):
     producto : str = Field(description="Búsqueda del producto de interés del usuario")
-    session_id : str = Field(description="ID de la sesión del usuario")
-    lista_precio : int = Field(description="Lista de precio a la que pertenece el usuario")
     lowest_price : bool = Field(description="Si el usuario quiere saber el producto con el precio más barato, True, si no, False. Por defecto es False",
                                 default=False)
 
@@ -103,16 +104,19 @@ def query_exec(query) -> list:
         if cnx:
             cnx.close()
 
+@tool(args_schema=AlgoliaInput)
 def algolia_search_tool(
         producto: str, 
-        session_id: str, 
-        lista_precio: int,
-        lowest_price : bool = False):
-    
-    lista_precio = str(lista_precio)
-    userToken = re.sub(r'[._]', '-', session_id)
+        runtime: ToolRuntime[UserContext],
+        lowest_price : bool = False
+        ):
+    """Buscador de productos"""
+    lista_precio = str(runtime.context.lista_precio)
+    userToken = re.sub(r'[._]', '-', runtime.context.session_id)
+    print(userToken)
     scraper = _create_scraper(userToken)
-    account = get_user(session_id)
+    account = get_user(runtime.context.session_id)
+    print(account)
     especial_hp = query_exec(query.substitute(account = account))
     if especial_hp:
         especial_values = especial_hp[0][1:]
@@ -157,7 +161,7 @@ def algolia_search_tool(
             return f"  No se encontraron resultados para: {producto}"
         
         resultados = {}
-        id_sucursal = get_id_sucursal(session_id)
+        id_sucursal = get_id_sucursal(runtime.context.session_id)
         promo_key = f"A{id_sucursal}"
 
         for producto in hits:

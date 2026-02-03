@@ -1,7 +1,7 @@
 from langchain.tools import tool
-from langchain.schema import Document
+from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
-from langchain.retrievers import EnsembleRetriever
+#from langchain_core.vectorstores import EnsembleRetriever
 from langchain_community.vectorstores import FAISS
 
 from typing import List
@@ -11,7 +11,8 @@ from ct.settings.clients import openai_api_key
 from ct.settings.config import SALES_PRODUCTS_VECTOR_PATH
 
 index_por_clave = None
-ensemble_retriever = None
+retriever_productos = None
+retriever_promociones = None
 
 def vector_store():
     vectorstore = FAISS.load_local(
@@ -40,14 +41,14 @@ def vector_store():
             "lambda_mult": 0.85
         }
     )
-    return index_por_clave, EnsembleRetriever(
-    retrievers=[retriever_productos, retriever_promociones]
-)
+
+    return index_por_clave, retriever_productos, retriever_promociones
+
 
 def reload_vector_store():
-    global index_por_clave, ensemble_retriever
-    index_por_clave, ensemble_retriever = vector_store()
-    print("✅ Vector store recargado exitosamente en memoria.")
+    global index_por_clave, retriever_productos, retriever_promociones
+    index_por_clave, retriever_productos, retriever_promociones = vector_store()
+    print("✅ Vector store recargado exitosamente.")
     return True
 
 
@@ -79,11 +80,15 @@ def _group_docs_by_key(docs: List[Document]) -> dict:
     "promociones": _merge_grouped_docs(sales_grouped_by_key)
 }
 
-
-@tool(description="Busca información detallada de productos y promociones. Agrupa la información por la clave del producto para dar un contexto completo.")
-def search_information_tool(query: str) -> dict[str, dict[str, str]]:
-    docs = ensemble_retriever.invoke(query)
-    return _group_docs_by_key(docs)
+@tool(description="Busca información de productos y promociones de Honeywell y otras marcas.")
+def search_information_tool(query: str) -> dict:
+    # Ejecución manual sin EnsembleRetriever
+    docs_prod = retriever_productos.invoke(query)
+    docs_prom = retriever_promociones.invoke(query)
+    
+    # Combinamos las listas de documentos manualmente
+    all_docs = docs_prod + docs_prom
+    return _group_docs_by_key(all_docs)
 
 class ClaveInput(BaseModel):
     clave: str = Field(description="Clave del producto en MAYUSCULAS")

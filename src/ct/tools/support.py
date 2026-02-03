@@ -3,7 +3,8 @@ import ollama
 from typing import List, Literal
 from string import Template
 from pydantic import BaseModel, Field
-from langchain_ollama import OllamaEmbeddings
+from ct.settings.schemas import UserContext
+from langchain.tools import ToolRuntime, tool
 from langchain_openai import OpenAIEmbeddings
 from ct.settings.clients import openai_api_key
 from langchain_community.vectorstores import FAISS
@@ -44,6 +45,7 @@ def get_faiss_retriever(collection_filter: str):
         }
     )
 
+@tool(args_schema=SupportInput)
 def get_support_info(query: str, filters: List[SupportFilter]) -> str:
     """
     Recupera información de la base de datos vectorial basada en una consulta y una lista de filtros.

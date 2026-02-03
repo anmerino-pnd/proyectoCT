@@ -1,5 +1,7 @@
 import mysql.connector
 from pydantic import BaseModel, Field
+from ct.settings.schemas import UserContext
+from langchain.tools import ToolRuntime, tool
 from ct.settings.clients import ip, port, user, pwd, database
 import pymysql
 pymysql.install_as_MySQLdb()
@@ -16,7 +18,9 @@ FROM monedas_api
 LIMIT 1
 """
 
+@tool(args_schema=DolarInput)
 def dolar_convertion_tool(dolar: float) -> str:
+    """Convierte el precio de USD a MXN"""
     cnx = None
     cursor = None
     try:

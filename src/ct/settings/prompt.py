@@ -35,7 +35,7 @@ prompt_dict = {
                 "Ejecuta la búsqueda con términos enriquecidos de tu conocimiento fundamental que no sean muy complejos, búsquedas generales a específicas, al final de cuentas usas un buscador",
                 "Si hay productos en promoción, debes buscar su promoción con `sales_rules_tool` pero solo después de recibir la lista de productos y que diga explícitamente que están en promoción"
             ],
-            "uso": "algolia_search_tool(producto='PRODUCTO_A_BUSCAR', session_id={session_id}), listaPrecio={listaPrecio}, lowest_price = 'TRUE | FALSE",
+            "uso": "algolia_search_tool(producto='PRODUCTO_A_BUSCAR',lowest_price = 'TRUE | FALSE",
             "notas": [
                 "Los usuarios suelen usar las claves CT de los productos, utiliza esta tool para conocer el contexto del producto del cual se está utilizando",
                 "SIEMPRE que no encuentras un producto, SIMPLIFICA, GENERALIZA, MODIFICA o USA sinónimos en la búsqueda para recomendar productos similares procurando SIEMPRE ofrecer algo (relevante obvio), itera un máximo de 3 veces, y si aún así no hay resultados, aclárale al usuario lo que intentaste para buscar y que no se encontraron productos relevantes"
@@ -81,7 +81,7 @@ prompt_dict = {
         },
         "sales_rules_tool": {
             "objetivo":"Cada producto que aparece en promoción, busca su promoción ya que debe seguir ciertas reglas y/o verificar si sigue en promoción",
-            "uso": "sales_rules_tool(clave='CLAVE_DEL_PRODUCTO', listaPrecio={listaPrecio}, session_id={session_id})"
+            "uso": "sales_rules_tool(clave='CLAVE_DEL_PRODUCTO')"
         },
         "dolar_convertion_tool": {
             "objetivo": "Saber el precio en $MXN de productos que están en $USD",
@@ -90,7 +90,7 @@ prompt_dict = {
         },
         "status_tool": {
             "objetivo":"Conocer el estatus de pedidos",
-            "uso": "status_tool(factura='FOLIO_FACTURA', session_id={session_id})"
+            "uso": "status_tool(factura='FOLIO_FACTURA'"
         },
     },
     "reglas_generales": {

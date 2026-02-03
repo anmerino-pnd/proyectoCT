@@ -1,9 +1,11 @@
-from pydantic import BaseModel, Field
-from pymongo import MongoClient
-import locale
-import pytz
 import re
+import pytz
+import locale
 import mysql.connector
+from pymongo import MongoClient
+from pydantic import BaseModel, Field
+from ct.settings.schemas import UserContext
+from langchain.tools import ToolRuntime, tool
 from ct.settings.clients import (
     mongo_collection_pedidos, 
     mongo_uri,
@@ -23,7 +25,6 @@ cdmx = pytz.timezone("America/Mexico_City")
 
 class StatusInput(BaseModel):
     factura: str = Field(description="Número de factura para seguir y encontrar su estatus")
-    session_id : str = Field(description="Con la sesión verificamos que el usuario que pregunta tenga el permiso de saber el estado")
 
 query = """
 SELECT COUNT(*) AS descargas_enviadas
@@ -57,8 +58,10 @@ def descargas_enviadas(factura: str):
             cnx.close()
     pass
 
-def status_tool(factura: str, session_id: str) -> str:
-    cliente = session_id.split('_')[0]
+@tool(args_schema=StatusInput)
+def status_tool(factura: str, runtime: ToolRuntime[UserContext]) -> str:
+    """Con el folio factura de un pedido, saber su estado de envío"""
+    cliente = runtime.context.session_id.split('_')[0]
 
     if re.match(r"^W[A-Z0-9]{2}-", factura):
         campo_de_busqueda = "pedido.encabezado.folio"
@@ -67,7 +70,7 @@ def status_tool(factura: str, session_id: str) -> str:
 
     filtro_de_consulta = {campo_de_busqueda: factura}
 
-    if not re.match(r"^(\d{2})CTIN", session_id):
+    if not re.match(r"^(\d{2})CTIN", runtime.context.session_id):
         # Si es un cliente, solo puede ver sus propios pedidos.
         filtro_de_consulta["pedido.encabezado.cliente"] = cliente
 

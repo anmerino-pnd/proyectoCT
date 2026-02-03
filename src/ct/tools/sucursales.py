@@ -4,7 +4,8 @@ import pandas as pd
 from io import StringIO
 from pydantic import BaseModel, Field
 from ct.settings.config import DATA_DIR
-
+from ct.settings.schemas import UserContext
+from langchain.tools import ToolRuntime, tool
 class SucursalesInput(BaseModel):
     code: str = Field(description="Código Python para analizar el DataFrame 'df' con información de las sucursales. Debe usar print() para mostrar resultados o asignar el resultado a la variable 'result'.")
 
@@ -23,7 +24,9 @@ if 'directorio' in df.columns:
             return str(x)
     df['directorio'] = df['directorio'].apply(safe_json_loads)
 
+@tool(args_schema=SucursalesInput)
 def get_sucursales_info(code: str) -> str:
+    """Información sobre la empresa"""
     localenv = {"df": df.copy(), "pd": pd, "json": json, "result": None}
     
     try:
