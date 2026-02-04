@@ -40,7 +40,7 @@ token_cost_process = TokenCostProcess()
 
 class ToolAgent:
     def __init__(self):
-        self.model = "openai:gpt-4.1"
+        self.model = "gemini-3-flash-preview"
         
         self.rate_limiter = InMemoryRateLimiter(
             requests_per_second=0.1,
@@ -48,12 +48,9 @@ class ToolAgent:
             max_bucket_size=100,
         )
 
-        # self.llm = ChatGoogleGenerativeAI(
-        #     model = self.model,
-        #     api_key = gemini_api_key,
-        #     project = "ct-project",
-        #     vertexai = True
-        # )
+        self.llm = ChatGoogleGenerativeAI(
+            model = self.model
+        )
 
         try:
             self.client = MongoClient(mongo_uri).get_default_database()
@@ -104,7 +101,7 @@ class ToolAgent:
     def build_graph(self):
 
         self.graph = create_agent(
-            model= self.model,
+            model= self.llm,
             tools= self.tools,
             system_prompt= encode(prompt_dict),
             context_schema=UserContext,
@@ -145,7 +142,7 @@ class ToolAgent:
                 inputs,
                 context=current_context
                 )
-            full_answer = result['messages'][-1].content
+            full_answer = result['messages'][-1].content[-1]['text']
             yield full_answer
         finally:
             duration = time.perf_counter() - start_time

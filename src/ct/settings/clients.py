@@ -1,8 +1,9 @@
 import os
 import openai as openai_api
-import google.genai as google_api
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from pymongo import MongoClient
+import google.genai as google_api
 
 class QueryRequest(BaseModel):
     user_query: str
@@ -58,3 +59,11 @@ algolia_sort_url = os.getenv("ALGOLIA_SORT_URL")
 algolia_app_id = os.getenv("ALGOLIA_APP_ID")
 algolia_api_key = os.getenv("ALGOLIA_API_KEY")
 algolia_content_type = os.getenv("ALGOLIA_CONTENT_TYPE")
+
+# En ct/settings/clients.py o en app.py
+client = MongoClient(mongo_uri)
+db = client.get_default_database()
+
+# O como dependencia (mejor práctica en FastAPI)
+def get_db():
+    return client.get_default_database()

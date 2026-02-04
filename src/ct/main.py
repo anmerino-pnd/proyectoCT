@@ -12,8 +12,9 @@ from ct.chat import (
     delete_chat_history_endpoint
     )
 from ct.settings.clients import (
-    openai_api_key,
+    get_db,
     mongo_uri, 
+    openai_api_key,
     mongo_collection_sessions, 
     mongo_collection_message_backup
 )
@@ -53,8 +54,8 @@ templates = Jinja2Templates(directory="ui")
 
 @app.get("/logs", response_class=HTMLResponse)
 async def msg_log(request: Request, msg_id: Optional[str] = None):
-    client = MongoClient(mongo_uri).get_default_database()
-    message_backup = client[mongo_collection_message_backup]
+    db = get_db()
+    message_backup = db[mongo_collection_message_backup]
     
     context = {
         "request": request,
