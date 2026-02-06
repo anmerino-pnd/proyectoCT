@@ -4,6 +4,9 @@ from toon import encode
 from datetime import datetime, timezone
 from ct.settings.prompt import prompt_dict
 from ct.settings.schemas import UserContext
+import logging
+
+logger = logging.getLogger(__name__)
 
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
@@ -142,7 +145,16 @@ class ToolAgent:
                 inputs,
                 context=current_context
                 )
-            full_answer = result['messages'][-1].content[-1]['text']
+            last_message = result['messages'][-1]
+            content = last_message.content
+
+            if isinstance(content, str):
+                full_answer = content
+            elif isinstance(content, list):
+                full_answer = "".join([part.get('text', '') for part in content if 'text' in part])
+            else:
+                full_answer = str(content)
+
             yield full_answer
         finally:
             duration = time.perf_counter() - start_time
@@ -214,7 +226,7 @@ class ToolAgent:
         except PyMongoError as e:
             pass
         except Exception as e:
-            pass
+            logger.error(f"Error crítico guardando en Mongo: {e}", exc_info=True)
 
     def add_message_backup(self, 
                            session_id: str, 
@@ -247,7 +259,7 @@ class ToolAgent:
         except PyMongoError as e:
             pass
         except Exception as e:
-            pass
+            logger.error(f"Error crítico guardando en Mongo: {e}", exc_info=True)
 
     def add_irrelevant_message(self, session_id: str, question: str, full_answer: str):
         message_doc = {
