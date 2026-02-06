@@ -1,7 +1,7 @@
+import urllib3
+import requests
 from ct.ETL.pipeline import update_products
 from ct.settings.clients import reload_vectors_post
-import requests
-import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
