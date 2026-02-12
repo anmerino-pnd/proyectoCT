@@ -665,7 +665,7 @@ about the RDB error.</code></pre>
 <li><strong>Propósito</strong>: Inicializa el agente, configurando el modelo LLM, conectando a MongoDB para la persistencia de sesiones e historial, cargando el <em>prompt</em> principal del sistema y registrando las herramientas disponibles.</li>
 <li><strong>Comportamiento</strong>:
 <ul>
-<li>Establece <code>self.model</code> a “gpt-4.1” (O cualquier modelo disponible de OpenAI).</li>
+<li>Establece <code>self.model</code> a “gpt-4.1” (O cualquier modelo disponible en <a href="https://reference.langchain.com/python/langchain/models/">https://reference.langchain.com/python/langchain/models/</a>).</li>
 <li>Inicializa las conexiones a las colecciones de MongoDB (<code>sessions</code>, <code>message_backup</code>).</li>
 <li>Define <code>self.prompt</code> como un <code>ChatPromptTemplate</code> que guía el comportamiento del agente, incluyendo instrucciones de formato de respuesta y el manejo del historial (<code>chat_history</code>).</li>
 <li>Define <code>self.tools</code> como una lista de objetos <code>Tool</code> y <code>StructuredTool</code>, que el agente puede invocar. Estas herramientas incluyen <code>search_information_tool</code>, <code>inventory_tool</code> y <code>sales_rules_tool</code>, entre otras. Cada una con su descripción y esquema de argumentos (<code>args_schema</code>) cuando aplica.</li>

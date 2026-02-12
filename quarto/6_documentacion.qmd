@@ -453,11 +453,10 @@ Este archivo contiene la lógica principal del agente conversacional, incluyendo
     * `__init__`: 
       * **Propósito**: Inicializa el agente, configurando el modelo LLM, conectando a MongoDB para la persistencia de sesiones e historial, cargando el _prompt_ principal del sistema y registrando las herramientas disponibles.
       * **Comportamiento**:
-        * Establece `self.model` a "gpt-4.1" (O cualquier modelo disponible de OpenAI).
+        * Establece `self.model` a "gpt-4.1" (O cualquier modelo disponible en [https://reference.langchain.com/python/langchain/models/](https://reference.langchain.com/python/langchain/models/)).
         * Inicializa las conexiones a las colecciones de MongoDB (`sessions`, `message_backup`).
-        * Define `self.prompt` como un `ChatPromptTemplate` que guía el comportamiento del agente, incluyendo instrucciones de formato de respuesta y el manejo del historial (`chat_history`).
-        * Define `self.tools` como una lista de objetos `Tool` y `StructuredTool`, que el agente puede invocar. Estas herramientas incluyen `search_information_tool`, `inventory_tool` y `sales_rules_tool`, entre otras. Cada una con su descripción y esquema de argumentos (`args_schema`) cuando aplica.
-        * `self.executor` se inicializa a `None` y se construye bajo demanda.
+        * Define `self.tools` como una lista de objetos `Tool`, que el agente puede invocar. Estas herramientas incluyen `search_information_tool`, `inventory_tool` y `sales_rules_tool`, entre otras. Cada una con su descripción y esquema de argumentos (`args_schema`) cuando aplica.
+        * `self.graph` se inicializa a `None` y se construye bajo demanda.
 
     * `clear_session_history() -> bool`:  
       * **Propósito**: Limpia el historial de mensajes (`last_messages`) para una sesión de usuario específica en la base de datos de MongoDB.
@@ -473,8 +472,8 @@ Este archivo contiene la lógica principal del agente conversacional, incluyendo
       * **Retorna**: `dict`: El documento de la sesión actualizado o recién creado.
       * **Comportamiento**: Utiliza `update_one` con `$setOnInsert` y `$set` para manejar la lógica de upsert y actualización de actividad.
 
-    * `build_executor()`: 
-      * **Propósito**: Construye el `AgentExecutor` de LangChain, que es el componente principal que orquesta la interacción entre el LLM, las herramientas y el _prompt_.
+    * `build_graph()`: 
+      * **Propósito**: Construye el `agente` de LangGraph, que es el componente principal que orquesta la interacción entre el LLM, las herramientas y el _prompt_.
       * **Parámetros**: Ninguno (usa atributos de la clase).
       * **Comportamiento**:
         * Crea un `ChatOpenAI` LLM con el modelo y la configuración de _streaming_.

@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
+from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
 from langchain_core.caches import InMemoryCache
 from langchain_core.globals import get_llm_cache
@@ -54,6 +55,11 @@ class ToolAgent:
         self.llm = ChatGoogleGenerativeAI(
             model = self.model
         )
+
+        # self.llm = ChatOpenAI(                    # En caso de volver a OpenAI
+        #     model = self.model,
+        #     rate_limiter = self.rate_limiter
+        # )
 
         try:
             self.client = MongoClient(mongo_uri).get_default_database()
