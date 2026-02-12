@@ -470,7 +470,7 @@ Este archivo contiene la lógica principal del agente conversacional, incluyendo
       * **Parámetros**:
         * `session_id (str)`: El identificador de la sesión.
       * **Retorna**: `dict`: El documento de la sesión actualizado o recién creado.
-      * **Comportamiento**: Utiliza `update_one` con `$setOnInsert` y `$set` para manejar la lógica de upsert y actualización de actividad.
+      * **Comportamiento**: Utiliza `update_one` con `$setOnInsert` y `$set` para manejar la lógica de upsert y actualización de actividad. 
 
     * `build_graph()`: 
       * **Propósito**: Construye el `agente` de LangGraph, que es el componente principal que orquesta la interacción entre el LLM, las herramientas y el _prompt_.
@@ -490,10 +490,9 @@ Este archivo contiene la lógica principal del agente conversacional, incluyendo
       * **Comportamiento**: 
         * Recupera el historial completo de la sesión (`get_session_history`).
         * Trunca el historial (`trim_messages`) para ajustarse a la ventana de contexto del LLM, priorizando los mensajes más recientes.
-        * Inicializa un `TokenCostProcess` y `CostCalcAsyncHandler` para el seguimiento de tokens y costos.
-        * Si el `executor` no está construido, llama a `build_executor()`.
-        * Define los `inputs` para el `executor`, incluyendo la `query`, `chat_history`, `listaPrecio` y `session_id`.
-        * Utiliza `self.executor.ainvoke()` para obtener la respuesta final en modo asíncrono y mandarla al usuario.
+        * Si el `graph` no está construido, llama a `build_graph()`.
+        * Define los `inputs` para el `graph`, incluyendo la `query`, `chat_history`, `listaPrecio` y `session_id`.
+        * Utiliza `self.graph.ainvoke()` para obtener la respuesta final en modo asíncrono y mandarla al usuario.
         * En el bloque `finally`, calcula la duración y los metadatos de la interacción.
         * Persiste los mensajes del usuario y del asistente en las colecciones `sessions` y `message_backup` de MongoDB.
 
@@ -546,10 +545,9 @@ Este módulo se encarga de clasificar las consultas del usuario (relevante, irre
 
 * **Clases y funciones claves**:
   * `class QueryModerator`:
-    * `__init__(model: str = "gemma3:4b", assistant : ToolAgent = None)`: 
-      * **Propósito**: Inicializa el moderador de consultas, configurando el modelo LLM para clasificación y una referencia al `ToolAgent` para interactuar con la base de datos de sesiones.
+    * `__init__(assistant : ToolAgent = None)`: 
+      * **Propósito**: Inicializa el `ToolAgent` para interactuar con la base de datos de sesiones y el LLM.
       * **Parámetros**:
-        * `model (str)`: Nombre del modelo de Ollama a utilizar para la clasificación de consultas (por defecto "gemma3:4b").
         * `assistant (ToolAgent)`: Instancia del `ToolAgent` para acceder a la gestión de sesiones en MongoDB.
 
     * `classify_query(query: str) -> str`
@@ -558,8 +556,8 @@ Este módulo se encarga de clasificar las consultas del usuario (relevante, irre
         * `query (str)`: La consulta de texto del usuario.
       * **Retorna**: Un `str` con una de las clasificaciones *relevante*, *irrelevante*, o *inapropiado*.
       * **Comportamiento**: 
-        * Utiliza `ollama.generate()` con un `system_prompt` predefinido (`_classification_prompt`) para guiar la clasificación del modelo.
-        * Configura opciones del modelo como `temperature = 0` para un comportamiento determinista.
+        * Utiliza `assistant.llm()` con un `system_prompt` predefinido (`_classification_prompt`) para guiar la clasificación del modelo.
+        
 
     * `_classification_prompt(self) -> str`:
       * **Propósito**: Retorna el _system prompt_ utilizado por el modelo de clasificación para categorizar las consultas del usuario.

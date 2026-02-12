@@ -53,7 +53,7 @@ class ToolAgent:
         )
 
         self.llm = ChatGoogleGenerativeAI(
-            model = self.model
+            model = self.model 
         )
 
         # self.llm = ChatOpenAI(                    # En caso de volver a OpenAI

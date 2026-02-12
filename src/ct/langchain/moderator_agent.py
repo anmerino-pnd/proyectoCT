@@ -9,12 +9,12 @@ from datetime import datetime, timedelta, timezone
 class QueryModerator:
     def __init__(self, assistant: ToolAgent):
         self.assistant = assistant
-        self.llm = ChatOpenAI(
-            openai_api_key=openai_api_key,
-            model="gpt-4.1",
-            temperature=0,
-            cache=True  
-        )
+        # self.llm = ChatOpenAI(
+        #     openai_api_key=openai_api_key,
+        #     model="gpt-4.1",
+        #     temperature=0,
+        #     cache=True  
+        # )
         
     def classify_query(self, query: str, session_id: str) -> str:
         history = self._get_formatted_history(session_id)
@@ -26,12 +26,12 @@ class QueryModerator:
             f"{query}"
         )
 
-        response = self.llm.invoke([
+        response = self.assistant.llm.invoke([
             {"role": "system", "content": self._classification_prompt()},
             {"role": "user", "content": full_prompt},
         ])
 
-        return response.content.strip().lower()
+        return response.content[0]['text'].strip().lower()
 
     def _classification_prompt(self) -> str:
         system_prompt = encode({
