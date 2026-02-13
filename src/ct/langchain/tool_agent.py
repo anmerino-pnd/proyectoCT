@@ -44,7 +44,8 @@ token_cost_process = TokenCostProcess()
 
 class ToolAgent:
     def __init__(self):
-        self.model = "gemini-3-flash-preview"
+        #self.model = "gemini-3-flash-preview"
+        self.model = "openai:gpt-5"
         
         self.rate_limiter = InMemoryRateLimiter(
             requests_per_second=0.1,
@@ -52,14 +53,14 @@ class ToolAgent:
             max_bucket_size=100,
         )
 
-        self.llm = ChatGoogleGenerativeAI(
-            model = self.model 
-        )
-
-        # self.llm = ChatOpenAI(                    # En caso de volver a OpenAI
-        #     model = self.model,
-        #     rate_limiter = self.rate_limiter
+        # self.llm = ChatGoogleGenerativeAI(
+        #     model = self.model 
         # )
+
+        self.llm = ChatOpenAI(                    # En caso de volver a OpenAI
+            model = self.model,
+            rate_limiter = self.rate_limiter
+        )
 
         try:
             self.client = MongoClient(mongo_uri).get_default_database()

@@ -667,9 +667,8 @@ about the RDB error.</code></pre>
 <ul>
 <li>Establece <code>self.model</code> a “gpt-4.1” (O cualquier modelo disponible en <a href="https://reference.langchain.com/python/langchain/models/">https://reference.langchain.com/python/langchain/models/</a>).</li>
 <li>Inicializa las conexiones a las colecciones de MongoDB (<code>sessions</code>, <code>message_backup</code>).</li>
-<li>Define <code>self.prompt</code> como un <code>ChatPromptTemplate</code> que guía el comportamiento del agente, incluyendo instrucciones de formato de respuesta y el manejo del historial (<code>chat_history</code>).</li>
-<li>Define <code>self.tools</code> como una lista de objetos <code>Tool</code> y <code>StructuredTool</code>, que el agente puede invocar. Estas herramientas incluyen <code>search_information_tool</code>, <code>inventory_tool</code> y <code>sales_rules_tool</code>, entre otras. Cada una con su descripción y esquema de argumentos (<code>args_schema</code>) cuando aplica.</li>
-<li><code>self.executor</code> se inicializa a <code>None</code> y se construye bajo demanda.</li>
+<li>Define <code>self.tools</code> como una lista de objetos <code>Tool</code>, que el agente puede invocar. Estas herramientas incluyen <code>search_information_tool</code>, <code>inventory_tool</code> y <code>sales_rules_tool</code>, entre otras. Cada una con su descripción y esquema de argumentos (<code>args_schema</code>) cuando aplica.</li>
+<li><code>self.graph</code> se inicializa a <code>None</code> y se construye bajo demanda.</li>
 </ul></li>
 </ul></li>
 <li><code>clear_session_history() -&gt; bool</code>:
@@ -692,9 +691,9 @@ about the RDB error.</code></pre>
 <li><strong>Retorna</strong>: <code>dict</code>: El documento de la sesión actualizado o recién creado.</li>
 <li><strong>Comportamiento</strong>: Utiliza <code>update_one</code> con <code>$setOnInsert</code> y <code>$set</code> para manejar la lógica de upsert y actualización de actividad.</li>
 </ul></li>
-<li><code>build_executor()</code>:
+<li><code>build_graph()</code>:
 <ul>
-<li><strong>Propósito</strong>: Construye el <code>AgentExecutor</code> de LangChain, que es el componente principal que orquesta la interacción entre el LLM, las herramientas y el <em>prompt</em>.</li>
+<li><strong>Propósito</strong>: Construye el <code>agente</code> de LangGraph, que es el componente principal que orquesta la interacción entre el LLM, las herramientas y el <em>prompt</em>.</li>
 <li><strong>Parámetros</strong>: Ninguno (usa atributos de la clase).</li>
 <li><strong>Comportamiento</strong>:
 <ul>
@@ -717,10 +716,9 @@ about the RDB error.</code></pre>
 <ul>
 <li>Recupera el historial completo de la sesión (<code>get_session_history</code>).</li>
 <li>Trunca el historial (<code>trim_messages</code>) para ajustarse a la ventana de contexto del LLM, priorizando los mensajes más recientes.</li>
-<li>Inicializa un <code>TokenCostProcess</code> y <code>CostCalcAsyncHandler</code> para el seguimiento de tokens y costos.</li>
-<li>Si el <code>executor</code> no está construido, llama a <code>build_executor()</code>.</li>
-<li>Define los <code>inputs</code> para el <code>executor</code>, incluyendo la <code>query</code>, <code>chat_history</code>, <code>listaPrecio</code> y <code>session_id</code>.</li>
-<li>Utiliza <code>self.executor.ainvoke()</code> para obtener la respuesta final en modo asíncrono y mandarla al usuario.</li>
+<li>Si el <code>graph</code> no está construido, llama a <code>build_graph()</code>.</li>
+<li>Define los <code>inputs</code> para el <code>graph</code>, incluyendo la <code>query</code>, <code>chat_history</code>, <code>listaPrecio</code> y <code>session_id</code>.</li>
+<li>Utiliza <code>self.graph.ainvoke()</code> para obtener la respuesta final en modo asíncrono y mandarla al usuario.</li>
 <li>En el bloque <code>finally</code>, calcula la duración y los metadatos de la interacción.</li>
 <li>Persiste los mensajes del usuario y del asistente en las colecciones <code>sessions</code> y <code>message_backup</code> de MongoDB.</li>
 </ul></li>
@@ -796,12 +794,11 @@ about the RDB error.</code></pre>
 <ul>
 <li><code>class QueryModerator</code>:
 <ul>
-<li><code>__init__(model: str = "gemma3:4b", assistant : ToolAgent = None)</code>:
+<li><code>__init__(assistant : ToolAgent = None)</code>:
 <ul>
-<li><strong>Propósito</strong>: Inicializa el moderador de consultas, configurando el modelo LLM para clasificación y una referencia al <code>ToolAgent</code> para interactuar con la base de datos de sesiones.</li>
+<li><strong>Propósito</strong>: Inicializa el <code>ToolAgent</code> para interactuar con la base de datos de sesiones y el LLM.</li>
 <li><strong>Parámetros</strong>:
 <ul>
-<li><code>model (str)</code>: Nombre del modelo de Ollama a utilizar para la clasificación de consultas (por defecto “gemma3:4b”).</li>
 <li><code>assistant (ToolAgent)</code>: Instancia del <code>ToolAgent</code> para acceder a la gestión de sesiones en MongoDB.</li>
 </ul></li>
 </ul></li>
@@ -815,8 +812,7 @@ about the RDB error.</code></pre>
 <li><strong>Retorna</strong>: Un <code>str</code> con una de las clasificaciones <em>relevante</em>, <em>irrelevante</em>, o <em>inapropiado</em>.</li>
 <li><strong>Comportamiento</strong>:
 <ul>
-<li>Utiliza <code>ollama.generate()</code> con un <code>system_prompt</code> predefinido (<code>_classification_prompt</code>) para guiar la clasificación del modelo.</li>
-<li>Configura opciones del modelo como <code>temperature = 0</code> para un comportamiento determinista.</li>
+<li>Utiliza <code>assistant.llm()</code> con un <code>system_prompt</code> predefinido (<code>_classification_prompt</code>) para guiar la clasificación del modelo.</li>
 </ul></li>
 </ul></li>
 <li><code>_classification_prompt(self) -&gt; str</code>:
