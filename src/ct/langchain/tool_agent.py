@@ -45,7 +45,7 @@ token_cost_process = TokenCostProcess()
 class ToolAgent:
     def __init__(self):
         #self.model = "gemini-3-flash-preview"
-        self.model = "openai:gpt-5"
+        self.model = "gpt-5"
         
         self.rate_limiter = InMemoryRateLimiter(
             requests_per_second=0.1,
