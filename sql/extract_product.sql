@@ -13,5 +13,5 @@ LEFT JOIN categorias cat
 ON pro.idCategoria = cat.idCategoria
 LEFT JOIN marcas m 
 ON pro.idMarca = m.idMarca
-WHERE pro.clave = 'MONBLR380'
+WHERE pro.clave = 'LCTMTR2210'
 GROUP BY pro.idProductos;
