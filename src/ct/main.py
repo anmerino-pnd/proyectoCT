@@ -76,7 +76,7 @@ async def msg_log(request: Request, msg_id: Optional[str] = None):
                 
                 # 2. Validamos que sea un número (float o int) y formateamos
                 if isinstance(raw_cost, (float, int)):
-                    formatted_cost = f"${raw_cost:.6f}"
+                    formatted_cost = f"${raw_cost:.6f} USD"
                 else:
                     formatted_cost = "N/A"
 
