@@ -78,6 +78,7 @@ async def msg_log(request: Request, msg_id: Optional[str] = None):
                     "verbose_log": msg.get("verbose_log", {}),
                     "model_used": msg.get("model_used", "Unknown"),
                     "timestamp": msg.get("timestamp", ""),
+                    "estimated_cost": msg.get("estimated_cost", ""),
                     "duration_seconds": f"{float(msg.get('duration_seconds', 0)):.2f}s" if msg.get("duration_seconds") else "N/A"
                 })
             else:
