@@ -1,5 +1,7 @@
 from bson import ObjectId
 from typing import Optional
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -78,6 +80,20 @@ async def msg_log(request: Request, msg_id: Optional[str] = None):
                 else:
                     formatted_cost = "N/A"
 
+                raw_time = msg.get("timestamp")
+                formatted_time = ""
+                
+                if isinstance(raw_time, datetime):
+                    # Asegurarnos de que tenga tzinfo UTC antes de convertir
+                    if raw_time.tzinfo is None:
+                        raw_time = raw_time.replace(tzinfo=ZoneInfo("UTC"))
+                    
+                    # Convertir a Hermosillo y formatear (YYYY-MM-DD HH:MM:SS)
+                    local_time = raw_time.astimezone(ZoneInfo("America/Hermosillo"))
+                    formatted_time = local_time.strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    formatted_time = str(raw_time) if raw_time else "N/A"
+
                 context["found"] = True
                 context.update({
                     "session_id": msg.get("session_id", "N/A"),
@@ -85,7 +101,7 @@ async def msg_log(request: Request, msg_id: Optional[str] = None):
                     "answer": msg.get("answer", "-"),
                     "verbose_log": msg.get("verbose_log", {}),
                     "model_used": msg.get("model_used", "Unknown"),
-                    "timestamp": msg.get("timestamp", ""),
+                    "timestamp": formatted_time,
                     "estimated_cost": formatted_cost,
                     "duration_seconds": f"{float(msg.get('duration_seconds', 0)):.2f}s" if msg.get("duration_seconds") else "N/A"
                 })
