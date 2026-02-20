@@ -20,3 +20,5 @@ notebooks/
 src/proyectoct.egg-info/
 static/ssl/
 __pycache__/
+
+sql/

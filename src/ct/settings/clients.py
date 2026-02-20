@@ -49,7 +49,7 @@ mongo_collection_pedidos: str = os.getenv("MONGO_COLLECTION_PEDIDOS")
 openai_api_key: str = os.getenv("OPENAI_API_KEY")
 openai = openai_api.OpenAI(api_key=openai_api_key)
 gemini_api_key: str = os.getenv("GOOGLE_API_KEY")
-gemini = google_api.Client(api_key=gemini_api_key)
+#gemini = google_api.Client(api_key=gemini_api_key)
 ollama_api_key : str = os.getenv("OLLAMA_API_KEY")
 
 podman_redis_url: str = os.getenv("PODMAN_REDIS_URL")
