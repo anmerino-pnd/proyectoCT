@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from langchain_openai import ChatOpenAI
+from langchain_ollama import ChatOllama
 from langchain.agents import create_agent
 from langchain_core.caches import InMemoryCache
 from langchain_core.globals import get_llm_cache
@@ -34,6 +35,7 @@ from ct.settings.tokens import TokenCostProcess, MODEL_COST_PER_1K_TOKENS
 from ct.settings.clients import (
     openai_api_key,
     gemini_api_key,
+    ollama_api_key,
     mongo_uri, 
     mongo_collection_sessions, 
     mongo_collection_message_backup
@@ -44,8 +46,8 @@ token_cost_process = TokenCostProcess()
 
 class ToolAgent:
     def __init__(self):
-        #self.model = "gemini-3-flash-preview"
-        self.model = "gpt-5"
+        self.model = "gemini-3-flash-preview"
+        #self.model = "gpt-5"
         
         self.rate_limiter = InMemoryRateLimiter(
             requests_per_second=0.1,
@@ -54,12 +56,20 @@ class ToolAgent:
         )
 
         # self.llm = ChatGoogleGenerativeAI(
-        #     model = self.model 
+        #     model = self.model,
+        #     thinking_level="medium"
         # )
 
-        self.llm = ChatOpenAI(                    # En caso de volver a OpenAI
-            model = self.model,
-            rate_limiter = self.rate_limiter
+        # self.llm = ChatOpenAI(                    # En caso de volver a OpenAI
+        #     model = self.model,
+        #     rate_limiter = self.rate_limiter
+        # )
+
+        self.llm = ChatOllama(
+            name = "qwen3.5:cloud",
+            cache= InMemoryCache(),
+            
+
         )
 
         try:

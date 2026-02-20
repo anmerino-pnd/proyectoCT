@@ -31,8 +31,8 @@ class QueryModerator:
             {"role": "user", "content": full_prompt},
         ])
 
-        return response.content.strip().lower()
-        #return response.content[0]['text'].strip().lower()      # Para Gemini
+        #return response.content.strip().lower()
+        return response.content[0]['text'].strip().lower()      # Para Gemini
 
     def _classification_prompt(self) -> str:
         system_prompt = encode({
