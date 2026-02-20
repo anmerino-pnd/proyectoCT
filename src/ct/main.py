@@ -70,6 +70,14 @@ async def msg_log(request: Request, msg_id: Optional[str] = None):
             msg = message_backup.find_one({"_id": obj_id})
             
             if msg:
+                raw_cost = msg.get("estimated_cost")
+                
+                # 2. Validamos que sea un número (float o int) y formateamos
+                if isinstance(raw_cost, (float, int)):
+                    formatted_cost = f"${raw_cost:.6f}"
+                else:
+                    formatted_cost = "N/A"
+
                 context["found"] = True
                 context.update({
                     "session_id": msg.get("session_id", "N/A"),
@@ -78,7 +86,7 @@ async def msg_log(request: Request, msg_id: Optional[str] = None):
                     "verbose_log": msg.get("verbose_log", {}),
                     "model_used": msg.get("model_used", "Unknown"),
                     "timestamp": msg.get("timestamp", ""),
-                    "estimated_cost": msg.get("estimated_cost", ""),
+                    "estimated_cost": formatted_cost,
                     "duration_seconds": f"{float(msg.get('duration_seconds', 0)):.2f}s" if msg.get("duration_seconds") else "N/A"
                 })
             else:
