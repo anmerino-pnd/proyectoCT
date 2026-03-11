@@ -63,7 +63,7 @@ def status_tool(factura: str, runtime: ToolRuntime[UserContext]) -> str:
     """Con el folio factura de un pedido, saber su estado de envío"""
     cliente = runtime.context.session_id.split('_')[0]
 
-    if re.match(r"^W[A-Z0-9]{2}-", factura):
+    if re.match(r"^W[A-Z0-9]{2,3}-", factura):
         campo_de_busqueda = "pedido.encabezado.folio"
     else:
         campo_de_busqueda = "estatus.Facturado.folioFactura"
