@@ -18,7 +18,7 @@ from ct.settings.clients import (
     dominio, 
     boundary)
 
-from typing import List, Dict
+from typing import List, Dict, cast
 import cloudscraper 
 import json
 import time
@@ -62,32 +62,35 @@ class Extraction():
     return query
 
   def get_valid_ids(self) -> list:
+    cnx = None
+    cursor = None  # ✅ inicializar antes del try garantiza que siempre estén definidas
     try:
-      cnx = mysql.connector.connect(
-          host=self.ip,
-          port=self.port,
-          user=self.user,
-          password=self.pwd,
-          database=self.database,
-          read_timeout=60,
-          write_timeout=15
-      )
-      cursor = cnx.cursor(buffered=False)
-      cursor.execute(self.ids_query())
-      ids_validos = [row[0] for row in cursor.fetchall()]
-      return ids_validos
+        cnx = mysql.connector.connect(
+            host=self.ip,
+            port=self.port,
+            user=self.user,
+            password=self.pwd,
+            database=self.database,
+            read_timeout=60,
+            write_timeout=15
+        )
+        cursor = cnx.cursor(buffered=False)
+        cursor.execute(self.ids_query())
+        ids_validos = [cast(tuple, row)[0] for row in cursor.fetchall()]  # ✅ cast a tuple
+        return ids_validos
     except mysql.connector.Error as err:
-      if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-          print("Hay un error con la contraseña o el usuario")
-      elif err.errno == errorcode.ER_BAD_DB_ERROR:
-          print("La base de datos no existe")
-      else:
-          print(err)
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Hay un error con la contraseña o el usuario")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("La base de datos no existe")
+        else:
+            print(err)
+        return []
     finally:
-      if 'cursor' in locals() and cursor is not None:
-          cursor.close()
-      if 'cnx' in locals() and cnx is not None:
-          cnx.close()
+        if cursor is not None:   # ✅ ya no necesitamos 'in locals()'
+            cursor.close()
+        if cnx is not None:
+            cnx.close()
 
   def product_query(self, id):
       query = f"""
@@ -113,43 +116,50 @@ class Extraction():
 
   def get_products(self, ids_validos: list) -> pd.DataFrame:
     print(ids_validos)
+    cnx = None
+    cursor = None
     try:
-      cnx = mysql.connector.connect(
-          host=self.ip,
-          port=self.port,
-          user=self.user,
-          password=self.pwd,
-          database=self.database,
-          read_timeout=60,
-          write_timeout=15
-      )
-      cursor = cnx.cursor(buffered=False)
-      filas = []
-      for id in ids_validos:
-          cursor.execute(self.product_query(id))
-          filas.append(cursor.fetchall())
-      columnas = [desc[0] for desc in cursor.description]
-      datos = []
-      for file in filas:
-          for producto in file:
-              datos.append(producto)
-      print(f"Cantidad de productos: {len(datos)}")
-      productos = pd.DataFrame(datos, columns=columnas)
-      return productos
+        cnx = mysql.connector.connect(
+            host=self.ip,
+            port=self.port,
+            user=self.user,
+            password=self.pwd,
+            database=self.database,
+            read_timeout=60,
+            write_timeout=15
+        )
+        cursor = cnx.cursor(buffered=False)
+        filas = []
+        for id in ids_validos:
+            cursor.execute(self.product_query(id))
+            filas.append(cursor.fetchall())
+
+        # ✅ Guard para cursor.description
+        if cursor.description is None:
+            return pd.DataFrame()
+
+        columnas = [desc[0] for desc in cursor.description]
+        datos = []
+        for file in filas:
+            for producto in file:
+                datos.append(producto)
+        print(f"Cantidad de productos: {len(datos)}")
+        productos = pd.DataFrame(datos, columns=columnas)
+        return productos
     
     except mysql.connector.Error as err:
-      if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-          print("Hay un error con la contraseña o el usuario")
-      elif err.errno == errorcode.ER_BAD_DB_ERROR:
-          print("La base de datos no existe")
-      else:
-          print(err)
-      return None
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Hay un error con la contraseña o el usuario")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("La base de datos no existe")
+        else:
+            print(err)
+        return pd.DataFrame()  # ✅ DataFrame vacío en lugar de None
     finally:
-      if 'cursor' in locals() and cursor is not None:
-          cursor.close()
-      if 'cnx' in locals() and cnx is not None:
-          cnx.close()
+        if cursor is not None:  # ✅ ya no necesitamos 'in locals()'
+            cursor.close()
+        if cnx is not None:
+            cnx.close()
 
   def current_sales_query(self) -> str:
       # Modificado para no usar JSON_ARRAYAGG y traer listaPrecio y precio en filas separadas
@@ -190,37 +200,44 @@ ORDER BY
       return query 
 
   def get_current_sales(self) -> pd.DataFrame:
+    cnx = None
+    cursor = None
     try:
-      cnx = mysql.connector.connect(
-          host=self.ip,
-          port=self.port,
-          user=self.user,
-          password=self.pwd,
-          database=self.database,
-          read_timeout=60,
-          write_timeout=15
-      )
-      cursor = cnx.cursor(buffered=False)
-      cursor.execute(self.current_sales_query())
-      columnas = [desc[0] for desc in cursor.description]
-      datos = [producto for producto in cursor.fetchall()]
-      print(f"Cantidad de productos: {len(datos)}")
-      sales = pd.DataFrame(datos, columns=columnas)
+        cnx = mysql.connector.connect(
+            host=self.ip,
+            port=self.port,
+            user=self.user,
+            password=self.pwd,
+            database=self.database,
+            read_timeout=60,
+            write_timeout=15
+        )
+        cursor = cnx.cursor(buffered=False)
+        cursor.execute(self.current_sales_query())
 
-      return sales
+        # ✅ Guard para cursor.description
+        if cursor.description is None:
+            return pd.DataFrame()
+
+        columnas = [desc[0] for desc in cursor.description]
+        datos = [producto for producto in cursor.fetchall()]
+        print(f"Cantidad de productos: {len(datos)}")
+        sales = pd.DataFrame(datos, columns=columnas)
+        return sales
+
     except mysql.connector.Error as err:
-      if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-          print("Hay un error con la contraseña o el usuario")
-      elif err.errno == errorcode.ER_BAD_DB_ERROR:
-          print("La base de datos no existe")
-      else:
-          print(err)
-      return None
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Hay un error con la contraseña o el usuario")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("La base de datos no existe")
+        else:
+            print(err)
+        return pd.DataFrame()  # ✅ DataFrame vacío en lugar de None
     finally:
-      if 'cursor' in locals() and cursor is not None:
-          cursor.close()
-      if 'cnx' in locals() and cnx is not None:
-          cnx.close()
+        if cursor is not None:  # ✅ ya no necesitamos 'in locals()'
+            cursor.close()
+        if cnx is not None:
+            cnx.close()
 
   def sales_query(self, id):
       query = f"""
@@ -259,80 +276,90 @@ ORDER BY
 
   def get_sales(self, ids_validos: list) -> pd.DataFrame:
     print(ids_validos)
+    cnx = None
+    cursor = None
     try:
-      cnx = mysql.connector.connect(
-          host=self.ip,
-          port=self.port,
-          user=self.user,
-          password=self.pwd,
-          database=self.database,
-          read_timeout=60,
-          write_timeout=15
-      )
-      cursor = cnx.cursor(buffered=False)
-      filas = []
-      for id in ids_validos:
-          cursor.execute(self.product_query(id))
-          filas.append(cursor.fetchall())
-      columnas = [desc[0] for desc in cursor.description]
-      datos = []
-      for file in filas:
-          for producto in file:
-              datos.append(producto)
-      print(f"Cantidad de ofertas: {len(datos)}")
-      productos = pd.DataFrame(datos, columns=columnas)
-      return productos
+        cnx = mysql.connector.connect(
+            host=self.ip,
+            port=self.port,
+            user=self.user,
+            password=self.pwd,
+            database=self.database,
+            read_timeout=60,
+            write_timeout=15
+        )
+        cursor = cnx.cursor(buffered=False)
+        filas = []
+        for id in ids_validos:
+            cursor.execute(self.product_query(id))
+            filas.append(cursor.fetchall())
+
+        # ✅ Guard para cursor.description
+        if cursor.description is None:
+            return pd.DataFrame()
+
+        columnas = [desc[0] for desc in cursor.description]
+        datos = []
+        for file in filas:
+            for producto in file:
+                datos.append(producto)
+        print(f"Cantidad de ofertas: {len(datos)}")
+        productos = pd.DataFrame(datos, columns=columnas)
+        return productos
     
     except mysql.connector.Error as err:
-      if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-          print("Hay un error con la contraseña o el usuario")
-      elif err.errno == errorcode.ER_BAD_DB_ERROR:
-          print("La base de datos no existe")
-      else:
-          print(err)
-      return None
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Hay un error con la contraseña o el usuario")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("La base de datos no existe")
+        else:
+            print(err)
+        return pd.DataFrame()  # ✅ DataFrame vacío en lugar de None
     finally:
-      if 'cursor' in locals() and cursor is not None:
-          cursor.close()
-      if 'cnx' in locals() and cnx is not None:
-          cnx.close()
+        if cursor is not None:  # ✅ ya no necesitamos 'in locals()'
+            cursor.close()
+        if cnx is not None:
+            cnx.close()
 
   def get_existences(self) -> pd.DataFrame:
+    cnx = None
+    cursor = None
     try:
-      cnx = mysql.connector.connect(
-          host=self.ip,
-          port=self.port,
-          user=self.user,
-          password=self.pwd,
-          database=self.database,
-          read_timeout=60,
-          write_timeout=15
-      )
-      cursor = cnx.cursor(buffered=False)
-      cursor.execute("""
-      SELECT pro.clave, SUM(e.cantidad) AS existencias
-      FROM existencias e
-      LEFT JOIN productos pro ON pro.idProductos = e.idProductos
-      WHERE pro.idProductos > 0
-      AND e.cantidad > 3
-      GROUP BY pro.idProductos;
-      """)
-      rows = cursor.fetchall()
-      df = pd.DataFrame(rows, columns=["clave", "existencias"])
-      return df
+        cnx = mysql.connector.connect(
+            host=self.ip,
+            port=self.port,
+            user=self.user,
+            password=self.pwd,
+            database=self.database,
+            read_timeout=60,
+            write_timeout=15
+        )
+        cursor = cnx.cursor(buffered=False)
+        cursor.execute("""
+        SELECT pro.clave, SUM(e.cantidad) AS existencias
+        FROM existencias e
+        LEFT JOIN productos pro ON pro.idProductos = e.idProductos
+        WHERE pro.idProductos > 0
+        AND e.cantidad > 3
+        GROUP BY pro.idProductos;
+        """)
+        rows = cursor.fetchall()
+        df = pd.DataFrame(rows, columns=["clave", "existencias"])
+        return df
+
     except mysql.connector.Error as err:
-      if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-          print("Hay un error con la contraseña o el usuario")
-      elif err.errno == errorcode.ER_BAD_DB_ERROR:
-          print("La base de datos no existe")
-      else:
-          print(err)
-      return None
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("Hay un error con la contraseña o el usuario")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("La base de datos no existe")
+        else:
+            print(err)
+        return pd.DataFrame()  # ✅ DataFrame vacío en lugar de None
     finally:
-      if 'cursor' in locals() and cursor is not None:
-          cursor.close()
-      if 'cnx' in locals() and cnx is not None:
-          cnx.close()
+        if cursor is not None:  # ✅ ya no necesitamos 'in locals()'
+            cursor.close()
+        if cnx is not None:
+            cnx.close()
 
   def get_specifications_cloudscraper(self, claves: List[str], max_retries: int = 3, sleep_seconds: float = 0.15) -> Dict[str, dict]:
     specs = {}
@@ -390,111 +417,115 @@ ORDER BY
     return self.get_specifications_cloudscraper(claves) 
 
   def update_products(self, claves_guardadas):
-      query = """
-      SELECT DISTINCT pro.clave
-      FROM productos pro
-      JOIN existencias e ON pro.idProductos = e.idProductos
-      JOIN precio pre ON pro.idProductos = pre.idProducto
-      WHERE pro.idProductos > 0
-      AND pro.activo = 1;
-      """
-      cnx = None
-      cursor = None
-      try:
-          cnx = mysql.connector.connect(
-              host=self.ip,
-              port=self.port,
-              user=self.user,
-              password=self.pwd,
-              database=self.database,
-              read_timeout=60,
-              write_timeout=15
-          )
-          cursor = cnx.cursor(buffered=False)
-          cursor.execute(query)
-          claves_actuales = [row[0] for row in cursor.fetchall()]
-          claves_nuevas: list = list(set(claves_actuales) - set(claves_guardadas))
-          claves_sobrantes = list(set(claves_guardadas) - set(claves_actuales))
-          print(f"Número de nuevas claves: {len(claves_nuevas)}")
-          print(f"Número de claves sobrantes: {len(claves_sobrantes)}")
+    query = """
+    SELECT DISTINCT pro.clave
+    FROM productos pro
+    JOIN existencias e ON pro.idProductos = e.idProductos
+    JOIN precio pre ON pro.idProductos = pre.idProducto
+    WHERE pro.idProductos > 0
+    AND pro.activo = 1;
+    """
+    cnx = None
+    cursor = None
+    try:
+        cnx = mysql.connector.connect(
+            host=self.ip,
+            port=self.port,
+            user=self.user,
+            password=self.pwd,
+            database=self.database,
+            read_timeout=60,
+            write_timeout=15
+        )
+        cursor = cnx.cursor(buffered=False)
+        cursor.execute(query)
 
-          ids_validos = []
-          for clave_nueva in claves_nuevas:
-              print(clave_nueva)
-              cursor.execute(
-                  "SELECT DISTINCT idProductos FROM productos WHERE clave = %s",
-                  (clave_nueva,)
-              )
-              row = cursor.fetchone()
-              if row:
-                  ids_validos.append(row[0])  # ← solo el número, no la tupla
+        # ✅ cast a tuple para acceder por índice
+        claves_actuales = [cast(tuple, row)[0] for row in cursor.fetchall()]
+        claves_nuevas: list = list(set(claves_actuales) - set(claves_guardadas))
+        claves_sobrantes = list(set(claves_guardadas) - set(claves_actuales))
+        print(f"Número de nuevas claves: {len(claves_nuevas)}")
+        print(f"Número de claves sobrantes: {len(claves_sobrantes)}")
 
-          return ids_validos, claves_sobrantes
+        ids_validos = []
+        for clave_nueva in claves_nuevas:
+            print(clave_nueva)
+            cursor.execute(
+                "SELECT DISTINCT idProductos FROM productos WHERE clave = %s",
+                (clave_nueva,)
+            )
+            row = cursor.fetchone()
+            if row:
+                ids_validos.append(cast(tuple, row)[0])  # ✅ cast a tuple
 
-      except mysql.connector.Error as err:
-          if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-              print("❌ Error: usuario o contraseña incorrectos.")
-          elif err.errno == errorcode.ER_BAD_DB_ERROR:
-              print("❌ Error: la base de datos no existe.")
-          else:
-              print(f"❌ Error de MySQL: {err}")
-          return [] 
-      finally:
-          if cursor:
-              cursor.close()
-          if cnx:
-              cnx.close()
+        return ids_validos, claves_sobrantes
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("❌ Error: usuario o contraseña incorrectos.")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("❌ Error: la base de datos no existe.")
+        else:
+            print(f"❌ Error de MySQL: {err}")
+        return []
+    finally:
+        if cursor:
+            cursor.close()
+        if cnx:
+            cnx.close()
 
   def update_sales(self, claves_guardadas):
-      query = """
-        SELECT DISTINCT pro.producto
-        FROM promociones pro
-        JOIN existencias e ON pro.idProducto = e.idProductos
-        JOIN precio pre ON pro.idProducto = pre.idProducto;
-      """
-      cnx = None
-      cursor = None
-      try:
-          cnx = mysql.connector.connect(
-              host=self.ip,
-              port=self.port,
-              user=self.user,
-              password=self.pwd,
-              database=self.database,
-              read_timeout=60,
-              write_timeout=15
-          )
-          cursor = cnx.cursor(buffered=False)
-          cursor.execute(query)
-          claves_actuales = [row[0] for row in cursor.fetchall()]
-          claves_nuevas: list = list(set(claves_actuales) - set(claves_guardadas))
-          claves_sobrantes = list(set(claves_guardadas) - set(claves_actuales))
-          print(f"Número de nuevas claves: {len(claves_nuevas)}")
-          print(f"Número de claves sobrantes: {len(claves_sobrantes)}")
+    query = """
+      SELECT DISTINCT pro.producto
+      FROM promociones pro
+      JOIN existencias e ON pro.idProducto = e.idProductos
+      JOIN precio pre ON pro.idProducto = pre.idProducto;
+    """
+    cnx = None
+    cursor = None
+    try:
+        cnx = mysql.connector.connect(
+            host=self.ip,
+            port=self.port,
+            user=self.user,
+            password=self.pwd,
+            database=self.database,
+            read_timeout=60,
+            write_timeout=15
+        )
+        cursor = cnx.cursor(buffered=False)
+        cursor.execute(query)
 
-          ids_validos = []
-          for clave_nueva in claves_nuevas:
-              print(clave_nueva)
-              cursor.execute(
-                  "SELECT DISTINCT idProducto FROM promociones WHERE producto = %s",
-                  (clave_nueva,)
-              )
-              row = cursor.fetchone()
-              if row:
-                  ids_validos.append(row[0])  # ← solo el número, no la tupla
+        # ✅ cast a tuple para acceder por índice
+        claves_actuales = [cast(tuple, row)[0] for row in cursor.fetchall()]
+        claves_nuevas: list = list(set(claves_actuales) - set(claves_guardadas))
+        claves_sobrantes = list(set(claves_guardadas) - set(claves_actuales))
+        print(f"Número de nuevas claves: {len(claves_nuevas)}")
+        print(f"Número de claves sobrantes: {len(claves_sobrantes)}")
 
-          return ids_validos, claves_sobrantes
+        ids_validos = []
+        for clave_nueva in claves_nuevas:
+            print(clave_nueva)
+            cursor.execute(
+                "SELECT DISTINCT idProducto FROM promociones WHERE producto = %s",
+                (clave_nueva,)
+            )
+            row = cursor.fetchone()
+            if row:
+                ids_validos.append(cast(tuple, row)[0])  # ✅ cast a tuple
 
-      except mysql.connector.Error as err:
-          if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-              print("❌ Error: usuario o contraseña incorrectos.")
-          elif err.errno == errorcode.ER_BAD_DB_ERROR:
-              print("❌ Error: la base de datos no existe.")
-          else:
-              print(f"❌ Error de MySQL: {err}")
-          return [] 
-      finally:
-          if cursor:
-              cursor.close()
-          if cnx:
-              cnx.close()
+        return ids_validos, claves_sobrantes
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            print("❌ Error: usuario o contraseña incorrectos.")
+        elif err.errno == errorcode.ER_BAD_DB_ERROR:
+            print("❌ Error: la base de datos no existe.")
+        else:
+            print(f"❌ Error de MySQL: {err}")
+        return []
+    finally:
+        if cursor:
+            cursor.close()
+        if cnx:
+            cnx.close()

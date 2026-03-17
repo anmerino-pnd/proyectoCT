@@ -2,13 +2,16 @@ import re
 import ollama 
 from typing import List, Literal
 from string import Template
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
+
 from ct.settings.schemas import UserContext
+from ct.settings.clients import openai_api_key
+from ct.settings.config import SUPPORT_INFO_VECTOR_PATH
+
 from langchain.tools import ToolRuntime, tool
 from langchain_openai import OpenAIEmbeddings
-from ct.settings.clients import openai_api_key
 from langchain_community.vectorstores import FAISS
-from ct.settings.config import SUPPORT_INFO_VECTOR_PATH
+
 
 # Define los filtros disponibles usando Literal para que el agente los conozca.
 # Esto es más robusto que solo mencionarlos en el prompt, ya que forma parte del "schema" de la herramienta.
@@ -26,10 +29,10 @@ class SupportInput(BaseModel):
     )
 
 #embeddings = OllamaEmbeddings(model="snowflake-arctic-embed2:568m")
-embeddings = OpenAIEmbeddings(api_key=openai_api_key)
+embeddings = OpenAIEmbeddings(api_key=SecretStr(openai_api_key))
 
 vector_store = FAISS.load_local(
-    SUPPORT_INFO_VECTOR_PATH,
+    str(SUPPORT_INFO_VECTOR_PATH),
     embeddings=embeddings,
     allow_dangerous_deserialization=True
 )

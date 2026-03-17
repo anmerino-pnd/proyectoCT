@@ -59,9 +59,9 @@ def _create_scraper(user_token: str) -> cloudscraper.CloudScraper:
     }
 )
     scraper.headers.update({
-        'X-Algolia-Application-Id': algolia_app_id,
-        'X-Algolia-API-Key': algolia_api_key,
-        'Content-Type': algolia_content_type,
+        'X-Algolia-Application-Id': str(algolia_app_id or ""),
+        'X-Algolia-API-Key': str(algolia_api_key or ""),
+        'Content-Type': str(algolia_content_type or ""),
         'X-Algolia-UserToken': user_token
     })
 
@@ -79,7 +79,7 @@ def get_user(user: str) -> str:
     else:
         raise ValueError(f"No se pudo extraer usuario")  
 
-def query_exec(query) -> list:
+def query_exec(query) -> list | str:
     cnx = None
     cursor = None
     try:
@@ -145,11 +145,15 @@ def algolia_search_tool(
         "ruleContexts": ["*"]
     })
 
+    url_to_use: str = str(algolia_sort_url or algolia_url or "")
+    if not lowest_price:
+        url_to_use = str(algolia_url or "")
+
     try: 
         response = scraper.post(
-        url = algolia_sort_url if lowest_price else algolia_url,
-        data = payload,
-        timeout = 10
+            url=url_to_use,  # ✅ garantizado como str
+            data=payload,
+            timeout=10
         )
 
         response.raise_for_status()
@@ -164,37 +168,32 @@ def algolia_search_tool(
         id_sucursal = get_id_sucursal(runtime.context.session_id)
         promo_key = f"A{id_sucursal}"
 
-        for producto in hits:
-            clave = producto.get('clave')
+        for hit in hits:
+            clave = hit.get('clave')
             if not clave:
                 continue
             
-            precios = producto.get('precios', {})
+            precios = hit.get('precios', {})
             if lista_precio not in precios:
                 print(f"  Producto {clave} no tiene precio para lista {lista_precio}")
                 continue
             
-            # Verificar promoción
-            cliente_promo = producto.get('cliente_promo', [])
+            cliente_promo = hit.get('cliente_promo', [])
             en_promocion = 'Sí' if promo_key in cliente_promo else 'No'
-            existencia_sucursales = (
-                producto.get('existencia_total', 0)
-            )
-            existencia_sucursal = (
-                producto.get("existencia", {}).get(id_sucursal, 0)
-            )
+            existencia_sucursales = hit.get('existencia_total', 0)
+            existencia_sucursal = hit.get("existencia", {}).get(id_sucursal, 0)
             
             resultados[clave] = {
-                'marca': producto.get('marca', ''),
-                'modelo': producto.get('modelo', ''),
-                'descripcion': producto.get('descripcion', ''),
-                'ficha_tecnica': producto.get('icecat', ''),
+                'marca': hit.get('marca', ''),
+                'modelo': hit.get('modelo', ''),
+                'descripcion': hit.get('descripcion', ''),
+                'ficha_tecnica': hit.get('icecat', ''),
                 'precio': precios[lista_precio],
                 'total_en_otras_sucursales': existencia_sucursales if existencia_sucursales != 0 else "Sobre pedido",
-                'total_en_su_sucursal' : existencia_sucursal if existencia_sucursal != 0 else "Sobre pedido",
-                'moneda': producto.get('moneda', 'MXN'),
+                'total_en_su_sucursal': existencia_sucursal if existencia_sucursal != 0 else "Sobre pedido",
+                'moneda': hit.get('moneda', 'MXN'),
                 'en_promocion': en_promocion,
-                'url': producto.get('url', ''),
+                'url': hit.get('url', ''),
             }
         
         return encode(resultados)

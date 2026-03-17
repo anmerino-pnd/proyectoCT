@@ -1,4 +1,5 @@
 import mysql.connector
+from typing import cast
 from pydantic import BaseModel, Field
 from ct.settings.clients import ip, port, user, pwd, database
 import pymysql
@@ -40,6 +41,7 @@ def inventory_tool(clave: str, listaPrecio: int) -> str:
         cursor.execute(query, (lista_precio, clave))
         result = cursor.fetchone()
         if result:
+            result = cast(tuple, result)
             # result indexes según tu SELECT:
             # 0 = clave
             # 1 = existencias

@@ -131,7 +131,7 @@ selected_month_name = None
 hermosillo_tz = pytz.timezone("America/Hermosillo")
 
 if time_filter_mode == 'Análisis por mes':
-    if selected_year:
+    if selected_year: # type: ignore
         available_months = get_available_months_from_db(coleccion, selected_year)
         month_names_map = {
             1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
@@ -153,7 +153,7 @@ if time_filter_mode == 'Análisis por mes':
 start_date_dt = None
 end_date_dt = None
 
-if selected_year:
+if selected_year: # type: ignore
     if time_filter_mode == 'Análisis por año':
         start_date_dt = hermosillo_tz.localize(datetime(selected_year, 1, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
         end_date_dt = hermosillo_tz.localize(datetime(selected_year + 1, 1, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
@@ -194,9 +194,9 @@ user_filter_mode = st.sidebar.radio(
 
 if selected_users:
     if user_filter_mode == 'Excluir':
-        query_filter.setdefault('session_id', {})['$nin'] = selected_users
+        query_filter.setdefault('session_id', {})['$nin'] = selected_users # type: ignore
     else:
-        query_filter.setdefault('session_id', {})['$in'] = selected_users
+        query_filter.setdefault('session_id', {})['$in'] = selected_users # type: ignore
 
 def fetch_messages_from_db(_coleccion, query_filter):
     try:
@@ -227,9 +227,6 @@ def calculate_cost_split(row):
 
     model = row.get('model_used')
 
-    # Corrección: Eliminada la referencia a "default" para evitar KeyError.
-    # Si el modelo no existe, se usa un dict vacío que resultará en costos 0.
-    # Opcional: Podrías poner MODEL_PRICING.get("gpt-4o") si quisieras un fallback específico.
     pricing = MODEL_PRICING.get(model, {})
 
     price_in = pricing.get("input", 0.0)
@@ -317,7 +314,7 @@ if data:
             vectorizer = CountVectorizer(ngram_range=(n,n),
                                          max_features=1000).fit(non_empty_corpus)
             bow = vectorizer.transform(non_empty_corpus)
-            sum_words = bow.sum(axis=0)
+            sum_words = bow.sum(axis=0) # type: ignore
             words_freq = [(word, sum_words[0, idx]) for word, idx in vectorizer.vocabulary_.items()]
             return sorted(words_freq, key=lambda x: x[1], reverse=True)[:12]
         except Exception as e:
@@ -750,14 +747,14 @@ if data:
                         promedio_diario_costo = total_cost_periodo / num_dias_en_periodo
 
                 avg_cost_real = promedio_diario_costo
-                std_cost = df_tokens['cost'].std()
+                std_cost = df_tokens['cost'].std() # type: ignore
     
                 # --- GRÁFICO 1: EVOLUCIÓN TOTAL (El original) ---
                 fig2 = go.Figure()
     
                 fig2.add_trace(go.Scatter(
-                    x=df_tokens['date'],
-                    y=df_tokens['cost'],
+                    x=df_tokens['date'], # type: ignore
+                    y=df_tokens['cost'], # type: ignore
                     mode='lines+markers',
                     line=dict(color='#1f77b4'),
                     name='Costo Total'
@@ -765,16 +762,16 @@ if data:
     
                 if std_cost > 0:
                     fig2.add_trace(go.Scatter(
-                    x = df_tokens['date'],
-                    y = df_tokens['cost'] + std_cost,
+                    x = df_tokens['date'], # type: ignore
+                    y = df_tokens['cost'] + std_cost, # type: ignore
                     mode='lines',
                     line= dict(width=0),
                     showlegend=False
                     ))
     
                     fig2.add_trace(go.Scatter(
-                        x=df_tokens['date'],
-                        y=df_tokens['cost'] - std_cost,
+                        x=df_tokens['date'], # type: ignore
+                        y=df_tokens['cost'] - std_cost, # type: ignore
                         mode='lines',
                         fill='tonexty',
                         fillcolor='rgba(31, 119, 180, 0.1)',
@@ -784,8 +781,8 @@ if data:
                     
                 if avg_cost_real > 0 and not np.isnan(avg_cost_real):
                     fig2.add_trace(go.Scatter(
-                        x = df_tokens['date'],
-                        y = [avg_cost_real] * len(df_tokens),
+                        x = df_tokens['date'], # type: ignore
+                        y = [avg_cost_real] * len(df_tokens), # type: ignore
                         mode='lines',
                         name='Media Diaria Real',
                         line=dict(dash='dash', color='red')
@@ -797,7 +794,7 @@ if data:
                     xaxis_title='Fecha',
                     yaxis_title='Costo apróximado ($USD)',
                     xaxis=dict(
-                        tickformat=tokens_date_format,
+                        tickformat=tokens_date_format, # type: ignore
                         tickangle=0
                     ),
                     legend=dict(
@@ -811,18 +808,18 @@ if data:
 
                 st.plotly_chart(fig2, use_container_width=True)
                 
-                max_cost_agrupado = df_tokens['cost'].max()
-                avg_cost_agrupado = df_tokens['cost'].mean()
+                max_cost_agrupado = df_tokens['cost'].max() # type: ignore
+                avg_cost_agrupado = df_tokens['cost'].mean() # type: ignore
     
                 # Métricas generales
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     st.metric(f"Costo total en el periodo", f"${total_cost_periodo:.4f}")
                 with col2:
-                    st.metric(f"Costo promedio {unidad_temporal}", f"${avg_cost_agrupado:.4f}")
+                    st.metric(f"Costo promedio {unidad_temporal}", f"$ {avg_cost_agrupado:.4f}") # type: ignore
                 with col3:
-                    st.metric(f"Costo máximo {unidad_temporal}", f"${max_cost_agrupado:.4f}")
-
+                    st.metric(f"Costo máximo {unidad_temporal}", f"${max_cost_agrupado:.4f}") # type: ignore
+ 
                 # Métricas de desglose
                 st.markdown("##### Desglose del Costo Total")
                 col_d1, col_d2 = st.columns(2)

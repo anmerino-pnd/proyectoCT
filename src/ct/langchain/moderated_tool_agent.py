@@ -9,7 +9,7 @@ class ModeratedToolAgent:
         self.tool_agent = ToolAgent()
         self.moderator = QueryModerator(assistant=self.tool_agent)
 
-    async def run(self, query: str, session_id: str = None, listaPrecio : str = None) -> AsyncGenerator[str, None]:
+    async def run(self, query: str, session_id: str, listaPrecio : str) -> AsyncGenerator[str, None]:
         """Ejecuta una consulta RAG y muestra los chunks de respuesta en tiempo real."""
 
         session = self.tool_agent.ensure_session(session_id)

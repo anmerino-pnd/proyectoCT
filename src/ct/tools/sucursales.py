@@ -29,22 +29,18 @@ def get_sucursales_info(code: str) -> str:
     """Información sobre la empresa"""
     localenv = {"df": df.copy(), "pd": pd, "json": json, "result": None}
     
+    old_stdout = sys.stdout  # ✅ inicializar antes del try garantiza que siempre esté definida
+
     try:
-        # Capturar prints
-        old_stdout = sys.stdout
         sys.stdout = captured_output = StringIO()
         
-        # Ejecutar código
         exec(code, {"__builtins__": __builtins__, "pd": pd, "json": json}, localenv)
         
-        # Restaurar stdout
         sys.stdout = old_stdout
         
-        # Obtener resultado
         printed_output = captured_output.getvalue()
         result_value = localenv.get("result")
         
-        # Retornar lo que haya disponible
         if result_value is not None:
             return str(result_value)
         elif printed_output:
@@ -53,5 +49,5 @@ def get_sucursales_info(code: str) -> str:
             return "Código ejecutado correctamente pero no retornó ningún resultado. Use print() o asigne a 'result'."
             
     except Exception as e:
-        sys.stdout = old_stdout
+        sys.stdout = old_stdout  # ✅ ahora siempre está definida
         return f"Error ejecutando código: {str(e)}"

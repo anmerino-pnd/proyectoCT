@@ -1,4 +1,5 @@
 import mysql.connector
+from typing import cast
 from pydantic import BaseModel, Field
 from ct.settings.schemas import UserContext
 from langchain.tools import ToolRuntime, tool
@@ -19,7 +20,7 @@ LIMIT 1
 """
 
 @tool(args_schema=DolarInput)
-def dolar_convertion_tool(dolar: float) -> str:
+def dolar_convertion_tool(dolar: float) -> str | None:
     """Convierte el precio de USD a MXN"""
     cnx = None
     cursor = None
@@ -35,9 +36,11 @@ def dolar_convertion_tool(dolar: float) -> str:
         )
         cursor = cnx.cursor()
         cursor.execute(query)
-        result = cursor.fetchone()
-        if result:
-            return f"El equivalente de {dolar} USD es {(dolar * result[1]):.3f} MXN"
+        row = cursor.fetchone()
+        if row:
+            result = cast(tuple, row)
+            tipo_cambio = float(result[1])  # ✅ cast explícito a float
+            return f"El equivalente de {dolar} USD es {(dolar * tipo_cambio):.3f} MXN"
     except mysql.connector.Error as err:
         return f"Error de base de datos: {err}"
     finally:

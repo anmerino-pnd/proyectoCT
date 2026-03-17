@@ -24,7 +24,7 @@ for opt in soup.select("#select_sucursal option"):
     value = opt.get("value")
     name = unicodedata.normalize('NFKD', opt.text.strip().lower())
     name_no_accent = "".join([c for c in name if not unicodedata.combining(c)])
-    if value and value.isdigit():
+    if value and value.isdigit(): # type: ignore
         sucursales.append({"nombre": name_no_accent, "idSucursal": value})
 
 print(f"Encontradas {len(sucursales)} sucursales")

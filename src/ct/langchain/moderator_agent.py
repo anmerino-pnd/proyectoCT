@@ -1,6 +1,6 @@
 import redis
 from toon import encode
-from typing import Optional
+from typing import Optional, Any
 from langchain_openai import ChatOpenAI
 from ct.langchain.tool_agent import ToolAgent
 from ct.settings.clients import openai_api_key
@@ -31,7 +31,14 @@ class QueryModerator:
             {"role": "user", "content": full_prompt},
         ])
 
-        return response.content.strip().lower()
+        content = response.content
+        if isinstance(content, list):
+            content = " ".join(
+                item if isinstance(item, str) else item.get("text", "")
+                for item in content
+            )
+
+        return content.strip().lower()
         #return response.content[0]['text'].strip().lower()      # Para Gemini
 
     def _classification_prompt(self) -> str:
@@ -197,13 +204,11 @@ class QueryModerator:
 
         return msg, tries, banned_until
 
-    def check_if_banned(self, session: dict) -> Optional[str]:
-        """Verifica si el usuario está actualmente baneado."""
+    def check_if_banned(self, session: dict[str, Any]) -> Optional[str]:
         now = datetime.now(timezone.utc)
-        banned_until : datetime = session.get("banned_until")
+        banned_until: Optional[datetime] = session.get("banned_until")
         
-        if banned_until:
-            # Asegurar que banned_until tenga zona horaria UTC si no la tiene
+        if banned_until and isinstance(banned_until, datetime):
             if banned_until.tzinfo is None:
                 banned_until = banned_until.replace(tzinfo=timezone.utc)
             
@@ -213,10 +218,10 @@ class QueryModerator:
                 minutos = int((tiempo_restante.total_seconds() % 3600) // 60)
                 return (
                     f"Tu acceso sigue restringido por conducta inapropiada.\n\n"
-                    f"Podrás volver a usar el asistente en aproximadamente {horas} horas y {minutos} minutos."
+                    f"Podrás volver a usar el asistente en aproximadamente "
+                    f"{horas} horas y {minutos} minutos."
                 )
             else:
-                # El ban ya expiró, limpiar la base de datos
                 self.assistant.sessions.update_one(
                     {"session_id": session.get("session_id")},
                     {"$unset": {"banned_until": ""}}

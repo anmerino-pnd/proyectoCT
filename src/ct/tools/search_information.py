@@ -3,11 +3,13 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 #from langchain_core.vectorstores import EnsembleRetriever
 from langchain_community.vectorstores import FAISS
+from langchain_community.docstore.in_memory import InMemoryDocstore
 
-from typing import List
+
+from typing import List, cast
 from collections import defaultdict
-from pydantic import BaseModel, Field
 from ct.settings.clients import openai_api_key
+from pydantic import BaseModel, Field, SecretStr
 from ct.settings.config import SALES_PRODUCTS_VECTOR_PATH
 
 index_por_clave = None
@@ -17,12 +19,14 @@ retriever_promociones = None
 def vector_store():
     vectorstore = FAISS.load_local(
         folder_path=str(SALES_PRODUCTS_VECTOR_PATH),
-        embeddings=OpenAIEmbeddings(openai_api_key=openai_api_key),
-        allow_dangerous_deserialization=True  # Necesario para FAISS
+        embeddings=OpenAIEmbeddings(api_key=SecretStr(openai_api_key)),
+        allow_dangerous_deserialization=True
     )
+
+    docstore = cast(InMemoryDocstore, vectorstore.docstore)
     index_por_clave = {
-        doc.metadata["clave"]: doc for doc in vectorstore.docstore._dict.values()
-        }
+        doc.metadata["clave"]: doc for doc in docstore._dict.values()
+    }
 
     retriever_productos = vectorstore.as_retriever(
         search_type='mmr',
@@ -82,11 +86,12 @@ def _group_docs_by_key(docs: List[Document]) -> dict:
 
 @tool(description="Busca información de productos y promociones de Honeywell y otras marcas.")
 def search_information_tool(query: str) -> dict:
-    # Ejecución manual sin EnsembleRetriever
-    docs_prod = retriever_productos.invoke(query)
-    docs_prom = retriever_promociones.invoke(query)
+    assert retriever_productos is not None, "retriever_productos no inicializado"
+    assert retriever_promociones is not None, "retriever_promociones no inicializado"
+
+    docs_prod = retriever_productos.invoke(query)   # ✅
+    docs_prom = retriever_promociones.invoke(query) # ✅
     
-    # Combinamos las listas de documentos manualmente
     all_docs = docs_prod + docs_prom
     return _group_docs_by_key(all_docs)
 
@@ -97,14 +102,15 @@ def search_by_key_tool(clave: str) -> dict:
     """
     Busca documentos por clave en el índice ya generado.
     """
-    doc = index_por_clave.get(clave)
+    assert index_por_clave is not None, "index_por_clave no inicializado"
+
+    doc = index_por_clave.get(clave)  # ✅
     if not doc:
         return {
             "status": "error",
             "message": "Producto no encontrado actualmente"
         }
 
-    # Si hay más de un documento por clave, puedes adaptar esto:
     return {
         "status": "ok",
         "data": _group_docs_by_key([doc])

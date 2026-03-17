@@ -1,6 +1,7 @@
 import time
 import traceback
 from toon import encode
+from typing import Any, cast
 from datetime import datetime, timezone
 from ct.settings.prompt import prompt_dict
 from ct.settings.schemas import UserContext
@@ -12,7 +13,7 @@ from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
-from langchain_core.caches import InMemoryCache
+from langchain_core.caches import InMemoryCache, BaseCache
 from langchain_core.globals import get_llm_cache
 from langchain_core.messages import trim_messages
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -115,14 +116,18 @@ class ToolAgent:
             tools= self.tools,
             system_prompt= encode(prompt_dict),
             context_schema=UserContext,
-            cache=InMemoryCache()
+            cache=InMemoryCache()  # type: ignore
             )
 
-    async def run(self, query: str, session_id: str, lista_precio: int):
+    async def run(self, query: str, session_id: str, lista_precio: str):
         full_history = self.get_session_history(session_id)
         chat_history = trim_messages(
             full_history,
-            token_counter=lambda messages: sum(len(m.content.split()) for m in messages),
+            token_counter=lambda messages: sum(
+            len(str(m.content).split()) if isinstance(m, BaseMessage)
+            else len(str(m[1]).split())
+            for m in messages
+        ),
             max_tokens=4000,
             strategy="last",
             start_on="human",
@@ -135,6 +140,8 @@ class ToolAgent:
         if self.graph is None:
             self.build_graph()
 
+        assert self.graph is not None
+
         current_context = UserContext(
             session_id=session_id, 
             lista_precio=lista_precio
@@ -142,7 +149,7 @@ class ToolAgent:
 
         messages = chat_history + [HumanMessage(content=query)]
 
-        inputs = {"messages": messages}
+        inputs: Any = {"messages": messages}
 
         full_answer = ""
         result = None
@@ -279,7 +286,7 @@ class ToolAgent:
         }
         self.message_backup.insert_one(message_doc)
 
-    def make_metadata(self, usage_metadata: dict, duration: float = None) -> dict:
+    def make_metadata(self, usage_metadata: dict, duration: float) -> dict:
         if not usage_metadata:
             usage_metadata = {}
     

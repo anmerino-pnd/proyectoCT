@@ -2,8 +2,8 @@ from ct.settings.config import CATEGORIES_VECTOR_PATH, BASE_KNOWLEDGE
 from ct.settings.clients import ip, port, user, pwd, database
 from ct.settings.clients import openai_api_key as api_key
 from langchain_community.vectorstores import FAISS
+from pydantic import BaseModel, Field, SecretStr
 from langchain_openai import OpenAIEmbeddings
-from pydantic import BaseModel, Field
 from string import Template
 from toon import encode
 import mysql.connector
@@ -12,9 +12,9 @@ pymysql.install_as_MySQLdb()
 import json
 import os
 
-embeddings = OpenAIEmbeddings(api_key=api_key)
+embeddings = OpenAIEmbeddings(api_key=SecretStr(api_key))
 vectorstore = FAISS.load_local(
-    CATEGORIES_VECTOR_PATH,
+    str(CATEGORIES_VECTOR_PATH),
     embeddings
 )
 retriever = vectorstore.as_retriever()

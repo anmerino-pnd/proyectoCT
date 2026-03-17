@@ -2,9 +2,12 @@ from langchain_classic.schema import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.docstore.in_memory import InMemoryDocstore
 
-import json
+import pandas as pd
 from pathlib import Path
+from pydantic import SecretStr
+from typing import cast, Callable, Any
 from ct.ETL.transform import Transform
 from ct.settings.clients import openai_api_key as api_key
 from ct.settings.config import (
@@ -17,7 +20,7 @@ from ct.settings.config import (
 class Load:
     def __init__(self):
         self.clean_data = Transform()
-        self.embeddings = OpenAIEmbeddings(api_key=api_key)
+        self.embeddings = OpenAIEmbeddings(api_key=SecretStr(api_key))
         
         # Inicializamos el divisor de texto con los parámetros que necesitas
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -84,7 +87,7 @@ class Load:
         print(f"Se generaron {len(docs)} documentos (chunks) para ofertas.")
         return docs
     
-    def vector_store(self, docs: list[Document]) -> FAISS:
+    def vector_store(self, docs: list[Document]) -> FAISS | None:
         """
         Crea un vector store de FAISS a partir de los documentos.
         """
@@ -153,12 +156,12 @@ class Load:
     def sales_products_vs(self):
         products_vs = FAISS.load_local(
             folder_path=str(PRODUCTS_VECTOR_PATH),
-            embeddings=OpenAIEmbeddings(openai_api_key=api_key),
+            embeddings=OpenAIEmbeddings(api_key=SecretStr(api_key)),
             allow_dangerous_deserialization=True
         )
         sales_vs = FAISS.load_local(
             folder_path=str(SALES_VECTOR_PATH),
-            embeddings=OpenAIEmbeddings(openai_api_key=api_key),
+            embeddings=OpenAIEmbeddings(api_key=SecretStr(api_key)),
             allow_dangerous_deserialization=True
         )
 
@@ -172,22 +175,27 @@ class Load:
         # --- 1. Cargar vectorstore existente
         vectorstore = FAISS.load_local(
             folder_path=str(folder_path),
-            embeddings=OpenAIEmbeddings(openai_api_key=api_key),
+            embeddings=OpenAIEmbeddings(api_key=SecretStr(api_key)),
             allow_dangerous_deserialization=True,
         )
 
         # --- 2. Crear diccionario clave → id
-        docs = list(vectorstore.docstore._dict.values())
+        # ✅ Cast a InMemoryDocstore para acceder a _dict
+        docstore = cast(InMemoryDocstore, vectorstore.docstore)
+        docs = list(docstore._dict.values())
         key_value = {doc.metadata["clave"]: doc.id for doc in docs}
-        unique_products = set(key_value.keys())  # set más eficiente para búsquedas
+        unique_products = set(key_value.keys())
         print(f"Cantidad de {collection_name} actualmente: {len(unique_products)}")
 
         # --- 3. Seleccionar funciones de limpieza y actualización
+        updater: Callable[[list], tuple[list, list] | list] 
+        cleaner: Callable[[Any], dict]                
+        fetcher: Callable[[list], pd.DataFrame] | None = None
+
         match collection_name:
             case "productos":
                 updater = self.clean_data.data.update_products
                 cleaner = self.clean_data.clean_products
-                fetcher = None
             case "promociones":
                 updater = self.clean_data.data.update_sales
                 cleaner = self.clean_data.clean_sales
@@ -200,15 +208,21 @@ class Load:
 
         # --- 5. Eliminar productos obsoletos
         if claves_sobrantes:
-            ids_a_eliminar = [key_value[c] for c in claves_sobrantes if c in key_value]
+            ids_a_eliminar: list[str] = [
+                v for c in claves_sobrantes 
+                if (v := key_value.get(c)) is not None
+            ]
             if ids_a_eliminar:
                 print(f"{len(ids_a_eliminar)} {collection_name} obsoletas eliminadas.")
                 vectorstore.delete(ids_a_eliminar)
 
         # --- 6. Agregar productos nuevos
         if ids_nuevos:
-            new_data = fetcher(ids_nuevos) if fetcher else ids_nuevos
-            cleaned = cleaner(new_data)
+            if fetcher:
+                new_data = cast(pd.DataFrame, fetcher(ids_nuevos))
+                cleaned = cast(dict, cleaner(new_data))  
+            else:
+                cleaned = cast(dict, cleaner(ids_nuevos))   # type: ignore
             docs_nuevos = self._create_documents_with_context(cleaned, collection_name)
             vectorstore.add_documents(docs_nuevos)
             print(f"Agregados {len(docs_nuevos)} nuevos documentos.")

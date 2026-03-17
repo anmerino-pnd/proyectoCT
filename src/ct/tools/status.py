@@ -46,7 +46,7 @@ def descargas_enviadas(factura: str):
 
 
         if result:
-            return result[0]
+            return result[0] # type: ignore
     except mysql.connector.Error as err:
         return f"Error de base de datos: {err}"
     except Exception as e:

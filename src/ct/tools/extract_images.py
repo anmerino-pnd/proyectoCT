@@ -1,6 +1,7 @@
 import re
 import os 
 import fitz
+import pymupdf as fitz
 from ct.settings.config import BASE_DIR
 
 
@@ -23,16 +24,13 @@ def process_pdfs_to_images(base_knowledge_path, output_base_path=f"{BASE_DIR}/da
         if not filename.endswith('.pdf'):
             continue
         
-        # Elimina la extensión .pdf para el nombre de la carpeta
         folder_name = re.sub(r'\.pdf$', '', filename)
         folder_path = os.path.join(output_base_path, folder_name)
 
-        # Verifica si la carpeta ya existe y si tiene contenido
         if os.path.exists(folder_path) and len(os.listdir(folder_path)) > 0 and not force_reprocess:
             print(f"Skipping '{filename}': Directory '{folder_path}' already exists and contains files.")
             continue
         
-        # Crea la carpeta si no existe
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
             print(f"Created directory: {folder_path}")
@@ -44,7 +42,7 @@ def process_pdfs_to_images(base_knowledge_path, output_base_path=f"{BASE_DIR}/da
             image_paths = []
             for page_num in range(len(pdf_documents)):
                 page = pdf_documents.load_page(page_num)
-                pix = page.get_pixmap(dpi=780)
+                pix = page.get_pixmap(dpi=780) # type: ignore
 
                 image_path = os.path.join(folder_path, f"{page_num + 1}.jpg")
                 pix.save(image_path)
@@ -56,7 +54,3 @@ def process_pdfs_to_images(base_knowledge_path, output_base_path=f"{BASE_DIR}/da
         except Exception as e:
             print(f"Error processing '{filename}': {e}")
 
-# Ejemplo de uso
-# Nota: Tendrías que definir BASE_KNOWLEDGE y otros paths en tu entorno
-# from ct.settings.config import BASE_KNOWLEDGE
-# process_pdfs_to_images(BASE_KNOWLEDGE, force_reprocess=True)
