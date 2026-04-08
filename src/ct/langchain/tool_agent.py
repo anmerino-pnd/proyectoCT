@@ -1,6 +1,8 @@
 import time
 import traceback
 from toon import encode
+from typing import Any, cast
+from pydantic import SecretStr
 from datetime import datetime, timezone
 from ct.settings.prompt import prompt_dict
 from ct.settings.schemas import UserContext
@@ -46,8 +48,8 @@ token_cost_process = TokenCostProcess()
 
 class ToolAgent:
     def __init__(self):
-        self.model = "gemini-3-flash-preview"
-        #self.model = "gpt-5"
+        #self.model = "gemini-3-flash-preview"
+        self.model = "gpt-5"
         
         self.rate_limiter = InMemoryRateLimiter(
             requests_per_second=0.1,
@@ -60,16 +62,9 @@ class ToolAgent:
         #     thinking_level="medium"
         # )
 
-        # self.llm = ChatOpenAI(                    # En caso de volver a OpenAI
-        #     model = self.model,
-        #     rate_limiter = self.rate_limiter
-        # )
-
-        self.llm = ChatOllama(
-            name = "qwen3.5:cloud",
-            cache= InMemoryCache(),
-            
-
+        self.llm = ChatOpenAI(                    # En caso de volver a OpenAI
+            model = self.model,
+            rate_limiter = self.rate_limiter
         )
 
         try:
