@@ -1,88 +1,118 @@
 import asyncio
+import json
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 from pydantic import SecretStr
 from pymongo import MongoClient, DESCENDING
 from pymongo.errors import PyMongoError
 from langchain_openai import ChatOpenAI
 
-from ct.evaluation.schemas import EvaluationInput, EvaluationResult, MetricScore
+from ct.settings.config import EVAL_OUTPUT_DIR
 from ct.evaluation.metrics.faithfulness import evaluate_faithfulness
+from ct.evaluation.metrics.context_recall import evaluate_context_recall
 from ct.evaluation.metrics.answer_relevancy import evaluate_answer_relevancy
 from ct.evaluation.metrics.context_precision import evaluate_context_precision
-from ct.evaluation.metrics.context_recall import evaluate_context_recall
+from ct.evaluation.schemas import EvaluationInput, EvaluationResult, MetricScore
 from ct.settings.clients import mongo_uri, mongo_collection_message_backup, openai_api_key
 
 logger = logging.getLogger(__name__)
 
-
-# Pesos de cada métrica en el score final
 METRIC_WEIGHTS = {
-    "faithfulness": 0.30,
-    "answer_relevancy": 0.35,
-    "context_precision": 0.15,
-    "context_recall": 0.20,
+    "faithfulness": 0.40,       # Lo más crítico — precios mal = problema real
+    "answer_relevancy": 0.35,   # Segundo — que responda lo que le preguntaron
+    "context_precision": 0.125, # Equilibrio entre sí mismas
+    "context_recall": 0.125,    # Equilibrio entre sí mismas
 }
 
-
 class RAGASEvaluator:
-    """
-    Evaluador de respuestas del ToolAgent usando métricas inspiradas en RAGAS.
-    Evalúa las últimas N respuestas almacenadas en MongoDB.
-    """
-
     def __init__(
-        self, 
+        self,
         evaluator_model: str = "gpt-4o-mini",
         n_last: int = 10,
-        eval_collection: str = "evaluation_results"
+        eval_collection: str = "evaluation_results",
+        output_dir: Path = EVAL_OUTPUT_DIR
     ):
         self.evaluator_model = evaluator_model
         self.n_last = n_last
-        self.eval_collection_name = eval_collection
+        self.output_dir = output_dir
 
-        # LLM evaluador — separado del LLM del agente
         self.llm = ChatOpenAI(
             model=self.evaluator_model,
-            temperature=0,  # Determinístico para evaluaciones
+            temperature=0,
             api_key=SecretStr(openai_api_key)
         )
 
-        # MongoDB
+        # MongoDB — solo lectura garantizada, escritura opcional
         self.client = MongoClient(mongo_uri).get_default_database()
         self.message_backup = self.client[mongo_collection_message_backup]
-        self.eval_collection = self.client[eval_collection]
+        
+        # Intentar conectar a eval_collection pero no fallar si no hay permisos
+        self._mongo_write_available = False
+        try:
+            self.eval_collection = self.client[eval_collection]
+            # Probe rápido: intentar una operación de lectura
+            self.eval_collection.find_one({})
+            self._mongo_write_available = True
+            logger.info("✅ MongoDB eval collection disponible para escritura.")
+        except PyMongoError as e:
+            logger.warning(
+                f"⚠️ Sin permisos en MongoDB eval collection: {e}\n"
+                f"   → Los resultados se guardarán solo en JSON ({self.output_dir})"
+            )
+            self.eval_collection = None
 
     # ------------------------------------------------------------------ #
     # Fetch de datos                                                        #
     # ------------------------------------------------------------------ #
 
     def fetch_last_messages(self) -> list[EvaluationInput]:
-        """Obtiene los últimos N mensajes de MongoDB."""
         try:
             docs = list(
                 self.message_backup
-                .find({"label": True})   # Solo mensajes válidos
+                .find({"label": True})
                 .sort("timestamp", DESCENDING)
                 .limit(self.n_last)
             )
-            
+
             if not docs:
                 logger.warning("No se encontraron mensajes para evaluar.")
                 return []
 
             inputs = []
             for doc in docs:
+                # Buscar los 3 mensajes anteriores de la misma sesión
+                previous = list(
+                    self.message_backup
+                    .find({
+                        "session_id": doc.get("session_id"),
+                        "timestamp": {"$lt": doc.get("timestamp")},
+                        "label": True
+                    })
+                    .sort("timestamp", DESCENDING)
+                    .limit(4)  # Los 4 intercambios anteriores
+                )
+
+                # Formatear como lista simple para el evaluador
+                previous_messages = [
+                    {
+                        "role": "human",
+                        "content": p.get("question", "")
+                    }
+                    for p in reversed(previous)  # Orden cronológico
+                ]
+
                 inputs.append(EvaluationInput(
                     doc_id=str(doc["_id"]),
                     session_id=doc.get("session_id", "unknown"),
                     question=doc.get("question", ""),
                     answer=doc.get("answer", ""),
                     verbose_log=doc.get("verbose_log", ""),
-                    timestamp=doc.get("timestamp", datetime.now(timezone.utc))
+                    timestamp=doc.get("timestamp", datetime.now(timezone.utc)),
+                    previous_messages=previous_messages
                 ))
-            
+
             logger.info(f"✅ Fetched {len(inputs)} mensajes para evaluar.")
             return inputs
 
@@ -96,19 +126,17 @@ class RAGASEvaluator:
 
     async def evaluate_single(self, inp: EvaluationInput) -> EvaluationResult:
         """Evalúa un único par pregunta-respuesta con las 4 métricas en paralelo."""
-        
+
         logger.info(f"📊 Evaluando doc_id={inp.doc_id} | Q: {inp.question[:60]}...")
 
-        # Ejecutar las 4 métricas en paralelo para eficiencia
         faithfulness, answer_relevancy, context_precision, context_recall = await asyncio.gather(
-            evaluate_faithfulness(inp.question, inp.answer, inp.verbose_log, self.llm),
-            evaluate_answer_relevancy(inp.question, inp.answer, inp.verbose_log, self.llm),
-            evaluate_context_precision(inp.question, inp.answer, inp.verbose_log, self.llm),
-            evaluate_context_recall(inp.question, inp.answer, inp.verbose_log, self.llm),
-            return_exceptions=True  # No fallar si una métrica falla
+            evaluate_faithfulness(inp.question, inp.answer, inp.verbose_log, self.llm, inp.previous_messages),
+            evaluate_answer_relevancy(inp.question, inp.answer, inp.verbose_log, self.llm, inp.previous_messages),
+            evaluate_context_precision(inp.question, inp.answer, inp.verbose_log, self.llm, inp.previous_messages),
+            evaluate_context_recall(inp.question, inp.answer, inp.verbose_log, self.llm, inp.previous_messages),
+            return_exceptions=True
         )
 
-        # Fallback si alguna métrica devolvió excepción
         def safe_metric(result, name: str) -> MetricScore:
             if isinstance(result, Exception):
                 logger.error(f"Métrica {name} falló: {result}")
@@ -120,7 +148,6 @@ class RAGASEvaluator:
         context_precision = safe_metric(context_precision, "context_precision")
         context_recall = safe_metric(context_recall, "context_recall")
 
-        # Score final ponderado
         final_score = (
             faithfulness.score * METRIC_WEIGHTS["faithfulness"] +
             answer_relevancy.score * METRIC_WEIGHTS["answer_relevancy"] +
@@ -148,87 +175,166 @@ class RAGASEvaluator:
 
     async def evaluate_batch(self) -> list[EvaluationResult]:
         """Evalúa los últimos N mensajes y guarda resultados."""
-        
+
         inputs = self.fetch_last_messages()
-        
+
         if not inputs:
             logger.warning("No hay mensajes para evaluar.")
             return []
 
         results = []
-        
-        # Evaluar secuencialmente para evitar rate limits
+
         for i, inp in enumerate(inputs):
             try:
                 result = await self.evaluate_single(inp)
                 results.append(result)
-                self._save_result(result)
+
+                # 1️⃣ JSON: siempre (garantizado)
+                self._save_to_json(result)
+
+                # 2️⃣ MongoDB: solo si hay permisos
+                self._save_to_mongo(result)
+
                 logger.info(
                     f"[{i+1}/{len(inputs)}] ✅ doc_id={inp.doc_id} "
                     f"| Final Score: {result.final_score:.3f}"
                 )
-                
-                # Pequeña pausa para respetar rate limits del LLM evaluador
+
                 await asyncio.sleep(0.5)
-                
+
             except Exception as e:
                 logger.error(f"Error evaluando doc {inp.doc_id}: {e}")
                 continue
 
-        # Resumen final
         self._print_summary(results)
+        
+        # Guardar también el resumen batch completo en un JSON aparte
+        self._save_batch_summary(results)
+
         return results
 
     # ------------------------------------------------------------------ #
-    # Persistencia                                                         #
+    # Persistencia — JSON (siempre)                                        #
     # ------------------------------------------------------------------ #
 
-    def _save_result(self, result: EvaluationResult):
-        """Guarda el resultado de evaluación en MongoDB."""
-        try:
-            doc = {
-                "doc_id": result.doc_id,
-                "session_id": result.session_id,
-                "question": result.question,
-                "answer": result.answer,
-                "timestamp": result.timestamp,
-                "evaluated_at": result.evaluated_at,
-                "evaluator_model": result.evaluator_model,
-                "scores": {
-                    "faithfulness": {
-                        "score": result.faithfulness.score,
-                        "reasoning": result.faithfulness.reasoning,
-                        "details": result.faithfulness.details
-                    },
-                    "answer_relevancy": {
-                        "score": result.answer_relevancy.score,
-                        "reasoning": result.answer_relevancy.reasoning,
-                        "details": result.answer_relevancy.details
-                    },
-                    "context_precision": {
-                        "score": result.context_precision.score,
-                        "reasoning": result.context_precision.reasoning,
-                        "details": result.context_precision.details
-                    },
-                    "context_recall": {
-                        "score": result.context_recall.score,
-                        "reasoning": result.context_recall.reasoning,
-                        "details": result.context_recall.details
-                    }
+    def _result_to_dict(self, result: EvaluationResult) -> dict:
+        """Serializa un EvaluationResult a dict JSON-compatible."""
+        return {
+            "doc_id": result.doc_id,
+            "session_id": result.session_id,
+            "question": result.question,
+            "answer": result.answer,
+            "timestamp": result.timestamp.isoformat(),
+            "evaluated_at": result.evaluated_at.isoformat(),
+            "evaluator_model": result.evaluator_model,
+            "scores": {
+                "faithfulness": {
+                    "score": result.faithfulness.score,
+                    "reasoning": result.faithfulness.reasoning,
+                    "details": result.faithfulness.details
                 },
-                "final_score": result.final_score,
-                "weights_used": METRIC_WEIGHTS
+                "answer_relevancy": {
+                    "score": result.answer_relevancy.score,
+                    "reasoning": result.answer_relevancy.reasoning,
+                    "details": result.answer_relevancy.details
+                },
+                "context_precision": {
+                    "score": result.context_precision.score,
+                    "reasoning": result.context_precision.reasoning,
+                    "details": result.context_precision.details
+                },
+                "context_recall": {
+                    "score": result.context_recall.score,
+                    "reasoning": result.context_recall.reasoning,
+                    "details": result.context_recall.details
+                }
+            },
+            "final_score": result.final_score,
+            "weights_used": METRIC_WEIGHTS
+        }
+
+    def _save_to_json(self, result: EvaluationResult):
+        """
+        Guarda un resultado individual como JSON.
+        Archivo: evaluation_results/eval_<doc_id>.json
+        """
+        try:
+            filepath = self.output_dir / f"eval_{result.doc_id}.json"
+            doc = self._result_to_dict(result)
+
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(doc, f, ensure_ascii=False, indent=2)
+
+            logger.debug(f"💾 JSON guardado: {filepath}")
+
+        except Exception as e:
+            logger.error(f"Error guardando JSON para doc {result.doc_id}: {e}")
+
+    def _save_batch_summary(self, results: list[EvaluationResult]):
+        """
+        Guarda un resumen del batch completo.
+        Archivo: evaluation_results/summary_<timestamp>.json
+        """
+        if not results:
+            return
+
+        try:
+            n = len(results)
+            timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            filepath = self.output_dir / f"summary_{timestamp_str}.json"
+
+            summary = {
+                "evaluated_at": datetime.now(timezone.utc).isoformat(),
+                "evaluator_model": self.evaluator_model,
+                "n_evaluated": n,
+                "weights_used": METRIC_WEIGHTS,
+                "averages": {
+                    "faithfulness": round(sum(r.faithfulness.score for r in results) / n, 4),
+                    "answer_relevancy": round(sum(r.answer_relevancy.score for r in results) / n, 4),
+                    "context_precision": round(sum(r.context_precision.score for r in results) / n, 4),
+                    "context_recall": round(sum(r.context_recall.score for r in results) / n, 4),
+                    "final_score": round(sum(r.final_score for r in results) / n, 4),
+                },
+                # Todos los resultados del batch embebidos
+                "results": [self._result_to_dict(r) for r in results]
             }
-            
-            # Upsert por doc_id para evitar duplicados
+
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(summary, f, ensure_ascii=False, indent=2)
+
+            logger.info(f"📁 Resumen del batch guardado en: {filepath}")
+
+        except Exception as e:
+            logger.error(f"Error guardando batch summary JSON: {e}")
+
+    # ------------------------------------------------------------------ #
+    # Persistencia — MongoDB (opcional)                                    #
+    # ------------------------------------------------------------------ #
+
+    def _save_to_mongo(self, result: EvaluationResult):
+        """
+        Intenta guardar en MongoDB.
+        Si no hay permisos, loguea un warning y sigue sin romper el flujo.
+        """
+        if not self._mongo_write_available or self.eval_collection is None:
+            return  # Silencioso — ya se avisó en __init__
+
+        try:
+            doc = self._result_to_dict(result)
+            # Re-convertir timestamps a datetime para Mongo
+            doc["timestamp"] = result.timestamp
+            doc["evaluated_at"] = result.evaluated_at
+
             self.eval_collection.update_one(
                 {"doc_id": result.doc_id},
                 {"$set": doc},
                 upsert=True
             )
-            
+            logger.debug(f"🍃 MongoDB guardado: doc_id={result.doc_id}")
+
         except PyMongoError as e:
-            logger.error(f"Error guardando resultado: {e}")
+            # No propagar — el JSON ya tiene los datos seguros
+            logger.warning(f"⚠️ No se pudo guardar en MongoDB (doc {result.doc_id}): {e}")
 
     # ------------------------------------------------------------------ #
     # Resumen                                                              #
@@ -237,7 +343,7 @@ class RAGASEvaluator:
     def _print_summary(self, results: list[EvaluationResult]):
         if not results:
             return
-        
+
         n = len(results)
         avg_faithfulness = sum(r.faithfulness.score for r in results) / n
         avg_relevancy = sum(r.answer_relevancy.score for r in results) / n
@@ -262,28 +368,23 @@ class RAGASEvaluator:
         logger.info(summary)
 
     def get_latest_summary(self) -> Optional[dict]:
-        """Obtiene el resumen de la última evaluación batch desde MongoDB."""
+        """
+        Lee el summary más reciente desde los JSONs guardados.
+        Fallback total: no depende de MongoDB.
+        """
         try:
-            results = list(
-                self.eval_collection
-                .find({})
-                .sort("evaluated_at", DESCENDING)
-                .limit(self.n_last)
+            summary_files = sorted(
+                self.output_dir.glob("summary_*.json"),
+                reverse=True  # El más reciente primero
             )
-            
-            if not results:
+
+            if not summary_files:
+                logger.warning("No se encontraron summaries guardados.")
                 return None
-            
-            n = len(results)
-            return {
-                "n_evaluated": n,
-                "avg_faithfulness": sum(r["scores"]["faithfulness"]["score"] for r in results) / n,
-                "avg_answer_relevancy": sum(r["scores"]["answer_relevancy"]["score"] for r in results) / n,
-                "avg_context_precision": sum(r["scores"]["context_precision"]["score"] for r in results) / n,
-                "avg_context_recall": sum(r["scores"]["context_recall"]["score"] for r in results) / n,
-                "avg_final_score": sum(r["final_score"] for r in results) / n,
-                "last_evaluated_at": results[0]["evaluated_at"]
-            }
+
+            with open(summary_files[0], "r", encoding="utf-8") as f:
+                return json.load(f)
+
         except Exception as e:
-            logger.error(f"Error getting summary: {e}")
+            logger.error(f"Error leyendo summary desde JSON: {e}")
             return None

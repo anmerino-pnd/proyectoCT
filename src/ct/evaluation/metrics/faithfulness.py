@@ -1,43 +1,33 @@
+# faithfulness.py
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from ct.evaluation.schemas import FaithfulnessResponse, MetricScore
-from ct.evaluation.prompts import FAITHFULNESS_PROMPT
+from ct.evaluation.prompts import FAITHFULNESS_PROMPT, CONVERSATION_CONTEXT_BLOCK
+from ct.evaluation.utils import format_verbose_log, format_previous_messages 
 import logging
-import re
 
 logger = logging.getLogger(__name__)
-
-
-def parse_tool_outputs(verbose_log: str) -> str:
-    """Extrae solo los outputs de las tools del verbose_log."""
-    if not verbose_log:
-        return "No se usaron herramientas."
-    
-    lines = verbose_log.split("\n")
-    tool_outputs = [
-        line for line in lines 
-        if line.startswith("🛠️ [Tool Output")
-    ]
-    
-    if not tool_outputs:
-        return "No se usaron herramientas."
-    
-    return "\n".join(tool_outputs)
 
 
 async def evaluate_faithfulness(
     question: str,
     answer: str,
     verbose_log: str,
-    llm: ChatOpenAI
+    llm: ChatOpenAI,
+    previous_messages: list[dict] = []
 ) -> MetricScore:
-    
-    tool_outputs = parse_tool_outputs(verbose_log)
-    
+
+    history_str = format_previous_messages(previous_messages)
+    conversation_context = (
+        CONVERSATION_CONTEXT_BLOCK.format(previous_messages=history_str)
+        if history_str else ""
+    )
+
     prompt = FAITHFULNESS_PROMPT.format(
         question=question,
-        tool_outputs=tool_outputs,
-        answer=answer
+        verbose_log=format_verbose_log(verbose_log),  
+        answer=answer,
+        conversation_context=conversation_context
     )
     
     structured_llm = llm.with_structured_output(FaithfulnessResponse)

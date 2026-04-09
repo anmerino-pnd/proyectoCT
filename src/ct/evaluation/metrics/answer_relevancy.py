@@ -1,42 +1,35 @@
+# answer_relevancy.py
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from ct.evaluation.schemas import AnswerRelevancyResponse, MetricScore
-from ct.evaluation.prompts import ANSWER_RELEVANCY_PROMPT
+from ct.evaluation.prompts import ANSWER_RELEVANCY_PROMPT, CONVERSATION_CONTEXT_BLOCK
+from ct.evaluation.utils import format_verbose_log, format_previous_messages
 import logging
-import re
 
 logger = logging.getLogger(__name__)
 
-
-def extract_tool_names(verbose_log: str) -> str:
-    """Extrae nombres de tools usadas."""
-    if not verbose_log:
-        return "Ninguna"
-    
-    lines = verbose_log.split("\n")
-    tool_names = []
-    
-    for line in lines:
-        if "decidió usar:" in line:
-            tool_name = line.split("decidió usar:")[-1].strip()
-            tool_names.append(tool_name)
-    
-    return ", ".join(tool_names) if tool_names else "Ninguna"
 
 
 async def evaluate_answer_relevancy(
     question: str,
     answer: str,
     verbose_log: str,
-    llm: ChatOpenAI
+    llm: ChatOpenAI,
+    previous_messages: list[dict] = []
 ) -> MetricScore:
     
-    tool_names = extract_tool_names(verbose_log)
-    
+    history_str = format_previous_messages(previous_messages) 
+
+    conversation_context = (
+        CONVERSATION_CONTEXT_BLOCK.format(previous_messages=history_str)
+        if history_str else ""
+    )
+
     prompt = ANSWER_RELEVANCY_PROMPT.format(
         question=question,
         answer=answer,
-        tool_names=tool_names
+        verbose_log=format_verbose_log(verbose_log),
+        conversation_context=conversation_context
     )
     
     structured_llm = llm.with_structured_output(AnswerRelevancyResponse)

@@ -16,6 +16,10 @@ class EvaluationInput(BaseModel):
     answer: str
     verbose_log: str
     timestamp: datetime
+    previous_messages: list[dict] = Field(
+        default_factory=list,
+        description="Últimos mensajes de la conversación para dar contexto"
+    )
 
 
 class MetricScore(BaseModel):

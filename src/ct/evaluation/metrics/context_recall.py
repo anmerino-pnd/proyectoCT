@@ -1,51 +1,34 @@
+# context_recall.py
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from ct.evaluation.schemas import ContextRecallResponse, MetricScore
-from ct.evaluation.prompts import CONTEXT_RECALL_PROMPT
+from ct.evaluation.prompts import CONTEXT_RECALL_PROMPT, CONVERSATION_CONTEXT_BLOCK
+from ct.evaluation.utils import format_verbose_log, format_previous_messages, AVAILABLE_TOOLS
 import logging
 
 logger = logging.getLogger(__name__)
-
-AVAILABLE_TOOLS = [
-    "algolia_search_tool",
-    "sales_rules_tool",
-    "dolar_convertion_tool", 
-    "status_tool",
-    "get_support_info",
-    "who_are_we",
-    "get_sucursales_info"
-]
-
-
-def extract_tool_names_list(verbose_log: str) -> list[str]:
-    if not verbose_log:
-        return []
-    
-    lines = verbose_log.split("\n")
-    tools = []
-    
-    for line in lines:
-        if "decidió usar:" in line:
-            tool_name = line.split("decidió usar:")[-1].strip()
-            tools.append(tool_name)
-    
-    return list(set(tools))  # Únicos
-
 
 async def evaluate_context_recall(
     question: str,
     answer: str,
     verbose_log: str,
-    llm: ChatOpenAI
+    llm: ChatOpenAI,
+    previous_messages: list[dict] = []
 ) -> MetricScore:
     
-    tools_used = extract_tool_names_list(verbose_log)
-    
+    history_str = format_previous_messages(previous_messages) 
+
+    conversation_context = (
+        CONVERSATION_CONTEXT_BLOCK.format(previous_messages=history_str)
+        if history_str else ""
+    )
+
     prompt = CONTEXT_RECALL_PROMPT.format(
         question=question,
-        available_tools="\n".join([f"- {t}" for t in AVAILABLE_TOOLS]),
-        tools_used=", ".join(tools_used) if tools_used else "Ninguna",
-        answer=answer
+        verbose_log=format_verbose_log(verbose_log),
+        available_tools=AVAILABLE_TOOLS,
+        answer=answer,
+        conversation_context=conversation_context
     )
     
     structured_llm = llm.with_structured_output(ContextRecallResponse)

@@ -32,6 +32,7 @@ PAPERLESS = DOCUSMART / "paperless"
 MPS = DOCUSMART / "mps"
 DAAS = DOCUSMART / "daas"
 
+EVAL_OUTPUT_DIR = DATA_DIR / "evaluation_results"
 
 # 🔥 Crear directorios automáticamente
 for path in [
@@ -50,5 +51,7 @@ for path in [
     DOCUSMART,
     PAPERLESS,
     MPS,
-    DAAS]:
+    DAAS,
+    EVAL_OUTPUT_DIR
+    ]:
     path.mkdir(parents=True, exist_ok=True)
