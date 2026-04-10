@@ -1,142 +1,203 @@
 # prompts.py
 
 FAITHFULNESS_PROMPT = """
-Eres un evaluador experto de sistemas de IA. Tu tarea es evaluar la FIDELIDAD de una respuesta.
+Eres un auditor forense de respuestas de IA. Tu objetivo es
+determinar la FIDELIDAD de la respuesta — que no haya ninguna
+afirmación concreta inventada.
 
-**Definición**: Mide si las afirmaciones FACTUALES CONCRETAS en la respuesta son 
-consistentes con la información provista por las herramientas o el historial de conversación.
-
+**HISTORIAL DE CONVERSACIÓN:**
 {conversation_context}
 
-**Pregunta del usuario:**
+**PREGUNTA DEL USUARIO:**
 {question}
 
-**Log completo de ejecución del agente (thinking + tool outputs):**
+**LOG DE EJECUCIÓN (Thinking + Tool Outputs):**
 {verbose_log}
 
-**Respuesta del asistente:**
+**RESPUESTA DEL ASISTENTE:**
 {answer}
 
-**Instrucciones:**
-1. Lee el log completo — contiene tanto las decisiones del agente (🤖) 
-   como los outputs reales de cada herramienta (🛠️).
+---
+### PROTOCOLO DE EVALUACIÓN:
 
-2. Identifica SOLO afirmaciones factuales verificables en la respuesta:
-   - Precios, nombres de productos, stock, códigos, promociones, especificaciones técnicas
+**PASO 1: EXTRACCIÓN DE AFIRMACIONES FACTUALES**
+Analiza la respuesta y extrae una lista de afirmaciones concretas.
+Una afirmación factual es cualquier dato específico: precios,
+nombres de producto, cantidades, stock, specs técnicas, reglas
+de negocio concretas, fechas o tiempos.
+NO cuentan: cortesías, frases genéricas ("tenemos varios
+modelos"), sugerencias vagas, ni información del historial
+que el agente repite correctamente.
 
-3. Para cada afirmación, verifica si puede inferirse de:
-   a) Algún tool output en el log (🛠️), O
-   b) El historial de conversación previo
+**PASO 2: BÚSQUEDA DE EVIDENCIA EN EL LOG**
+Para cada afirmación:
+- Si aparece en un tool output (🛠️): cita textual.
+- Si viene del historial de conversación: marca "Historial".
+- Si no aparece en ninguna fuente: "EVIDENCIA AUSENTE".
 
-4. IGNORA completamente:
-   - Frases de cortesía ("con gusto", "espero haberte ayudado")
-   - Recomendaciones subjetivas ("es ideal para...", "buena opción")
-   - Conocimiento general del dominio (compatibilidad de sockets, tipos de RAM, etc.)
+**PASO 3: CONTRASTE**
+- SOPORTADO: evidencia confirma la afirmación exactamente.
+- CONTRADICHO: evidencia dice algo diferente.
+- ALUCINACIÓN: afirmación concreta sin evidencia.
 
-5. Si el agente tomó un dato del historial → ES VÁLIDO, no penalizar
+**PASO 4: VEREDICTO FINAL**
+Calcula el score con la fórmula:
+  score = claims_supported / claims_total
+  Redondea a 2 decimales.
+  
+  Caso edge: si claims_total = 0 (no hubo afirmaciones
+  verificables), asigna score = 1.0 — el agente no inventó
+  nada porque no afirmó nada concreto.
 
-6. Solo penaliza cuando el agente invente datos concretos que NO están 
-   ni en los tool outputs NI en el historial
-
-Responde en JSON con el schema indicado.
+Responde en JSON con el esquema indicado. El campo 'reasoning'
+debe incluir el detalle de los 4 pasos.
 """
 
 ANSWER_RELEVANCY_PROMPT = """
-Eres un evaluador experto de sistemas de IA. Tu tarea es evaluar la RELEVANCIA de la respuesta.
+Eres un auditor de calidad de IA. Tu objetivo es evaluar la
+RELEVANCIA de la respuesta respecto a la intención del usuario.
 
+**HISTORIAL DE CONVERSACIÓN:**
 {conversation_context}
 
-**Pregunta del usuario:**
+**PREGUNTA DEL USUARIO:**
 {question}
 
-**Log completo de ejecución del agente:**
+**LOG DE EJECUCIÓN (Thinking + Tool Outputs):**
 {verbose_log}
 
-**Respuesta del asistente:**
+**RESPUESTA DEL ASISTENTE:**
 {answer}
 
-**Instrucciones:**
-1. Evalúa si la respuesta responde directamente a lo preguntado.
-2. Considerá el contexto conversacional si la pregunta es ambigua.
-3. Penaliza respuestas que evaden la pregunta o son demasiado vagas.
-4. Penaliza información excesivamente irrelevante.
-5. Considera si la respuesta está completa o le falta información clave.
+---
+### PROTOCOLO DE EVALUACIÓN:
 
-Responde en JSON con el schema indicado.
+**PASO 1: ANÁLISIS DE NECESIDADES**
+Identifica las necesidades explícitas e implícitas del usuario
+considerando el contexto conversacional.
+
+**PASO 2: MAPEO DE RESPUESTA**
+Para cada necesidad:
+- CUBIERTA: la respuesta la satisface completamente.
+- PARCIAL: la menciona pero no la resuelve.
+- IGNORADA: no aparece en la respuesta.
+
+**PASO 3: EVALUACIÓN DE RUIDO**
+Verifica si la respuesta añade información innecesaria que
+confunde o distrae al usuario de su pregunta real.
+Clasifica el ruido como:
+- NINGUNO: toda la información es pertinente.
+- MENOR: hay contexto extra pero no daña la comprensión.
+- GRAVE: el ruido oscurece la respuesta principal.
+
+**PASO 4: VEREDICTO FINAL**
+Parte de la cobertura de necesidades y aplica penalización:
+- Ruido NINGUNO o MENOR: sin descuento.
+- Ruido GRAVE: descuenta hasta 0.15 del score base.
+
+Guía:
+- 1.0: todas las necesidades cubiertas, sin ruido.
+- 0.75: necesidades principales cubiertas, falta algún detalle.
+- 0.5: necesidades principales cubiertas pero con ruido grave
+       o necesidades secundarias ignoradas.
+- 0.0: respuesta irrelevante o no responde la pregunta.
+
+Responde en JSON con el esquema indicado. El campo 'reasoning'
+debe incluir el detalle de los 4 pasos.
 """
 
 CONTEXT_PRECISION_PROMPT = """
-Eres un evaluador experto de sistemas de IA. Tu tarea es evaluar la PRECISIÓN DEL CONTEXTO.
+Eres un auditor de eficiencia de herramientas. Tu objetivo es
+evaluar la PRECISIÓN DEL CONTEXTO.
 
-**Definición**: Mide qué proporción de las herramientas usadas eran realmente necesarias.
-
+**HISTORIAL DE CONVERSACIÓN:**
 {conversation_context}
 
-**Pregunta del usuario:**
+**PREGUNTA DEL USUARIO:**
 {question}
 
-**Herramientas disponibles en el sistema:**
-{available_tools}
-
-**Log completo de ejecución del agente:**
+**LOG DE EJECUCIÓN (Thinking + Tool Outputs):**
 {verbose_log}
 
-**Respuesta final:**
+**RESPUESTA FINAL:**
 {answer}
 
-**Instrucciones:**
-1. Del log, identificá cada tool que se llamó (líneas 🤖).
-2. Para cada tool llamada, evaluá si su output contribuyó a la respuesta final.
-3. Una tool es relevante si su output aportó información usada en la respuesta.
-4. Una tool es irrelevante si se llamó pero no aportó nada a la respuesta.
-5. Si no se usaron tools y era apropiado → score 1.0.
+---
+### PROTOCOLO DE EVALUACIÓN:
 
-Responde en JSON con el schema indicado.
+**PASO 1: IDENTIFICACIÓN DE HERRAMIENTAS**
+Lista todas las tools llamadas en el verbose_log (bloques 🤖).
+
+**PASO 2: ANÁLISIS DE UTILIDAD**
+Para cada tool llamada, evalúa si su invocación fue justificada:
+- ÚTIL: su output aportó datos usados en la respuesta, O su
+  output fue vacío/negativo y eso justificó no mencionar algo
+  (el agente verificó correctamente).
+- IRRELEVANTE: la tool no tenía relación con la pregunta
+  del usuario Y su output tampoco influyó en la respuesta
+  de ninguna forma.
+
+**PASO 3: CÁLCULO DE RATIO**
+Proporción de tools útiles vs total de tools llamadas.
+
+**PASO 4: VEREDICTO FINAL**
+- 1.0: todas las tools fueron útiles o necesarias.
+- 0.5: la mayoría útiles, pero hubo llamadas innecesarias.
+- 0.0: las tools llamadas no tenían relación con la respuesta.
+
+Responde en JSON con el esquema indicado.
 """
 
 CONTEXT_RECALL_PROMPT = """
-Eres un evaluador experto de sistemas de IA. Tu tarea es evaluar el RECALL DEL CONTEXTO.
+Eres un auditor de completitud de información. Tu objetivo es
+evaluar el RECALL DEL CONTEXTO.
 
-**Definición**: Mide si el agente utilizó TODAS las herramientas necesarias 
-para dar una respuesta completa.
-
+**HISTORIAL DE CONVERSACIÓN:**
 {conversation_context}
 
-**Pregunta del usuario:**
+**PREGUNTA DEL USUARIO:**
 {question}
 
-**Herramientas disponibles:**
-{available_tools}
-
-**Log completo de ejecución del agente:**
+**LOG DE EJECUCIÓN (Thinking + Tool Outputs):**
 {verbose_log}
 
-**Respuesta final:**
+**RESPUESTA FINAL:**
 {answer}
 
-**Instrucciones:**
-1. Basándote en la pregunta y el contexto, determiná qué tools DEBERÍAN haberse usado.
-2. Del log, identificá qué tools SÍ se usaron (líneas 🤖).
-3. Si la pregunta no requería tools → score 1.0.
-4. Si faltaron tools necesarias → score bajo + listá cuáles en missing_tools.
+**TOOLS DISPONIBLES EN EL SISTEMA:**
+{available_tools}
+IMPORTANTE: solo puedes señalar como "faltante" una tool de
+esta lista. No inventes tools que no existen en el sistema.
 
-Descripción de cada tool disponible:
-- algolia_search_tool: Búsqueda de productos en el catálogo
-- sales_rules_tool: Reglas de ventas, descuentos, promociones
-- dolar_convertion_tool: Conversión de moneda / precio en dólares
-- status_tool: Estado de pedidos o envíos
-- get_support_info: Información de soporte al cliente
-- who_are_we: Información sobre la empresa
-- get_sucursales_info: Información de sucursales físicas
+---
+### PROTOCOLO DE EVALUACIÓN:
 
-Responde en JSON con el schema indicado.
+**PASO 1: DEFINICIÓN DE INFORMACIÓN NECESARIA**
+Basándote en la pregunta y el contexto, define qué datos eran
+estrictamente necesarios para dar una respuesta completa.
+
+**PASO 2: VERIFICACIÓN DE LLAMADAS**
+¿El agente llamó a las tools capaces de proveer esos datos?
+- ENCONTRADO: la tool correcta fue llamada y produjo output.
+- FALTANTE: la información necesaria no fue buscada con ninguna
+  tool de la lista disponible.
+
+**PASO 3: ANÁLISIS DE COBERTURA**
+¿La respuesta final es completa con la información obtenida?
+
+**PASO 4: VEREDICTO FINAL**
+- 1.0: el agente usó todas las tools necesarias.
+- 0.5: obtuvo parte de la info, faltó consultar alguna clave.
+- 0.0: ignoró tools críticas y la respuesta es incompleta.
+
+Responde en JSON con el esquema indicado.
 """
 
 CONVERSATION_CONTEXT_BLOCK = """
-**Contexto conversacional (mensajes anteriores del usuario en esta sesión):**
+**Contexto conversacional (mensajes anteriores del usuario y asistente en esta sesión):**
 {previous_messages}
 
-⚠️ IMPORTANTE: Si la pregunta actual es ambigua o hace referencia implícita 
-a un producto/tema mencionado antes, el agente CORRECTAMENTE tomó ese contexto 
+IMPORTANTE: Si la pregunta actual es ambigua o hace referencia implícita
+a un producto/tema mencionado antes, el agente CORRECTAMENTE tomó ese contexto
 del historial. NO penalices al agente por usar información del historial.
 """

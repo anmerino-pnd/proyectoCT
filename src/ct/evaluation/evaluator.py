@@ -1,13 +1,13 @@
 import asyncio
 import json
 import logging
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from pydantic import SecretStr
-from pymongo import MongoClient, DESCENDING
 from pymongo.errors import PyMongoError
 from langchain_openai import ChatOpenAI
+from datetime import datetime, timezone
+from pymongo import MongoClient, DESCENDING
 
 from ct.settings.config import EVAL_OUTPUT_DIR
 from ct.evaluation.metrics.faithfulness import evaluate_faithfulness
@@ -82,7 +82,7 @@ class RAGASEvaluator:
 
             inputs = []
             for doc in docs:
-                # Buscar los 3 mensajes anteriores de la misma sesión
+                # Buscar los 4 intercambios anteriores de la misma sesión
                 previous = list(
                     self.message_backup
                     .find({
@@ -94,14 +94,12 @@ class RAGASEvaluator:
                     .limit(4)  # Los 4 intercambios anteriores
                 )
 
-                # Formatear como lista simple para el evaluador
-                previous_messages = [
-                    {
-                        "role": "human",
-                        "content": p.get("question", "")
-                    }
-                    for p in reversed(previous)  # Orden cronológico
-                ]
+                # Formatear como lista de pares Usuario/Asistente para el evaluador
+                previous_messages = []
+                for p in reversed(previous):
+                    previous_messages.append({"role": "human", "content": p.get("question", "")})
+                    if p.get("answer"):
+                        previous_messages.append({"role": "assistant", "content": p.get("answer", "")})
 
                 inputs.append(EvaluationInput(
                     doc_id=str(doc["_id"]),
@@ -139,8 +137,8 @@ class RAGASEvaluator:
 
         def safe_metric(result, name: str) -> MetricScore:
             if isinstance(result, Exception):
-                logger.error(f"Métrica {name} falló: {result}")
-                return MetricScore(score=0.5, reasoning=f"Error: {str(result)}")
+                logger.error(f"Métrica {name} falló con error: {result}")
+                return MetricScore(score=0.5, reasoning=f"Error crítico en evaluación de {name}: {str(result)}")
             return result
 
         faithfulness = safe_metric(faithfulness, "faithfulness")
@@ -199,8 +197,9 @@ class RAGASEvaluator:
                     f"[{i+1}/{len(inputs)}] ✅ doc_id={inp.doc_id} "
                     f"| Final Score: {result.final_score:.3f}"
                 )
+                # Removido sleep artificial para mejorar rendimiento,
+                # ya que evaluate_single ya maneja el paralelismo interno de métricas.
 
-                await asyncio.sleep(0.5)
 
             except Exception as e:
                 logger.error(f"Error evaluando doc {inp.doc_id}: {e}")

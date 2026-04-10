@@ -3,7 +3,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from ct.evaluation.schemas import ContextRecallResponse, MetricScore
 from ct.evaluation.prompts import CONTEXT_RECALL_PROMPT, CONVERSATION_CONTEXT_BLOCK
-from ct.evaluation.utils import format_verbose_log, format_previous_messages, AVAILABLE_TOOLS
+from ct.evaluation.utils import format_verbose_log, format_previous_messages, format_available_tools
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ async def evaluate_context_recall(
     prompt = CONTEXT_RECALL_PROMPT.format(
         question=question,
         verbose_log=format_verbose_log(verbose_log),
-        available_tools=AVAILABLE_TOOLS,
+        available_tools=format_available_tools(),
         answer=answer,
         conversation_context=conversation_context
     )

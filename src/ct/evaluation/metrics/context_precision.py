@@ -2,8 +2,8 @@
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 from ct.evaluation.schemas import ContextPrecisionResponse, MetricScore
+from ct.evaluation.utils import format_verbose_log, format_previous_messages
 from ct.evaluation.prompts import CONTEXT_PRECISION_PROMPT, CONVERSATION_CONTEXT_BLOCK
-from ct.evaluation.utils import format_verbose_log, format_previous_messages, AVAILABLE_TOOLS
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,6 @@ async def evaluate_context_precision(
     prompt = CONTEXT_PRECISION_PROMPT.format(
         question=question,
         verbose_log=format_verbose_log(verbose_log),
-        available_tools=AVAILABLE_TOOLS,
         answer=answer,
         conversation_context=conversation_context
     )

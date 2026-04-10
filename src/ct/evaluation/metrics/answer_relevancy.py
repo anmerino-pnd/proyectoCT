@@ -49,7 +49,8 @@ async def evaluate_answer_relevancy(
             reasoning=response.reasoning,
             details={
                 "is_complete": response.is_complete,
-                "has_hallucinations": response.has_hallucinations
+                "has_noise": response.has_noise,
+                "noise_severity": response.noise_severity
             }
         )
     except Exception as e:

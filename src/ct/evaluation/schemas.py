@@ -56,7 +56,8 @@ class AnswerRelevancyResponse(BaseModel):
     score: float = Field(ge=0.0, le=1.0)
     reasoning: str
     is_complete: bool = Field(description="¿La respuesta responde completamente?")
-    has_hallucinations: bool = Field(description="¿Hay información inventada?")
+    has_noise: bool = Field(description="¿Hay información irrelevante que confunde?")
+    noise_severity: str = Field(default="NINGUNO", description="NINGUNO | MENOR | GRAVE")
 
 
 class ContextPrecisionResponse(BaseModel):
