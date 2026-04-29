@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class ToolCall(BaseModel):
@@ -73,3 +73,24 @@ class ContextRecallResponse(BaseModel):
     reasoning: str
     missing_tools: list[str] = Field(description="Tools que deberían haberse usado")
     coverage: str = Field(description="Descripción de qué tan bien se cubrió la pregunta")
+
+
+class WindowEntry(BaseModel):
+    """Registro de una evaluación de ventana completada."""
+    evaluated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    window_start_doc_id: str
+    window_end_doc_id: str
+    n_evaluated: int = Field(default=10, description="Número de documentos evaluados en este ventana")
+    averages: dict = Field(
+        description="Promedios de métricas del ventana"
+    )
+    final_score: float = Field(description="Score final del ventana")
+
+
+class EvaluationState(BaseModel):
+    """Estado del evaluador RAG con ventana deslizante."""
+    last_evaluated_doc_id: Optional[str] = None
+    last_evaluated_at: Optional[datetime] = None
+    last_score: Optional[float] = None
+    last_averages: Optional[dict] = None
+    history: list[WindowEntry] = Field(default_factory=list, description="Historial de ventanas evaluadas")

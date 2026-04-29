@@ -1,3 +1,8 @@
+# ====================================================================
+# IMPORTS Y CONFIG (al principio del archivo, antes de cualquier UI)
+# ====================================================================
+import asyncio
+import logging
 import pytz
 import nltk
 import spacy
@@ -6,33 +11,43 @@ import pandas as pd
 import streamlit as st
 from rapidfuzz import fuzz
 import plotly.express as px
+import plotly.graph_objects as go
 from datetime import datetime
 from pymongo import MongoClient
-import plotly.graph_objects as go
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords as nltk_stopwords
+from nltk.corpus import stopwords as nltk_stopwords_module
 from sklearn.feature_extraction.text import CountVectorizer
+
 from ct.settings.clients import mongo_uri, mongo_collection_message_backup
+from ct.evaluation.evaluator import RAGASEvaluator
+from ct.evaluation.schemas import EvaluationState
 
-# --- CONFIGURACIÓN DE PRECIOS (USD por 1 Millón de tokens) ---
-# Actualizado con la configuración específica solicitada
+logger = logging.getLogger(__name__)
+
 MODEL_PRICING = {
-    "gpt-5-mini": {"input": 0.25, "output": 2.00},
-    "gpt-5-nano": {"input": 0.05, "output": 0.40},
-    "gpt-5": {"input": 1.25, "output": 10.00}, 
+    "gpt-5-mini":   {"input": 0.25, "output": 2.00},
+    "gpt-5-nano":   {"input": 0.05, "output": 0.40},
+    "gpt-5":        {"input": 1.25, "output": 10.00},
     "gpt-4.1-nano": {"input": 0.10, "output": 0.40},
-    "gpt-4.1": {"input": 2.00, "output": 8.00},
-    "gpt-4o": {"input": 2.50, "output": 10.00}
+    "gpt-4.1":      {"input": 2.00, "output": 8.00},
+    "gpt-4o":       {"input": 2.50, "output": 10.00},
 }
+WINDOW_SIZE = 10
 
-# --- NLTK SETUP ---
-nltk_needed = ['wordnet', 'punkt', 'punkt_tab', 'stopwords']
-for resource in nltk_needed:
+# ---- NLTK con rutas correctas ----
+nltk_needed = {
+    "wordnet":   "corpora/wordnet",
+    "punkt":     "tokenizers/punkt",
+    "punkt_tab": "tokenizers/punkt_tab",
+    "stopwords": "corpora/stopwords",
+}
+for pkg, path in nltk_needed.items():
     try:
-        nltk.data.find(resource)
+        nltk.data.find(path)
     except LookupError:
-        nltk.download(resource)
+        nltk.download(pkg)
+
 
 @st.cache_resource
 def load_spacy_model():
@@ -40,673 +55,945 @@ def load_spacy_model():
         return spacy.load("es_core_news_lg")
     except OSError:
         return spacy.load("es_core_news_sm")
-   
+
 nlp = load_spacy_model()
 
 combined_stopwords = set()
 if nlp:
-    spacy_stopwords = nlp.Defaults.stop_words
-    combined_stopwords.update(spacy_stopwords)
-
-nltk_stopwords = set(nltk_stopwords.words('spanish'))
-combined_stopwords.update(nltk_stopwords)
-
-custom_stopwords = {"mx", "https", "dame", "hola", "quiero", "puedes", "gustaría",
-                    "interesan", "opción", "opciones", "opcion", "favor", "sirve",
-                    "diste", "fijar", "debería", "viene", "palabra", "qué", "necesito","hi", "buscar",
-                    "ocupar"
-                    }
-combined_stopwords.update(custom_stopwords)
-
+    combined_stopwords.update(nlp.Defaults.stop_words)
+combined_stopwords.update(set(nltk_stopwords_module.words("spanish")))
+combined_stopwords.update({
+    "mx","https","dame","hola","quiero","puedes","gustaría","interesan",
+    "opción","opciones","opcion","favor","sirve","diste","fijar","debería",
+    "viene","palabra","qué","necesito","hi","buscar","ocupar",
+})
 if nlp:
-    for word in combined_stopwords:
-        nlp.vocab[word].is_stop = True  
+    for w in combined_stopwords:
+        nlp.vocab[w].is_stop = True
 
-st.title("Análisis de Historial de Conversaciones")
 
+# ====================================================================
+# RECURSOS GLOBALES (mongo y evaluator) — SOLO UNA VEZ, AL INICIO
+# ====================================================================
 @st.cache_resource
 def get_mongo_collection():
     client = MongoClient(mongo_uri)
     db = client.get_default_database()
     return db[mongo_collection_message_backup]
 
+@st.cache_resource
+def get_evaluator() -> RAGASEvaluator:
+    return RAGASEvaluator()
+
 coleccion = get_mongo_collection()
+evaluator = get_evaluator()
 
-def get_available_years_from_db(_coleccion):
-    try:
-        pipeline = [
-            {"$project": {"year": {"$year": "$timestamp"}}},
-            {"$group": {"_id": "$year"}},
-            {"$sort": {"_id": 1}}
-        ]
-        years = [doc['_id'] for doc in _coleccion.aggregate(pipeline)]
-        return sorted(list(set(years)))
-    except Exception as e:
-        st.error(f"Error al obtener años disponibles de la base de datos: {e}")
-        return []
-    
-def get_available_months_from_db(_coleccion, year):
-    try:
-        hermosillo_tz = pytz.timezone("America/Hermosillo")
 
-        start_of_year_hermosillo = hermosillo_tz.localize(datetime(year, 1, 1, 0, 0, 0, 0))
-        end_of_year_hermosillo = hermosillo_tz.localize(datetime(year + 1, 1, 1, 0, 0, 0, 0))
+# ===================================================================== #
+#                  FUNCIONES AUXILIARES (ANTES de la UI)                #
+# ===================================================================== #
 
-        pipeline = [
-            {"$match": {
-                "timestamp": {
-                    "$gte": start_of_year_hermosillo,
-                    "$lt": end_of_year_hermosillo
-                }
-            }},
-            {"$project": {"month": {"$month": "$timestamp"}}},
-            {"$group": {"_id": "$month"}},
-            {"$sort": {"_id": 1}}
-        ]
-        months = [doc['_id'] for doc in _coleccion.aggregate(pipeline)]
-        return sorted(list(set(months)))
-    except Exception as e:
-        st.error(f"Error al obtener meses disponibles de la base de datos: {e}")
-        return []
-    
-st.sidebar.header("Configuración de Filtros")
-time_filter_mode = st.sidebar.radio(
-    "Modo de Filtro de Tiempo",
-    ['Análisis por año', 'Análisis por mes'],
-    )
-
-avalaible_years = get_available_years_from_db(coleccion)
-
-if avalaible_years:
-    selected_year = st.sidebar.selectbox(
-        "Selecciona un Año",
-        options=avalaible_years,
-        index=len(avalaible_years) - 1
-    )
-
-query_filter = {}
-selected_month = None
-selected_month_name = None
-
-hermosillo_tz = pytz.timezone("America/Hermosillo")
-
-if time_filter_mode == 'Análisis por mes':
-    if selected_year:
-        available_months = get_available_months_from_db(coleccion, selected_year)
-        month_names_map = {
-            1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
-            5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
-            9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+def get_window_progress() -> dict:
+    """Cuántos docs llevan en la ventana actual y stats globales."""
+    history = evaluator.state.history
+    if not history:
+        return {
+            "evaluated": 0,
+            "remaining": WINDOW_SIZE,
+            "total_evaluated": 0,
+            "windows_completed": 0,
         }
 
-        if available_months:
-            available_months_names = [month_names_map[m] for m in available_months]
-            selected_month_name = st.sidebar.selectbox(
-                "Selecciona un Mes",
-                options=available_months_names,
-                index=len(available_months_names) - 1
-            )
-            selected_month = {
-                v: k for k, v in month_names_map.items()
-            }.get(selected_month_name, None)
-
-start_date_dt = None
-end_date_dt = None
-
-if selected_year:
-    if time_filter_mode == 'Análisis por año':
-        start_date_dt = hermosillo_tz.localize(datetime(selected_year, 1, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
-        end_date_dt = hermosillo_tz.localize(datetime(selected_year + 1, 1, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
-
-    elif time_filter_mode == 'Análisis por mes' and selected_month:
-        start_date_dt = hermosillo_tz.localize(datetime(selected_year, selected_month, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
-
-        if selected_month == 12:
-            end_date_dt = hermosillo_tz.localize(datetime(selected_year + 1, 1, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
-        else:
-            end_date_dt = hermosillo_tz.localize(datetime(selected_year, selected_month + 1, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
-
-if start_date_dt and end_date_dt:
-    query_filter = {
-        "timestamp": {
-            "$gte": start_date_dt,
-            "$lt": end_date_dt
-        }
+    total = sum(e.n_evaluated for e in history)
+    in_current = total % WINDOW_SIZE  # 0..9 (0 = ventana recién cerrada)
+    return {
+        "evaluated":          in_current,
+        "remaining":          WINDOW_SIZE - in_current if in_current else 0,
+        "total_evaluated":    total,
+        "windows_completed":  len(history),
     }
 
-try:
-    all_users = coleccion.distinct('session_id', query_filter)
-except Exception as e:
-    st.error(f"Error al obtener la lista de usuarios: {e}")
-    all_users = []
 
-selected_users = st.sidebar.multiselect(
-    "Selecciona usuarios para incluir o excluir",
-    options=sorted(all_users),
-    default=[]
-)
+def get_progress_bar_value() -> float:
+    """Valor 0..1 para st.progress: % de la ventana en curso."""
+    info = get_window_progress()
+    return info["evaluated"] / WINDOW_SIZE
 
-user_filter_mode = st.sidebar.radio(
-    "Modo de filtro de usuario",
-    ['Excluir', 'Incluir'],
-    index=0
-)
 
-if selected_users:
-    if user_filter_mode == 'Excluir':
-        query_filter.setdefault('session_id', {})['$nin'] = selected_users
-    else:
-        query_filter.setdefault('session_id', {})['$in'] = selected_users
+def get_history_data() -> list[dict]:
+    """Datos del historial de ventanas (para tabla y gráfico)."""
+    return [
+        {
+            "Evaluado el":       e.evaluated_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "Documents":         e.n_evaluated,
+            "Faithfulness":      e.averages.get("faithfulness", 0),
+            "Answer Relevancy":  e.averages.get("answer_relevancy", 0),
+            "Context Precision": e.averages.get("context_precision", 0),
+            "Context Recall":    e.averages.get("context_recall", 0),
+            "Final Score":       e.final_score,
+        }
+        for e in evaluator.state.history
+    ]
 
-def fetch_messages_from_db(_coleccion, query_filter):
-    try:
-        if not query_filter.get("timestamp"):
-             st.warning("No se ha seleccionado un rango de fechas válido. Por favor, elige un año y/o mes.")
-             return []
+# ===================================================================== #
+#                                UI                                     #
+# ===================================================================== #
 
-        messages = list(_coleccion.find(query_filter))
-        if not messages:
-            st.warning("No se encontraron mensajes para el filtro seleccionado.")
-        return messages
-    except Exception as e:
-        st.error(f"Error al obtener mensajes de la base de datos: {e}")
-        return []
-    
-data = fetch_messages_from_db(coleccion, query_filter)
+st.title("Análisis de Historial de Conversaciones")
 
-def calculate_cost_split(row):
-    """
-    Calcula el desglose de costos (input vs output) basado en Tokens y Lista de Precios.
-    """
-    try:
-        input_tok = float(row.get('input_tokens', 0) or 0)
-        output_tok = float(row.get('output_tokens', 0) or 0)
-    except ValueError:
-        input_tok = 0.0
-        output_tok = 0.0
+tabs = st.tabs(["Análisis de Conversaciones", "Evaluación RAGAS"])
 
-    model = row.get('model_used')
+# --------------------------- TAB 1: RAGAS --------------------------- #
+with tabs[1]:
+    st.subheader("Evaluación RAGAS — Salud del sistema MCP")
 
-    # Corrección: Eliminada la referencia a "default" para evitar KeyError.
-    # Si el modelo no existe, se usa un dict vacío que resultará en costos 0.
-    # Opcional: Podrías poner MODEL_PRICING.get("gpt-4o") si quisieras un fallback específico.
-    pricing = MODEL_PRICING.get(model, {})
+    state = evaluator.state
+    progress_info = get_window_progress()
 
-    price_in = pricing.get("input", 0.0)
-    price_out = pricing.get("output", 0.0)
-
-    theoretical_cost_in = (input_tok / 1_000_000) * price_in
-    theoretical_cost_out = (output_tok / 1_000_000) * price_out
-    
-    return theoretical_cost_in, theoretical_cost_out
-
-if data:
-    def preprocess_docs(_docs):
-        processed_docs = []
-        for doc in _docs:
-            row_data = {
-                'session_id': doc.get('session_id'),
-                'question': doc.get('question'),
-                'answer': doc.get('answer'),
-                'timestamp': doc.get('timestamp'),
-                'input_tokens': doc.get('input_tokens', 0),
-                'output_tokens': doc.get('output_tokens', 0),
-                'total_tokens': doc.get('total_tokens', 0),
-                'estimated_cost': doc.get('estimated_cost', 0.0),
-                'response_time': doc.get('duration_seconds', 0.0),
-                'tokens_per_second': doc.get('tokens_per_second', 0.0),
-                'model_used': doc.get('model_used')
-            }
-            processed_docs.append(row_data)
-        df = pd.DataFrame(processed_docs)
-
-        # Aplicamos la función segura
-        cost_splits = df.apply(calculate_cost_split, axis=1, result_type='expand')
-        df['cost_input'] = cost_splits[0]
-        df['cost_output'] = cost_splits[1]
-        
-        df['cost'] = df['estimated_cost']
-
-        df['full_date'] = pd.to_datetime(df['timestamp'], utc=True, errors='coerce')
-        tz = pytz.timezone("America/Hermosillo")
-        df['full_date'] = df['full_date'].dt.tz_convert(tz)
-
-        df['date'] = df['full_date'].dt.date
-        df['year'] = df['full_date'].dt.year
-        df['month'] = df['full_date'].dt.month
-        df['day'] = df['full_date'].dt.day
-        df['hour'] = df['full_date'].dt.hour
-
-        df['word_count_question'] = df['question'].apply(lambda x: len(word_tokenize(x)) if isinstance(x, str) else 0)
-        df['word_count_answer'] = df['answer'].apply(lambda x: len(word_tokenize(x)) if isinstance(x, str) else 0)
-
-        return df
-    
-    df = preprocess_docs(data)
-
-    st.sidebar.header("Tabla de Contenidos")
-    st.sidebar.markdown("[Tabla de Conversaciones](#tabla-de-conversaciones)")
-    st.sidebar.markdown("[Tópicos más frecuentes](#topicos-mas-frecuentes)")
-    st.sidebar.markdown("[Consultas en el tiempo](#consultas-en-el-tiempo)")
-    st.sidebar.markdown("[Frecuencia por hora del día](#frecuencia-por-hora-del-dia)")
-    st.sidebar.markdown("[Análisis de respuestas del asistente](#anlisis-de-respuestas-del-asistente)")
-
-    def preprocess(corpus):
-        processed_corpus = []
-        for text in corpus:
-            if isinstance(text, str):
-                doc = nlp(text.lower())
-                tokens = [
-                    token.lemma_
-                    for token in doc
-                    if not token.is_stop and token.is_alpha
-                ]
-                processed_corpus.append(' '.join(tokens))
-            else:
-                processed_corpus.append('')
-        return processed_corpus
-    
-    def get_top_topics(corpus, n=1):
-        try:
-            if not corpus:
-                return []
-            non_empty_corpus = [doc for doc in corpus if isinstance(doc, str) and doc.strip()]
-            if not non_empty_corpus:
-                return []
-
-            vectorizer = CountVectorizer(ngram_range=(n,n),
-                                         max_features=1000).fit(non_empty_corpus)
-            bow = vectorizer.transform(non_empty_corpus)
-            sum_words = bow.sum(axis=0)
-            words_freq = [(word, sum_words[0, idx]) for word, idx in vectorizer.vocabulary_.items()]
-            return sorted(words_freq, key=lambda x: x[1], reverse=True)[:12]
-        except Exception as e:
-            st.error(f"Error al obtener los tópicos: {e}")
-            return []
-
-    st.header("Tabla de Conversaciones")
-
-    df_conversations = df[df['question'].notna() & df['question'].str.strip().astype(bool)].copy()
-
-    search_term = st.text_input("Filtrar por palabra clave en la pregunta (vacío para mostrar todo)")
-
-    threshold = 90
-
-    if search_term:
-        df_filtered = df_conversations[
-            df_conversations['question'].apply(
-                lambda x: fuzz.partial_ratio(search_term.lower(), str(x).lower()) >= threshold
-            )
-        ].copy()
-    else:
-        df_filtered = df_conversations.copy()
-
-    if not df_filtered.empty:
-        df_display = df_filtered[['full_date', 'question']].copy()
-        df_display.rename(columns={'full_date': 'Fecha y Hora', 'question': 'Pregunta del Usuario'}, inplace=True)
-        st.dataframe(df_display, use_container_width=True)
-    else:
-        st.info("No hay conversaciones para mostrar con los filtros seleccionados.")
-
-    st.header("Tópicos más frecuentes")
-    
-    df_human_questions = df[df['question'].notna() & df['question'].str.strip().astype(bool)].copy()
-    
-    if not df_human_questions.empty:
-        corpus = preprocess(df_human_questions['question'].tolist())
-        for n in [1, 2]:
-            top = get_top_topics(corpus, n)
-            if top:
-                label = f"{n}-grama" if n == 1 else f"{n}-gramas"
-                df_top = pd.DataFrame(top, columns=[label, 'Frecuencia'])
-    
-                fig = px.bar(df_top, x = 'Frecuencia', y = label, 
-                                orientation='h', 
-                                color='Frecuencia',
-                                color_continuous_scale= ["#6BAED6", "#4292C6", "#2171B5", "#08519C", "#08306B"],
-                                title=f"{'Búsquedas más frecuentes del mes' if time_filter_mode == 'Análisis por mes' else 'Búsquedas más frecuentes del año'}")
-                fig.update_layout(yaxis={'categoryorder':'total ascending'})
-                st.plotly_chart(fig, use_container_width=True)
-    
-        st.header("Consultas en el tiempo")
-        
-        unique_users_count = df_human_questions['session_id'].nunique()
-        consultas_mean = df_human_questions.shape[0] / unique_users_count if unique_users_count > 0 else 0
-
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric(f"Consultas totales en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}",
-                      df_human_questions.shape[0])
-        with col2:
-            st.metric(f"Promedio de consultas por usuario único", round(consultas_mean, 2))
-    
-        if time_filter_mode == 'Análisis por mes':
-            df_time = (
-                df_human_questions
-                .groupby(df_human_questions['full_date'].dt.date)
-                .size()
-                .reset_index(name='count')
-                .rename(columns={'full_date': 'date'})
-            )
-            df_time['date'] = pd.to_datetime(df_time['date'])
-            date_format = "%Y-%m-%d"
-            title_suffix = f"a lo largo del mes"
+    # ---- Estado actual ----
+    st.markdown("### 📊 Estado Actual")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        if state.last_score is not None:
+            st.metric("⭐ Score más reciente", f"{state.last_score:.4f}")
         else:
-            df_time = (
+            st.metric("⭐ Score más reciente", "Sin evaluar")
+    with c2:
+        last_date = (
+            state.last_evaluated_at.strftime("%Y-%m-%d %H:%M:%S")
+            if state.last_evaluated_at else "N/A"
+        )
+        st.metric("Última evaluación", last_date)
+    with c3:
+        st.metric("Ventanas completadas", len(state.history))
+
+    # Progreso interno (acumulado en la ventana actual)
+    in_curr = progress_info.get("evaluated", 0) if state.history else 0
+    st.markdown(
+        f"**Mensajes acumulados en la ventana actual:** {in_curr}/{WINDOW_SIZE}"
+    )
+    st.progress(get_progress_bar_value())
+
+    # ---- Métricas de la última ventana ----
+    st.markdown("### 📈 Métricas de la última ventana")
+    if state.last_averages:
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Faithfulness",      f"{state.last_averages.get('faithfulness', 0):.3f}")
+        m2.metric("Answer Relevancy",  f"{state.last_averages.get('answer_relevancy', 0):.3f}")
+        m3.metric("Context Precision", f"{state.last_averages.get('context_precision', 0):.3f}")
+        m4.metric("Context Recall",    f"{state.last_averages.get('context_recall', 0):.3f}")
+    else:
+        st.info("Aún no se ha completado ninguna ventana de 10 mensajes.")
+
+    # ---- Histórico ----
+    st.markdown("### 📜 Histórico de ventanas evaluadas")
+    history_data = get_history_data()
+
+    if history_data:
+        df_history = pd.DataFrame(history_data)
+        st.dataframe(df_history, use_container_width=True)
+
+        fig_scores = go.Figure()
+        fig_scores.add_trace(go.Scatter(
+            x=df_history["Evaluado el"],
+            y=df_history["Final Score"],
+            mode="lines+markers",
+            name="Final Score",
+            line=dict(color="#2E86AB", width=2),
+        ))
+        fig_scores.update_layout(
+            title="Final Score por ventana evaluada",
+            xaxis_title="Fecha", yaxis_title="Score",
+            yaxis=dict(range=[0, 1]),
+        )
+        st.plotly_chart(fig_scores, use_container_width=True)
+
+        # Comparativa de las 4 métricas
+        fig_metrics = go.Figure()
+        for col, color in [
+            ("Faithfulness",      "#2E86AB"),
+            ("Answer Relevancy",  "#A23B72"),
+            ("Context Precision", "#F18F01"),
+            ("Context Recall",    "#C73E1D"),
+        ]:
+            fig_metrics.add_trace(go.Scatter(
+                x=df_history["Evaluado el"], y=df_history[col],
+                mode="lines+markers", name=col,
+                line=dict(color=color, width=2),
+            ))
+        fig_metrics.update_layout(
+            title="Métricas individuales por ventana",
+            xaxis_title="Fecha", yaxis_title="Score",
+            yaxis=dict(range=[0, 1]),
+        )
+        st.plotly_chart(fig_metrics, use_container_width=True)
+    else:
+        st.info("Todavía no hay ventanas evaluadas en el historial.")
+
+    # ---- Acción manual ----
+    st.markdown("### 🔧 Acciones")
+    if st.button(
+        "Forzar evaluación de la siguiente ventana",
+        type="primary", use_container_width=True, key="force_window",
+    ):
+        try:
+            with st.spinner("⏳ Evaluando la siguiente ventana de 10 mensajes…"):
+                results = asyncio.run(
+                    evaluator.evaluate_batch(mode="sliding")
+                )
+            if results:
+                st.success(f"✅ {len(results)} documentos evaluados.")
+                # Forzar recarga del evaluator (relee eval_state.json)
+                evaluator.state = evaluator._load_state()
+                st.rerun()
+            else:
+                st.info(
+                    f"ℹ️ No hay suficientes mensajes nuevos "
+                    f"(se requieren ≥ {WINDOW_SIZE})."
+                )
+        except Exception as e:
+            st.error(f"❌ Error durante la evaluación: {e}")
+            logger.exception("Error forzando ventana")
+
+    st.info(
+        f"**Sistema de Ventana Deslizante:**\n"
+        f"- El evaluador procesa **{WINDOW_SIZE} documentos por ventana**.\n"
+        f"- Si hay menos de {WINDOW_SIZE} mensajes nuevos, no se reevalúa "
+        f"para ahorrar tokens.\n"
+        f"- El cursor persiste en `{evaluator.state_file}`.\n"
+        f"- Solo se evalúan mensajes nuevos (posteriores al último evaluado)."
+    )
+
+# --------------------------- TAB 0: DASHBOARD --------------------------- #
+with tabs[0]:
+    st.subheader("Análisis de Historial de Conversaciones")
+
+    # ⬇⬇⬇  TODO TU DASHBOARD ACTUAL VA AQUÍ INDENTADO  ⬇⬇⬇
+    # (desde `def get_available_years_from_db(...)` hasta el final del archivo)
+
+    def get_available_years_from_db(_coleccion):
+        try:
+            pipeline = [
+                {"$project": {"year": {"$year": "$timestamp"}}},
+                {"$group": {"_id": "$year"}},
+                {"$sort": {"_id": 1}}
+            ]
+            years = [doc['_id'] for doc in _coleccion.aggregate(pipeline)]
+            return sorted(list(set(years)))
+        except Exception as e:
+            st.error(f"Error al obtener años disponibles de la base de datos: {e}")
+            return []
+        
+    def get_available_months_from_db(_coleccion, year):
+        try:
+            hermosillo_tz = pytz.timezone("America/Hermosillo")
+
+            start_of_year_hermosillo = hermosillo_tz.localize(datetime(year, 1, 1, 0, 0, 0, 0))
+            end_of_year_hermosillo = hermosillo_tz.localize(datetime(year + 1, 1, 1, 0, 0, 0, 0))
+
+            pipeline = [
+                {"$match": {
+                    "timestamp": {
+                        "$gte": start_of_year_hermosillo,
+                        "$lt": end_of_year_hermosillo
+                    }
+                }},
+                {"$project": {"month": {"$month": "$timestamp"}}},
+                {"$group": {"_id": "$month"}},
+                {"$sort": {"_id": 1}}
+            ]
+            months = [doc['_id'] for doc in _coleccion.aggregate(pipeline)]
+            return sorted(list(set(months)))
+        except Exception as e:
+            st.error(f"Error al obtener meses disponibles de la base de datos: {e}")
+            return []
+        
+    st.sidebar.header("Configuración de Filtros")
+    time_filter_mode = st.sidebar.radio(
+        "Modo de Filtro de Tiempo",
+        ['Análisis por año', 'Análisis por mes'],
+        )
+    selected_year = None
+    available_years = get_available_years_from_db(coleccion)
+
+    if available_years:
+        selected_year = st.sidebar.selectbox(
+            "Selecciona un Año",
+            options=available_years,
+            index=len(available_years) - 1
+        )
+
+    query_filter = {}
+    selected_month = None
+    selected_month_name = None
+    hermosillo_tz = pytz.timezone("America/Hermosillo")
+
+    if time_filter_mode == 'Análisis por mes':
+        if selected_year:
+            available_months = get_available_months_from_db(coleccion, selected_year)
+            month_names_map = {
+                1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+                5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+                9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+            }
+
+            if available_months:
+                available_months_names = [month_names_map[m] for m in available_months]
+                selected_month_name = st.sidebar.selectbox(
+                    "Selecciona un Mes",
+                    options=available_months_names,
+                    index=len(available_months_names) - 1
+                )
+                selected_month = {
+                    v: k for k, v in month_names_map.items()
+                }.get(selected_month_name, None)
+
+    start_date_dt = None
+    end_date_dt = None
+
+    if selected_year:
+        if time_filter_mode == 'Análisis por año':
+            start_date_dt = hermosillo_tz.localize(datetime(selected_year, 1, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
+            end_date_dt = hermosillo_tz.localize(datetime(selected_year + 1, 1, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
+
+        elif time_filter_mode == 'Análisis por mes' and selected_month:
+            start_date_dt = hermosillo_tz.localize(datetime(selected_year, selected_month, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
+
+            if selected_month == 12:
+                end_date_dt = hermosillo_tz.localize(datetime(selected_year + 1, 1, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
+            else:
+                end_date_dt = hermosillo_tz.localize(datetime(selected_year, selected_month + 1, 1, 0, 0, 0, 0)).astimezone(pytz.utc)
+
+    if start_date_dt and end_date_dt:
+        query_filter = {
+            "timestamp": {
+                "$gte": start_date_dt,
+                "$lt": end_date_dt
+            }
+        }
+
+    try:
+        all_users = coleccion.distinct('session_id', query_filter)
+    except Exception as e:
+        st.error(f"Error al obtener la lista de usuarios: {e}")
+        all_users = []
+
+    selected_users = st.sidebar.multiselect(
+        "Selecciona usuarios para incluir o excluir",
+        options=sorted(all_users),
+        default=[]
+    )
+
+    user_filter_mode = st.sidebar.radio(
+        "Modo de filtro de usuario",
+        ['Excluir', 'Incluir'],
+        index=0
+    )
+
+    if selected_users:
+        if user_filter_mode == 'Excluir':
+            query_filter.setdefault('session_id', {})['$nin'] = selected_users
+        else:
+            query_filter.setdefault('session_id', {})['$in'] = selected_users
+
+    def fetch_messages_from_db(_coleccion, query_filter):
+        try:
+            if not query_filter.get("timestamp"):
+                st.warning("No se ha seleccionado un rango de fechas válido. Por favor, elige un año y/o mes.")
+                return []
+
+            messages = list(_coleccion.find(query_filter))
+            if not messages:
+                st.warning("No se encontraron mensajes para el filtro seleccionado.")
+            return messages
+        except Exception as e:
+            st.error(f"Error al obtener mensajes de la base de datos: {e}")
+            return []
+        
+    data = fetch_messages_from_db(coleccion, query_filter)
+
+    def calculate_cost_split(row):
+        """
+        Calcula el desglose de costos (input vs output) basado en Tokens y Lista de Precios.
+        """
+        try:
+            input_tok = float(row.get('input_tokens', 0) or 0)
+            output_tok = float(row.get('output_tokens', 0) or 0)
+        except ValueError:
+            input_tok = 0.0
+            output_tok = 0.0
+
+        model = row.get('model_used')
+
+        # Corrección: Eliminada la referencia a "default" para evitar KeyError.
+        # Si el modelo no existe, se usa un dict vacío que resultará en costos 0.
+        # Opcional: Podrías poner MODEL_PRICING.get("gpt-4o") si quisieras un fallback específico.
+        pricing = MODEL_PRICING.get(model, {})
+
+        price_in = pricing.get("input", 0.0)
+        price_out = pricing.get("output", 0.0)
+
+        theoretical_cost_in = (input_tok / 1_000_000) * price_in
+        theoretical_cost_out = (output_tok / 1_000_000) * price_out
+        
+        return theoretical_cost_in, theoretical_cost_out
+
+    if data:
+        def preprocess_docs(_docs):
+            processed_docs = []
+            for doc in _docs:
+                row_data = {
+                    'session_id': doc.get('session_id'),
+                    'question': doc.get('question'),
+                    'answer': doc.get('answer'),
+                    'timestamp': doc.get('timestamp'),
+                    'input_tokens': doc.get('input_tokens', 0),
+                    'output_tokens': doc.get('output_tokens', 0),
+                    'total_tokens': doc.get('total_tokens', 0),
+                    'estimated_cost': doc.get('estimated_cost', 0.0),
+                    'response_time': doc.get('duration_seconds', 0.0),
+                    'tokens_per_second': doc.get('tokens_per_second', 0.0),
+                    'model_used': doc.get('model_used')
+                }
+                processed_docs.append(row_data)
+            df = pd.DataFrame(processed_docs)
+
+            # Aplicamos la función segura
+            cost_splits = df.apply(calculate_cost_split, axis=1, result_type='expand')
+            df['cost_input'] = cost_splits[0]
+            df['cost_output'] = cost_splits[1]
+            
+            df['cost'] = df['estimated_cost']
+
+            df['full_date'] = pd.to_datetime(df['timestamp'], utc=True, errors='coerce')
+            tz = pytz.timezone("America/Hermosillo")
+            df['full_date'] = df['full_date'].dt.tz_convert(tz)
+
+            df['date'] = df['full_date'].dt.date
+            df['year'] = df['full_date'].dt.year
+            df['month'] = df['full_date'].dt.month
+            df['day'] = df['full_date'].dt.day
+            df['hour'] = df['full_date'].dt.hour
+
+            df['word_count_question'] = df['question'].apply(lambda x: len(word_tokenize(x)) if isinstance(x, str) else 0)
+            df['word_count_answer'] = df['answer'].apply(lambda x: len(word_tokenize(x)) if isinstance(x, str) else 0)
+
+            return df
+        
+        df = preprocess_docs(data)
+
+        st.sidebar.header("Tabla de Contenidos")
+        st.sidebar.markdown("[Tabla de Conversaciones](#tabla-de-conversaciones)")
+        st.sidebar.markdown("[Tópicos más frecuentes](#topicos-mas-frecuentes)")
+        st.sidebar.markdown("[Consultas en el tiempo](#consultas-en-el-tiempo)")
+        st.sidebar.markdown("[Frecuencia por hora del día](#frecuencia-por-hora-del-dia)")
+        st.sidebar.markdown("[Análisis de respuestas del asistente](#anlisis-de-respuestas-del-asistente)")
+
+        def preprocess(corpus):
+            processed_corpus = []
+            for text in corpus:
+                if isinstance(text, str):
+                    doc = nlp(text.lower())
+                    tokens = [
+                        token.lemma_
+                        for token in doc
+                        if not token.is_stop and token.is_alpha
+                    ]
+                    processed_corpus.append(' '.join(tokens))
+                else:
+                    processed_corpus.append('')
+            return processed_corpus
+        
+        def get_top_topics(corpus, n=1):
+            try:
+                if not corpus:
+                    return []
+                non_empty_corpus = [doc for doc in corpus if isinstance(doc, str) and doc.strip()]
+                if not non_empty_corpus:
+                    return []
+
+                vectorizer = CountVectorizer(ngram_range=(n,n),
+                                            max_features=1000).fit(non_empty_corpus)
+                bow = vectorizer.transform(non_empty_corpus)
+                sum_words = bow.sum(axis=0)
+                words_freq = [(word, sum_words[0, idx]) for word, idx in vectorizer.vocabulary_.items()]
+                return sorted(words_freq, key=lambda x: x[1], reverse=True)[:12]
+            except Exception as e:
+                st.error(f"Error al obtener los tópicos: {e}")
+                return []
+
+        st.header("Tabla de Conversaciones")
+
+        df_conversations = df[df['question'].notna() & df['question'].str.strip().astype(bool)].copy()
+
+        search_term = st.text_input("Filtrar por palabra clave en la pregunta (vacío para mostrar todo)")
+
+        threshold = 90
+
+        if search_term:
+            df_filtered = df_conversations[
+                df_conversations['question'].apply(
+                    lambda x: fuzz.partial_ratio(search_term.lower(), str(x).lower()) >= threshold
+                )
+            ].copy()
+        else:
+            df_filtered = df_conversations.copy()
+
+        if not df_filtered.empty:
+            df_display = df_filtered[['full_date', 'question']].copy()
+            df_display.rename(columns={'full_date': 'Fecha y Hora', 'question': 'Pregunta del Usuario'}, inplace=True)
+            st.dataframe(df_display, use_container_width=True)
+        else:
+            st.info("No hay conversaciones para mostrar con los filtros seleccionados.")
+
+        st.header("Tópicos más frecuentes")
+        
+        df_human_questions = df[df['question'].notna() & df['question'].str.strip().astype(bool)].copy()
+        
+        if not df_human_questions.empty:
+            corpus = preprocess(df_human_questions['question'].tolist())
+            for n in [1, 2]:
+                top = get_top_topics(corpus, n)
+                if top:
+                    label = f"{n}-grama" if n == 1 else f"{n}-gramas"
+                    df_top = pd.DataFrame(top, columns=[label, 'Frecuencia'])
+        
+                    fig = px.bar(df_top, x = 'Frecuencia', y = label, 
+                                    orientation='h', 
+                                    color='Frecuencia',
+                                    color_continuous_scale= ["#6BAED6", "#4292C6", "#2171B5", "#08519C", "#08306B"],
+                                    title=f"{'Búsquedas más frecuentes del mes' if time_filter_mode == 'Análisis por mes' else 'Búsquedas más frecuentes del año'}")
+                    fig.update_layout(yaxis={'categoryorder':'total ascending'})
+                    st.plotly_chart(fig, use_container_width=True)
+        
+            st.header("Consultas en el tiempo")
+            
+            unique_users_count = df_human_questions['session_id'].nunique()
+            consultas_mean = df_human_questions.shape[0] / unique_users_count if unique_users_count > 0 else 0
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric(f"Consultas totales en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}",
+                        df_human_questions.shape[0])
+            with col2:
+                st.metric(f"Promedio de consultas por usuario único", round(consultas_mean, 2))
+        
+            if time_filter_mode == 'Análisis por mes':
+                df_time = (
+                    df_human_questions
+                    .groupby(df_human_questions['full_date'].dt.date)
+                    .size()
+                    .reset_index(name='count')
+                    .rename(columns={'full_date': 'date'})
+                )
+                df_time['date'] = pd.to_datetime(df_time['date'])
+                date_format = "%Y-%m-%d"
+                title_suffix = f"a lo largo del mes"
+            else:
+                df_time = (
+                    df_human_questions
+                    .groupby(df_human_questions['full_date'].dt.to_period('M'))
+                    .size()
+                    .reset_index(name='count')
+                    .rename(columns={'full_date': 'date'})
+                )
+                df_time['date'] = df_time['date'].dt.to_timestamp()
+                date_format = "%Y-%m"
+                title_suffix = f"a lo largo del año"
+                
+            promedio_diario_real = 0
+            if start_date_dt and end_date_dt:
+                num_dias_en_periodo = (end_date_dt.date() - start_date_dt.date()).days
+                if num_dias_en_periodo > 0:
+                    promedio_diario_real = df_human_questions.shape[0] / num_dias_en_periodo
+
+            if not df_time.empty:
+                mean = promedio_diario_real
+                std = df_time['count'].std()
+        
+                usar_media_movil = time_filter_mode == "Análisis por mes" and len(df_time) >= 14
+        
+                fig = go.Figure()
+        
+                fig.add_trace(go.Scatter(
+                    x=df_time['date'],
+                    y=df_time['count'],
+                    mode='lines+markers',
+                    name='Consultas',
+                    line=dict(color='#1f77b4')
+                ))
+        
+                if usar_media_movil:
+                    rolling_mean = df_time['count'].rolling(window=7, min_periods=1).mean()
+        
+                    fig.add_trace(go.Scatter(
+                        x=df_time['date'],
+                        y=rolling_mean - std,
+                        mode='lines',
+                        name='Media Móvil - STD',
+                        line=dict(width=0),
+                        showlegend=False
+                    ))
+        
+                    fig.add_trace(go.Scatter(
+                        x=df_time['date'],
+                        y=rolling_mean + std,
+                        mode='lines',
+                        name='Media Móvil + STD',
+                        fill='tonexty',
+                        fillcolor='rgba(31, 119, 180, 0.1)',
+                        line=dict(width=0),
+                        showlegend=False
+                    ))
+                elif len(df_time) > 1 and std > 0:
+                    fig.add_trace(go.Scatter(
+                        x=df_time['date'],
+                        y=df_time['count'] + std,
+                        mode='lines',
+                        line=dict(width=0),
+                        showlegend=False
+                    ))
+        
+                    fig.add_trace(go.Scatter(
+                        x=df_time['date'],
+                        y=df_time['count'] - std,
+                        mode='lines',
+                        fill='tonexty',
+                        fillcolor='rgba(0,0,255,0.1)',
+                        line=dict(width=0),
+                        showlegend=False
+                    ))
+        
+                if mean is not None and not np.isnan(mean) and mean > 0:
+                    fig.add_trace(go.Scatter(
+                        x=df_time['date'],
+                        y=[mean] * len(df_time),
+                        mode='lines',
+                        name='Media Diaria Real',
+                        line=dict(dash='dash', color='red')
+                    ))
+        
+                fig.update_layout(
+                    title=f"Consultas {title_suffix}",
+                    xaxis_title="Fecha",
+                    yaxis_title="Cantidad de Consultas",
+                    xaxis=dict(
+                        tickformat=date_format,
+                        tickangle=0
+                    ),
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        xanchor="right",
+                        x=1
+                    )
+                )
+        
+                st.plotly_chart(fig, use_container_width=True)
+        
+            st.header("Frecuencia por hora del día")
+            df_hourly = (
                 df_human_questions
-                .groupby(df_human_questions['full_date'].dt.to_period('M'))
+                .groupby(df_human_questions['full_date'].dt.hour)
                 .size()
                 .reset_index(name='count')
-                .rename(columns={'full_date': 'date'})
+                .rename(columns={'full_date': 'hour'})
             )
-            df_time['date'] = df_time['date'].dt.to_timestamp()
-            date_format = "%Y-%m"
-            title_suffix = f"a lo largo del año"
-            
-        promedio_diario_real = 0
-        if start_date_dt and end_date_dt:
-            num_dias_en_periodo = (end_date_dt.date() - start_date_dt.date()).days
-            if num_dias_en_periodo > 0:
-                promedio_diario_real = df_human_questions.shape[0] / num_dias_en_periodo
-
-        if not df_time.empty:
-            mean = promedio_diario_real
-            std = df_time['count'].std()
-    
-            usar_media_movil = time_filter_mode == "Análisis por mes" and len(df_time) >= 14
-    
-            fig = go.Figure()
-    
-            fig.add_trace(go.Scatter(
-                x=df_time['date'],
-                y=df_time['count'],
-                mode='lines+markers',
-                name='Consultas',
-                line=dict(color='#1f77b4')
-            ))
-    
-            if usar_media_movil:
-                rolling_mean = df_time['count'].rolling(window=7, min_periods=1).mean()
-    
-                fig.add_trace(go.Scatter(
-                    x=df_time['date'],
-                    y=rolling_mean - std,
-                    mode='lines',
-                    name='Media Móvil - STD',
-                    line=dict(width=0),
-                    showlegend=False
-                ))
-    
-                fig.add_trace(go.Scatter(
-                    x=df_time['date'],
-                    y=rolling_mean + std,
-                    mode='lines',
-                    name='Media Móvil + STD',
-                    fill='tonexty',
-                    fillcolor='rgba(31, 119, 180, 0.1)',
-                    line=dict(width=0),
-                    showlegend=False
-                ))
-            elif len(df_time) > 1 and std > 0:
-                fig.add_trace(go.Scatter(
-                    x=df_time['date'],
-                    y=df_time['count'] + std,
-                    mode='lines',
-                    line=dict(width=0),
-                    showlegend=False
-                ))
-    
-                fig.add_trace(go.Scatter(
-                    x=df_time['date'],
-                    y=df_time['count'] - std,
-                    mode='lines',
-                    fill='tonexty',
-                    fillcolor='rgba(0,0,255,0.1)',
-                    line=dict(width=0),
-                    showlegend=False
-                ))
-    
-            if mean is not None and not np.isnan(mean) and mean > 0:
-                fig.add_trace(go.Scatter(
-                    x=df_time['date'],
-                    y=[mean] * len(df_time),
-                    mode='lines',
-                    name='Media Diaria Real',
-                    line=dict(dash='dash', color='red')
-                ))
-    
-            fig.update_layout(
-                title=f"Consultas {title_suffix}",
-                xaxis_title="Fecha",
-                yaxis_title="Cantidad de Consultas",
-                xaxis=dict(
-                    tickformat=date_format,
-                    tickangle=0
-                ),
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    xanchor="right",
-                    x=1
-                )
-            )
-    
-            st.plotly_chart(fig, use_container_width=True)
-    
-        st.header("Frecuencia por hora del día")
-        df_hourly = (
-            df_human_questions
-            .groupby(df_human_questions['full_date'].dt.hour)
-            .size()
-            .reset_index(name='count')
-            .rename(columns={'full_date': 'hour'})
-        )
-    
-        if not df_hourly.empty:
-            all_hours = list(range(24))
-            df_hourly = df_hourly.set_index('hour').reindex(all_hours, fill_value=0).reset_index()
-    
-            mean = df_hourly['count'].mean()
-            std = df_hourly['count'].std()
-    
-            fig = go.Figure()
-    
-            fig.add_trace(go.Scatter(
-                x=df_hourly['hour'],
-                y=df_hourly['count'],
-                mode='lines+markers',
-                name='Consultas',
-                line=dict(color='#1f77b4')
-            ))
-    
-            if std > 0:
+        
+            if not df_hourly.empty:
+                all_hours = list(range(24))
+                df_hourly = df_hourly.set_index('hour').reindex(all_hours, fill_value=0).reset_index()
+        
+                mean = df_hourly['count'].mean()
+                std = df_hourly['count'].std()
+        
+                fig = go.Figure()
+        
                 fig.add_trace(go.Scatter(
                     x=df_hourly['hour'],
-                    y=df_hourly['count'] + std,
-                    mode='lines',
-                    line=dict(width=0),
-                    showlegend=False
+                    y=df_hourly['count'],
+                    mode='lines+markers',
+                    name='Consultas',
+                    line=dict(color='#1f77b4')
                 ))
-    
-                fig.add_trace(go.Scatter(
-                    x=df_hourly['hour'],
-                    y=df_hourly['count'] - std,
-                    mode='lines',
-                    fill='tonexty',
-                    fillcolor='rgba(31, 119, 180, 0.1)',
-                    line=dict(width=0),
-                    showlegend=False
-                ))
-            if mean is not None and not np.isnan(mean):
-                fig.add_trace(go.Scatter
-                    (x=df_hourly['hour'],
-                     y=[mean] * len(df_hourly),
-                     mode='lines',
-                     name='Media',
-                     line=dict(dash='dash', color='red')))
-            
-            periodo_str = "del mes" if time_filter_mode == 'Análisis por mes' else "del año"
-            title = f"Distribución de consultas por hora ({periodo_str})"
-            
-            fig.update_layout(
-                title = title,
-                xaxis_title = "Hora del día",
-                yaxis_title = "Cantidad de Consultas",
-                xaxis = dict(
-                    tickmode = 'linear',
-                    tickvals = df_hourly['hour'],
-                    dtick = 1
-                ),
-                legend = dict(
-                    orientation = "h",
-                    yanchor = "bottom",
-                    y = 1.02,
-                    xanchor = "right",
-                    x = 1
-                )
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    
-        st.header("Análisis de respuestas del asistente")
-    
-        df_bot_answers = df[df['answer'].notna() & df['answer'].str.strip().astype(bool)].copy()
-    
-        if not df_bot_answers.empty:
-            if df_bot_answers['word_count_answer'].sum() > 0:
-                fig = px.histogram(
-                    df_bot_answers,
-                    x='word_count_answer',
-                    nbins=30,
-                    title="Distribución de la cantidad de palabras en las respuestas",
-                    labels={'word_count_answer': 'Cantidad de Palabras'},
-                    color_discrete_sequence=["#6BAED6"]
-                )
+        
+                if std > 0:
+                    fig.add_trace(go.Scatter(
+                        x=df_hourly['hour'],
+                        y=df_hourly['count'] + std,
+                        mode='lines',
+                        line=dict(width=0),
+                        showlegend=False
+                    ))
+        
+                    fig.add_trace(go.Scatter(
+                        x=df_hourly['hour'],
+                        y=df_hourly['count'] - std,
+                        mode='lines',
+                        fill='tonexty',
+                        fillcolor='rgba(31, 119, 180, 0.1)',
+                        line=dict(width=0),
+                        showlegend=False
+                    ))
+                if mean is not None and not np.isnan(mean):
+                    fig.add_trace(go.Scatter
+                        (x=df_hourly['hour'],
+                        y=[mean] * len(df_hourly),
+                        mode='lines',
+                        name='Media',
+                        line=dict(dash='dash', color='red')))
+                
+                periodo_str = "del mes" if time_filter_mode == 'Análisis por mes' else "del año"
+                title = f"Distribución de consultas por hora ({periodo_str})"
+                
                 fig.update_layout(
-                    xaxis_title="Cantidad de Palabras",
-                    yaxis_title="Frecuencia",
-                    bargap=0.2
-                )
-                fig.update_traces(marker= dict(opacity=0.7))
-    
-                avg_words = df_bot_answers['word_count_answer'].mean()
-    
-                fig.add_vline(
-                    x=avg_words,
-                    line_width=2,
-                    line_dash="dash",
-                    line_color="red",
-                    annotation_text=f"Promedio: {avg_words:.2f} palabras",
-                    annotation_position="top left"
+                    title = title,
+                    xaxis_title = "Hora del día",
+                    yaxis_title = "Cantidad de Consultas",
+                    xaxis = dict(
+                        tickmode = 'linear',
+                        tickvals = df_hourly['hour'],
+                        dtick = 1
+                    ),
+                    legend = dict(
+                        orientation = "h",
+                        yanchor = "bottom",
+                        y = 1.02,
+                        xanchor = "right",
+                        x = 1
+                    )
                 )
                 st.plotly_chart(fig, use_container_width=True)
-    
-                min_words = df_bot_answers['word_count_answer'].min()
-                max_words = df_bot_answers['word_count_answer'].max()
-    
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Longitud promedio", f"{round(avg_words):,.0f}")
-                with col2:
-                    st.metric("Longitud mínima", f"{min_words}")
-                with col3:
-                    st.metric("Longitud máxima", f"{max_words}")
-    
-            if 'total_tokens' in df_bot_answers.columns and df_bot_answers['total_tokens'].sum() > 0:
-                st.subheader("Tokens y costos")
-    
-                total_tokens_periodo = df_bot_answers['total_tokens'].sum()
-    
-                st.metric(f"Tokens totales en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}", f"{round(total_tokens_periodo):,.0f}")
-    
-                if time_filter_mode == 'Análisis por mes':
-                    df_tokens = (
-                        df_bot_answers
-                        .groupby(df_bot_answers['full_date'].dt.date)
-                        .agg({
-                            'total_tokens': 'sum',
-                            'cost': 'sum',
-                            'cost_input': 'sum',
-                            'cost_output': 'sum'
-                        })
-                        .reset_index()
-                        .rename(columns= {'full_date' : 'date'})
+        
+            st.header("Análisis de respuestas del asistente")
+        
+            df_bot_answers = df[df['answer'].notna() & df['answer'].str.strip().astype(bool)].copy()
+        
+            if not df_bot_answers.empty:
+                if df_bot_answers['word_count_answer'].sum() > 0:
+                    fig = px.histogram(
+                        df_bot_answers,
+                        x='word_count_answer',
+                        nbins=30,
+                        title="Distribución de la cantidad de palabras en las respuestas",
+                        labels={'word_count_answer': 'Cantidad de Palabras'},
+                        color_discrete_sequence=["#6BAED6"]
                     )
-                    df_tokens['date'] = pd.to_datetime(df_tokens['date'])
-                    tokens_date_format = "%Y-%m-%d"
-                    token_label = "Mensual"
-                else:
-                    df_bot_answers['year_month'] = df_bot_answers['full_date'].dt.strftime('%Y-%m')
-    
-                    df_tokens = (
-                        df_bot_answers
-                        .groupby('year_month')
-                        .agg({
-                            'total_tokens' : 'sum',
-                            'cost' : 'sum',
-                            'cost_input': 'sum',
-                            'cost_output': 'sum'
-                        }).reset_index()
+                    fig.update_layout(
+                        xaxis_title="Cantidad de Palabras",
+                        yaxis_title="Frecuencia",
+                        bargap=0.2
                     )
+                    fig.update_traces(marker= dict(opacity=0.7))
+        
+                    avg_words = df_bot_answers['word_count_answer'].mean()
+        
+                    fig.add_vline(
+                        x=avg_words,
+                        line_width=2,
+                        line_dash="dash",
+                        line_color="red",
+                        annotation_text=f"Promedio: {avg_words:.2f} palabras",
+                        annotation_position="top left"
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+        
+                    min_words = df_bot_answers['word_count_answer'].min()
+                    max_words = df_bot_answers['word_count_answer'].max()
+        
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Longitud promedio", f"{round(avg_words):,.0f}")
+                    with col2:
+                        st.metric("Longitud mínima", f"{min_words}")
+                    with col3:
+                        st.metric("Longitud máxima", f"{max_words}")
+        
+                if 'total_tokens' in df_bot_answers.columns and df_bot_answers['total_tokens'].sum() > 0:
+                    st.subheader("Tokens y costos")
+        
+                    total_tokens_periodo = df_bot_answers['total_tokens'].sum()
+        
+                    st.metric(f"Tokens totales en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}", f"{round(total_tokens_periodo):,.0f}")
+        
+                    if time_filter_mode == 'Análisis por mes':
+                        df_tokens = (
+                            df_bot_answers
+                            .groupby(df_bot_answers['full_date'].dt.date)
+                            .agg({
+                                'total_tokens': 'sum',
+                                'cost': 'sum',
+                                'cost_input': 'sum',
+                                'cost_output': 'sum'
+                            })
+                            .reset_index()
+                            .rename(columns= {'full_date' : 'date'})
+                        )
+                        df_tokens['date'] = pd.to_datetime(df_tokens['date'])
+                        tokens_date_format = "%Y-%m-%d"
+                        token_label = "Mensual"
+                    else:
+                        df_bot_answers['year_month'] = df_bot_answers['full_date'].dt.strftime('%Y-%m')
+        
+                        df_tokens = (
+                            df_bot_answers
+                            .groupby('year_month')
+                            .agg({
+                                'total_tokens' : 'sum',
+                                'cost' : 'sum',
+                                'cost_input': 'sum',
+                                'cost_output': 'sum'
+                            }).reset_index()
+                        )
+                        
+                        df_tokens['date'] = pd.to_datetime(df_tokens['year_month'] + '-01')
+                        tokens_date_format = '%Y-%m'
+                        token_label = 'Mensual'
                     
-                    df_tokens['date'] = pd.to_datetime(df_tokens['year_month'] + '-01')
-                    tokens_date_format = '%Y-%m'
-                    token_label = 'Mensual'
-                
-                promedio_diario_tokens = 0
-                if start_date_dt and end_date_dt:
-                    num_dias_en_periodo = (end_date_dt.date() - start_date_dt.date()).days
-                    if num_dias_en_periodo > 0:
-                        promedio_diario_tokens = total_tokens_periodo / num_dias_en_periodo
+                    promedio_diario_tokens = 0
+                    if start_date_dt and end_date_dt:
+                        num_dias_en_periodo = (end_date_dt.date() - start_date_dt.date()).days
+                        if num_dias_en_periodo > 0:
+                            promedio_diario_tokens = total_tokens_periodo / num_dias_en_periodo
 
-                if not df_tokens.empty:
-                    # GRAFICA DE TOKENS
-                    avg_tokens_real = promedio_diario_tokens
-                    std_tokens = df_tokens['total_tokens'].std()
-    
-                    fig1 = go.Figure()
-    
-                    fig1.add_trace(go.Scatter(
-                        x = df_tokens['date'],
-                        y = df_tokens['total_tokens'],
-                        mode = 'lines+markers',
+                    if not df_tokens.empty:
+                        # GRAFICA DE TOKENS
+                        avg_tokens_real = promedio_diario_tokens
+                        std_tokens = df_tokens['total_tokens'].std()
+        
+                        fig1 = go.Figure()
+        
+                        fig1.add_trace(go.Scatter(
+                            x = df_tokens['date'],
+                            y = df_tokens['total_tokens'],
+                            mode = 'lines+markers',
+                            line=dict(color='#1f77b4'),
+                            name='Tokens'
+                            ))
+        
+                        if std_tokens > 0:
+                            fig1.add_trace(go.Scatter(
+                                x=df_tokens['date'],
+                                y=df_tokens['total_tokens'] + std_tokens,
+                                mode = 'lines',
+                                line= dict(width=0),
+                                showlegend=False
+                            ))
+        
+                            fig1.add_trace(go.Scatter(
+                                x=df_tokens['date'],
+                                y=df_tokens['total_tokens'] - std_tokens,
+                                mode='lines',
+                                fill='tonexty',
+                                fillcolor='rgba(31, 119, 180, 0.1)',
+                                line=dict(width=0),
+                                showlegend=False
+                            ))
+        
+                        if avg_tokens_real > 0 and not np.isnan(avg_tokens_real):
+                            fig1.add_trace(go.Scatter(
+                                x=df_tokens['date'],
+                                y=[avg_tokens_real] * len(df_tokens),
+                                mode='lines',
+                                name='Media Diaria Real',
+                                line=dict(dash='dash', color='red')
+                            ))
+                        
+                        periodo_grafico_tokens = "por día" if time_filter_mode == "Análisis por mes" else "por mes"
+                        fig1.update_layout(
+                            title= f'Evolución de Tokens Totales {periodo_grafico_tokens}',
+                            xaxis_title='Fecha',
+                            yaxis_title='Cantidad de Tokens',
+                            xaxis=dict(
+                                tickformat=tokens_date_format,
+                                tickangle=0
+                            ),
+                            legend=dict(
+                                orientation='h',
+                                yanchor='bottom',
+                                y=1.02,
+                                xanchor='right',
+                                x=1
+                            )
+                        )
+        
+                        st.plotly_chart(fig1, use_container_width=True)
+                        
+                        unidad_temporal = "diario" if time_filter_mode == "Análisis por mes" else "mensual"
+                        avg_tokens_agrupado = df_tokens['total_tokens'].mean()
+                        min_tokens = df_tokens['total_tokens'].min()
+                        max_tokens = df_tokens['total_tokens'].max()
+        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric(f"Promedio {unidad_temporal} de tokens", f"{round(avg_tokens_agrupado):,.0f}")
+                        with col2:
+                            st.metric(f"Mínimo {unidad_temporal} de tokens", f"{min_tokens:,.0f}")
+                        with col3:
+                            st.metric(f"Máximo {unidad_temporal} de tokens", f"{max_tokens:,.0f}")
+        
+                if 'cost' in df_bot_answers.columns and df_bot_answers['cost'].sum() > 0:
+                    
+                    total_cost_periodo = df_bot_answers['cost'].sum()
+                    
+                    # --- MÉTRICAS DE DESGLOSE ---
+                    total_cost_input = df_bot_answers['cost_input'].sum()
+                    total_cost_output = df_bot_answers['cost_output'].sum()
+
+                    promedio_diario_costo = 0
+                    if start_date_dt and end_date_dt:
+                        num_dias_en_periodo = (end_date_dt.date() - start_date_dt.date()).days
+                        if num_dias_en_periodo > 0:
+                            promedio_diario_costo = total_cost_periodo / num_dias_en_periodo
+
+                    avg_cost_real = promedio_diario_costo
+                    std_cost = df_tokens['cost'].std()
+        
+                    # --- GRÁFICO 1: EVOLUCIÓN TOTAL (El original) ---
+                    fig2 = go.Figure()
+        
+                    fig2.add_trace(go.Scatter(
+                        x=df_tokens['date'],
+                        y=df_tokens['cost'],
+                        mode='lines+markers',
                         line=dict(color='#1f77b4'),
-                        name='Tokens'
+                        name='Costo Total'
+                    ))
+        
+                    if std_cost > 0:
+                        fig2.add_trace(go.Scatter(
+                        x = df_tokens['date'],
+                        y = df_tokens['cost'] + std_cost,
+                        mode='lines',
+                        line= dict(width=0),
+                        showlegend=False
                         ))
-    
-                    if std_tokens > 0:
-                        fig1.add_trace(go.Scatter(
+        
+                        fig2.add_trace(go.Scatter(
                             x=df_tokens['date'],
-                            y=df_tokens['total_tokens'] + std_tokens,
-                            mode = 'lines',
-                            line= dict(width=0),
-                            showlegend=False
-                        ))
-    
-                        fig1.add_trace(go.Scatter(
-                            x=df_tokens['date'],
-                            y=df_tokens['total_tokens'] - std_tokens,
+                            y=df_tokens['cost'] - std_cost,
                             mode='lines',
                             fill='tonexty',
                             fillcolor='rgba(31, 119, 180, 0.1)',
-                            line=dict(width=0),
+                            line= dict(width=0),
                             showlegend=False
                         ))
-    
-                    if avg_tokens_real > 0 and not np.isnan(avg_tokens_real):
-                        fig1.add_trace(go.Scatter(
-                            x=df_tokens['date'],
-                            y=[avg_tokens_real] * len(df_tokens),
+                        
+                    if avg_cost_real > 0 and not np.isnan(avg_cost_real):
+                        fig2.add_trace(go.Scatter(
+                            x = df_tokens['date'],
+                            y = [avg_cost_real] * len(df_tokens),
                             mode='lines',
                             name='Media Diaria Real',
                             line=dict(dash='dash', color='red')
                         ))
-                    
-                    periodo_grafico_tokens = "por día" if time_filter_mode == "Análisis por mes" else "por mes"
-                    fig1.update_layout(
-                        title= f'Evolución de Tokens Totales {periodo_grafico_tokens}',
+        
+                    periodo_grafico_costos = "por día" if time_filter_mode == "Análisis por mes" else "por mes"
+                    fig2.update_layout(
+                        title= f'Evolución de Costos Totales {periodo_grafico_costos}',
                         xaxis_title='Fecha',
-                        yaxis_title='Cantidad de Tokens',
+                        yaxis_title='Costo apróximado ($USD)',
                         xaxis=dict(
                             tickformat=tokens_date_format,
                             tickangle=0
@@ -719,187 +1006,98 @@ if data:
                             x=1
                         )
                     )
-    
-                    st.plotly_chart(fig1, use_container_width=True)
+
+                    st.plotly_chart(fig2, use_container_width=True)
                     
-                    unidad_temporal = "diario" if time_filter_mode == "Análisis por mes" else "mensual"
-                    avg_tokens_agrupado = df_tokens['total_tokens'].mean()
-                    min_tokens = df_tokens['total_tokens'].min()
-                    max_tokens = df_tokens['total_tokens'].max()
-    
+                    max_cost_agrupado = df_tokens['cost'].max()
+                    avg_cost_agrupado = df_tokens['cost'].mean()
+        
+                    # Métricas generales
                     col1, col2, col3 = st.columns(3)
                     with col1:
-                        st.metric(f"Promedio {unidad_temporal} de tokens", f"{round(avg_tokens_agrupado):,.0f}")
+                        st.metric(f"Costo total en el periodo", f"${total_cost_periodo:.4f}")
                     with col2:
-                        st.metric(f"Mínimo {unidad_temporal} de tokens", f"{min_tokens:,.0f}")
+                        st.metric(f"Costo promedio {unidad_temporal}", f"${avg_cost_agrupado:.4f}")
                     with col3:
-                        st.metric(f"Máximo {unidad_temporal} de tokens", f"{max_tokens:,.0f}")
-    
-            if 'cost' in df_bot_answers.columns and df_bot_answers['cost'].sum() > 0:
-                
-                total_cost_periodo = df_bot_answers['cost'].sum()
-                
-                # --- MÉTRICAS DE DESGLOSE ---
-                total_cost_input = df_bot_answers['cost_input'].sum()
-                total_cost_output = df_bot_answers['cost_output'].sum()
+                        st.metric(f"Costo máximo {unidad_temporal}", f"${max_cost_agrupado:.4f}")
 
-                promedio_diario_costo = 0
-                if start_date_dt and end_date_dt:
-                    num_dias_en_periodo = (end_date_dt.date() - start_date_dt.date()).days
-                    if num_dias_en_periodo > 0:
-                        promedio_diario_costo = total_cost_periodo / num_dias_en_periodo
+                    # Métricas de desglose
+                    st.markdown("##### Desglose del Costo Total")
+                    col_d1, col_d2 = st.columns(2)
+                    with col_d1:
+                        st.metric("Total Costo Input", f"${total_cost_input:.4f}", help="Costo generado por lo que escriben los usuarios")
+                    with col_d2:
+                        st.metric("Total Costo Output", f"${total_cost_output:.4f}", help="Costo generado por las respuestas de la IA")
 
-                avg_cost_real = promedio_diario_costo
-                std_cost = df_tokens['cost'].std()
-    
-                # --- GRÁFICO 1: EVOLUCIÓN TOTAL (El original) ---
-                fig2 = go.Figure()
-    
-                fig2.add_trace(go.Scatter(
-                    x=df_tokens['date'],
-                    y=df_tokens['cost'],
-                    mode='lines+markers',
-                    line=dict(color='#1f77b4'),
-                    name='Costo Total'
-                ))
-    
-                if std_cost > 0:
-                    fig2.add_trace(go.Scatter(
-                    x = df_tokens['date'],
-                    y = df_tokens['cost'] + std_cost,
-                    mode='lines',
-                    line= dict(width=0),
-                    showlegend=False
-                    ))
-    
-                    fig2.add_trace(go.Scatter(
-                        x=df_tokens['date'],
-                        y=df_tokens['cost'] - std_cost,
-                        mode='lines',
-                        fill='tonexty',
-                        fillcolor='rgba(31, 119, 180, 0.1)',
-                        line= dict(width=0),
-                        showlegend=False
-                    ))
-                    
-                if avg_cost_real > 0 and not np.isnan(avg_cost_real):
-                    fig2.add_trace(go.Scatter(
-                        x = df_tokens['date'],
-                        y = [avg_cost_real] * len(df_tokens),
-                        mode='lines',
-                        name='Media Diaria Real',
-                        line=dict(dash='dash', color='red')
-                    ))
-    
-                periodo_grafico_costos = "por día" if time_filter_mode == "Análisis por mes" else "por mes"
-                fig2.update_layout(
-                    title= f'Evolución de Costos Totales {periodo_grafico_costos}',
-                    xaxis_title='Fecha',
-                    yaxis_title='Costo apróximado ($USD)',
-                    xaxis=dict(
-                        tickformat=tokens_date_format,
-                        tickangle=0
-                    ),
-                    legend=dict(
-                        orientation='h',
-                        yanchor='bottom',
-                        y=1.02,
-                        xanchor='right',
-                        x=1
-                    )
-                )
-
-                st.plotly_chart(fig2, use_container_width=True)
-                
-                max_cost_agrupado = df_tokens['cost'].max()
-                avg_cost_agrupado = df_tokens['cost'].mean()
-    
-                # Métricas generales
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric(f"Costo total en el periodo", f"${total_cost_periodo:.4f}")
-                with col2:
-                    st.metric(f"Costo promedio {unidad_temporal}", f"${avg_cost_agrupado:.4f}")
-                with col3:
-                    st.metric(f"Costo máximo {unidad_temporal}", f"${max_cost_agrupado:.4f}")
-
-                # Métricas de desglose
-                st.markdown("##### Desglose del Costo Total")
-                col_d1, col_d2 = st.columns(2)
-                with col_d1:
-                     st.metric("Total Costo Input", f"${total_cost_input:.4f}", help="Costo generado por lo que escriben los usuarios")
-                with col_d2:
-                     st.metric("Total Costo Output", f"${total_cost_output:.4f}", help="Costo generado por las respuestas de la IA")
-
-    
-                cost_by_conversation = df_bot_answers.groupby('session_id')['cost'].sum().reset_index()
-    
-                if not cost_by_conversation.empty:
-                    avg_cost_conv = cost_by_conversation['cost'].mean()
-    
-                    fig = go.Figure()
-    
-                    fig.add_trace(go.Histogram(
-                        x=cost_by_conversation['cost'],
-                        nbinsx=30,
-                        name='Frecuencia',
-                        marker=dict(color='#1f77b4', opacity= 0.7)
-                    ))
-    
-                    hist_counts, hist_bins = np.histogram(cost_by_conversation['cost'].dropna(), bins=30)
-                    max_hist_count= hist_counts.max() if len(hist_counts) > 0 else 0
-    
-                    if avg_cost_conv is not None and not np.isnan(avg_cost_conv):
-                        fig.add_vline(x=avg_cost_conv, line_dash='dash', line_color='red',
-                                      annotation_text=f"Promedio: ${avg_cost_conv:.4f}", annotation_position="top right")
-                    
-                    fig.update_layout(
-                        title=f'Distribución de costos por usuario',
-                        xaxis_title='Costo ($USD)',
-                        yaxis_title='Número de usuarios',
-                        bargap=0.1,
-                        legend=dict(
-                            orientation='h',
-                            yanchor='bottom',
-                            y=1.02,
-                            xanchor='right',
-                            x=1
+        
+                    cost_by_conversation = df_bot_answers.groupby('session_id')['cost'].sum().reset_index()
+        
+                    if not cost_by_conversation.empty:
+                        avg_cost_conv = cost_by_conversation['cost'].mean()
+        
+                        fig = go.Figure()
+        
+                        fig.add_trace(go.Histogram(
+                            x=cost_by_conversation['cost'],
+                            nbinsx=30,
+                            name='Frecuencia',
+                            marker=dict(color='#1f77b4', opacity= 0.7)
+                        ))
+        
+                        hist_counts, hist_bins = np.histogram(cost_by_conversation['cost'].dropna(), bins=30)
+                        max_hist_count= hist_counts.max() if len(hist_counts) > 0 else 0
+        
+                        if avg_cost_conv is not None and not np.isnan(avg_cost_conv):
+                            fig.add_vline(x=avg_cost_conv, line_dash='dash', line_color='red',
+                                        annotation_text=f"Promedio: ${avg_cost_conv:.4f}", annotation_position="top right")
+                        
+                        fig.update_layout(
+                            title=f'Distribución de costos por usuario',
+                            xaxis_title='Costo ($USD)',
+                            yaxis_title='Número de usuarios',
+                            bargap=0.1,
+                            legend=dict(
+                                orientation='h',
+                                yanchor='bottom',
+                                y=1.02,
+                                xanchor='right',
+                                x=1
+                            )
                         )
-                    )
-    
-                    st.plotly_chart(fig, use_container_width=True)
-    
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.metric(f"Usuarios totales en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}", f"{cost_by_conversation.shape[0]}")
-                    with col2: 
-                        st.metric("Costo promedio por usuario", f"${avg_cost_conv:.4f}")
-                    with col3:
-                        st.metric("Costo máximo", f"${cost_by_conversation['cost'].max():.4f}")
-    
-            if 'response_time' in df_bot_answers: 
-                st.subheader('Tiempo de respuesta')
-    
-                df_bot_answers['response_time'] = pd.to_numeric(df_bot_answers['response_time'], errors='coerce').fillna(0)
-                df_positive_time = df_bot_answers[df_bot_answers['response_time'] > 0].copy()
-    
-                if not df_positive_time.empty:
-                    fig = px.histogram(
-                        df_positive_time,
-                        x='response_time',
-                        nbins=50,
-                        title=f'Distribución de tiempos de respuesta',
-                        color_discrete_sequence=['royalblue']
-                    )
-                    fig.update_layout(xaxis_title="Tiempo (segundos)", yaxis_title="Frecuencia")
-                    fig.update_traces(marker=dict(opacity=0.6))
-    
-                    avg_response_time = df_positive_time['response_time'].mean()
-                    if avg_response_time is not None and not np.isnan(avg_response_time):
-                        fig.add_vline(
-                            x=avg_response_time, line_dash="dash", 
-                            line_color="red", annotation_text=f"Promedio: {avg_response_time:.2f}s",
-                            annotation_position="top right"
+        
+                        st.plotly_chart(fig, use_container_width=True)
+        
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric(f"Usuarios totales en el {'mes' if time_filter_mode == 'Análisis por mes' else 'año'}", f"{cost_by_conversation.shape[0]}")
+                        with col2: 
+                            st.metric("Costo promedio por usuario", f"${avg_cost_conv:.4f}")
+                        with col3:
+                            st.metric("Costo máximo", f"${cost_by_conversation['cost'].max():.4f}")
+        
+                if 'response_time' in df_bot_answers: 
+                    st.subheader('Tiempo de respuesta')
+        
+                    df_bot_answers['response_time'] = pd.to_numeric(df_bot_answers['response_time'], errors='coerce').fillna(0)
+                    df_positive_time = df_bot_answers[df_bot_answers['response_time'] > 0].copy()
+        
+                    if not df_positive_time.empty:
+                        fig = px.histogram(
+                            df_positive_time,
+                            x='response_time',
+                            nbins=50,
+                            title=f'Distribución de tiempos de respuesta',
+                            color_discrete_sequence=['royalblue']
                         )
-    
-                        st.plotly_chart(fig)
+                        fig.update_layout(xaxis_title="Tiempo (segundos)", yaxis_title="Frecuencia")
+                        fig.update_traces(marker=dict(opacity=0.6))
+        
+                        avg_response_time = df_positive_time['response_time'].mean()
+                        if avg_response_time is not None and not np.isnan(avg_response_time):
+                            fig.add_vline(
+                                x=avg_response_time, line_dash="dash", 
+                                line_color="red", annotation_text=f"Promedio: {avg_response_time:.2f}s",
+                                annotation_position="top right"
+                            )
+        
+                            st.plotly_chart(fig)

@@ -26,3 +26,5 @@ sql/
 
 tests/
 .coverage
+
+PROMPT.md   
