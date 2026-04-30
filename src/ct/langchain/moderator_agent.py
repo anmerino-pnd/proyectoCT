@@ -1,6 +1,6 @@
 import redis
 from toon import encode
-from typing import Optional, Any
+from typing import Optional, Any, cast
 from langchain_openai import ChatOpenAI
 from ct.langchain.tool_agent import ToolAgent
 from ct.settings.clients import openai_api_key
@@ -31,7 +31,10 @@ class QueryModerator:
             {"role": "user", "content": full_prompt},
         ])
 
-        return response.content.strip().lower()
+        content = response.content
+        if isinstance(content, str):
+            return content.strip().lower()
+        return str(content).strip().lower()
         #return response.content[0]['text'].strip().lower()      # Para Gemini
 
     def _classification_prompt(self) -> str:
