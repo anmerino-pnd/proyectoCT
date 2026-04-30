@@ -15,9 +15,6 @@ from ct.chat import (
     )
 from ct.settings.clients import (
     get_db,
-    mongo_uri, 
-    openai_api_key,
-    mongo_collection_sessions, 
     mongo_collection_message_backup
 )
 from ct.tools.search_information import reload_vector_store
