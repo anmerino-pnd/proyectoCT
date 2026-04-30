@@ -160,7 +160,7 @@ with tabs[1]:
             st.metric("⭐ Score más reciente", "Sin evaluar")
     with c2:
         last_date = (
-            state.last_evaluated_at.strftime("%Y-%m-%d %H:%M:%S")
+            state.last_evaluated_at.strftime("%Y-%m-%d")
             if state.last_evaluated_at else "N/A"
         )
         st.metric("Última evaluación", last_date)
