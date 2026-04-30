@@ -31,15 +31,8 @@ class QueryModerator:
             {"role": "user", "content": full_prompt},
         ])
 
-        content = response.content
-        if isinstance(content, list):
-            content = " ".join(
-                item if isinstance(item, str) else item.get("text", "")
-                for item in content
-            )
-
-        return content.strip().lower()
-        #return response.content[0]['text'].strip().lower()      # Para Gemini
+        #return response.content.strip().lower()
+        return response.content[0]['text'].strip().lower()      # Para Gemini
 
     def _classification_prompt(self) -> str:
         system_prompt = encode({

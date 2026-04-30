@@ -4,11 +4,12 @@ import locale
 import mysql.connector
 from pymongo import MongoClient
 from pydantic import BaseModel, Field
+from typing import Optional, Tuple, cast
 from ct.settings.schemas import UserContext
 from langchain.tools import ToolRuntime, tool
 from ct.settings.clients import (
-    mongo_collection_pedidos, 
-    mongo_uri,
+    mongo_collection_pedidos_prod, 
+    mongo_uri_prod,
     ip,
     port,
     user,
@@ -19,8 +20,8 @@ import pymysql
 pymysql.install_as_MySQLdb()
 
 locale.setlocale(locale.LC_TIME, "es_MX.UTF-8")
-client = MongoClient(mongo_uri).get_default_database()
-pedidos = client[mongo_collection_pedidos]
+client = MongoClient(mongo_uri_prod).get_default_database()
+pedidos = client[mongo_collection_pedidos_prod]
 cdmx = pytz.timezone("America/Mexico_City")
 
 class StatusInput(BaseModel):
@@ -32,7 +33,7 @@ FROM esd_licencias_usuarios
 WHERE folio_pedido = %s
 """
 
-def descargas_enviadas(factura: str):
+def descargas_enviadas(factura: str) -> Optional[int] | str:
     cnx = None
     cursor = None
     try:
@@ -42,11 +43,11 @@ def descargas_enviadas(factura: str):
         )
         cursor = cnx.cursor()
         cursor.execute(query, (factura,))
-        result = cursor.fetchone()
-
+        result = cast(Optional[Tuple[int, ...]], cursor.fetchone())
 
         if result:
-            return result[0] # type: ignore
+            return result[0]
+        return None
     except mysql.connector.Error as err:
         return f"Error de base de datos: {err}"
     except Exception as e:
@@ -56,7 +57,6 @@ def descargas_enviadas(factura: str):
             cursor.close()
         if cnx:
             cnx.close()
-    pass
 
 @tool(args_schema=StatusInput)
 def status_tool(factura: str, runtime: ToolRuntime[UserContext]) -> str:

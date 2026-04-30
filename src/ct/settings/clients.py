@@ -14,26 +14,26 @@ load_dotenv()
 
 # Credenciales de la empresa
 ip: str = os.getenv('IP', '')
-port: int = int(os.getenv('PORT', '0'))
+port: int = int(os.getenv('PORT', 0))
 user: str = os.getenv('USER', '')
 pwd: str = os.getenv('PSSWD', '')
 database: str = os.getenv('DB', '')
 
 # Credenciales de la empresa dev
 ip_dev: str = os.getenv('IP_DEV', '')
-port_dev: int = int(os.getenv('PORT_DEV', '0'))
+port_dev: int = int(os.getenv('PORT_DEV', 0))
 user_dev: str = os.getenv('USER_DEV', '')
 pwd_dev: str = os.getenv('PWD_DEV', '')
 database_dev: str = os.getenv('DB_DEV', '')
 
 # Información del servicio
-sucursales_url: str = os.getenv('SUCURSALES_URL', '')
+sucursales_url : str = os.getenv('SUCURSALES_URL', '')
 url: str = os.getenv('URL', '')
 tokenapi: str = os.getenv('TOKEN_API', '')
 tokenct: str = os.getenv('TOKEN_CT', '')
 contentType: str = os.getenv('CONTENT_TYPE', '')
 cookie: str = os.getenv('COOKIE', '')
-dominio: str = os.getenv('DOMINIO', '')
+dominio : str = os.getenv('DOMINIO', '')
 boundary: str = os.getenv('BOUNDARY', '')
 
 mongo_uri: str = os.getenv('MONGO_URI', '')
@@ -42,17 +42,22 @@ mongo_collection_sessions: str = os.getenv('MONGO_COLLECTION_SESSIONS', '')
 mongo_collection_message_backup: str = os.getenv('MONGO_COLLECTION_MESSAGE_BACKUP', '')
 mongo_collection_products: str = os.getenv('MONGO_COLLECTION_PRODUCTS', '')
 mongo_collection_sales: str = os.getenv('MONGO_COLLECTION_SALES', '')
-mongo_collection_specifications: str = os.getenv("MONGO_COLLECTION_SPECIFICATIONS", '')
+mongo_collection_specifications : str = os.getenv("MONGO_COLLECTION_SPECIFICATIONS", '')
 mongo_collection_pedidos: str = os.getenv("MONGO_COLLECTION_PEDIDOS", '')
+
+mongo_uri_prod: str = os.getenv('MONGO_URI_PROD', '')
+mongo_db_prod: str = os.getenv('MONGO_DB_PROD', '')
+mongo_collection_pedidos_prod: str = os.getenv("MONGO_COLLECTION_PEDIDOS_PROD", '')
 
 # Credenciales de OpenAI
 openai_api_key: str = os.getenv("OPENAI_API_KEY", '')
 openai = openai_api.OpenAI(api_key=openai_api_key)
 gemini_api_key: str = os.getenv("GOOGLE_API_KEY", '')
 #gemini = google_api.Client(api_key=gemini_api_key)
+ollama_api_key : str = os.getenv("OLLAMA_API_KEY", '')
 
 podman_redis_url: str = os.getenv("PODMAN_REDIS_URL", '')
-reload_vectors_post: str = os.getenv("RELOAD_VECTORS_POST", '')
+reload_vectors_post : str = os.getenv("RELOAD_VECTORS_POST", '')
 
 algolia_url: str = os.getenv("ALGOLIA_URL", '')
 algolia_sort_url: str = os.getenv("ALGOLIA_SORT_URL", '')

@@ -15,6 +15,7 @@ datos/CTConnect
 datos/CTCloud
 datos/CTArrendamiento
 datos/Docusmart
+datos/evaluation_results
 
 notebooks/
 src/proyectoct.egg-info/
@@ -22,3 +23,8 @@ static/ssl/
 __pycache__/
 
 sql/
+
+tests/
+.coverage
+
+PROMPT.md   

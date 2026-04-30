@@ -32,16 +32,18 @@ PAPERLESS = DOCUSMART / "paperless"
 MPS = DOCUSMART / "mps"
 DAAS = DOCUSMART / "daas"
 
+EVAL_OUTPUT_DIR = DATA_DIR / "evaluation_results"
+EVAL_STATE_FILE = EVAL_OUTPUT_DIR / "eval_state.json"
 
 # 🔥 Crear directorios automáticamente
 for path in [
-    DATA_DIR, 
-    VECTORS_DIR, 
-    PRODUCTS_VECTOR_PATH, 
-    SALES_VECTOR_PATH, 
-    SALES_PRODUCTS_VECTOR_PATH, 
-    BASE_KNOWLEDGE, 
-    SUPPORT_INFO_VECTOR_PATH, 
+    DATA_DIR,
+    VECTORS_DIR,
+    PRODUCTS_VECTOR_PATH,
+    SALES_VECTOR_PATH,
+    SALES_PRODUCTS_VECTOR_PATH,
+    BASE_KNOWLEDGE,
+    SUPPORT_INFO_VECTOR_PATH,
     PARTNER_CT,
     CT_CONNECT,
     CT_CLOUD,
@@ -50,5 +52,8 @@ for path in [
     DOCUSMART,
     PAPERLESS,
     MPS,
-    DAAS]:
+    DAAS,
+    EVAL_OUTPUT_DIR,
+    EVAL_STATE_FILE.parent
+    ]:
     path.mkdir(parents=True, exist_ok=True)

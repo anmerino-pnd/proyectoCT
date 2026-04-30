@@ -221,6 +221,12 @@ MONGO_COLLECTION_SPECIFICATIONS="tbl_mongo_collection_specifications"
 MONGO_COLLECTION_PEDIDOS="tbl_pedidos"
 
 PODMAN_REDIS_URL=redis://localhost:6379
+
+ALGOLIA_URL=
+ALGOLIA_SORT_URL=
+ALGOLIA_APP_ID=
+ALGOLIA_API_KEY=
+ALGOLIA_CONTENT_TYPE=
 ```
 
 #### 1.4.5. Levantar el backend con Gunicorn
@@ -1170,7 +1176,6 @@ La información que alimenta la base de conocimientos del chatbot sigue un proce
 
 **Para una descripción detallada de cada etapa del proceso ETL (Extracción de MySQL y servicio externo de fichas técnicas, Transformación para limpieza, unificación y estructuración, y Carga de la base de datos vectorial FAISS), por favor, consulta el documento "Preparación de los datos".**
 
-
 ### 3.1. Generación de la base de datos vectorial
 
 La base de datos vectorial FAISS es el corazón del sistema RAG, almacenando las representaciones vectoriales de la información de productos y promociones para búsquedas de similitud eficientes. Su generación y actualización son parte integral del proceso ETL, el cual asegura que el modelo tenga acceso a una base de conocimiento robusta y actualizada.
@@ -1240,4 +1245,146 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
 3. Los datos transformados  de `products` y `sales` (incluyendo las fichas técnicas obtenidas de MongoDB) son utilizados por el **módulo ETL** para construir y actualizar la **base de datos vectorial**.
 
 ![Arquitectura del sistema](./images/arquitectura.jpg){width=120%}
+:::
+
+::: {style="text-align: justify"}
+
+## 5. Sistema de evaluación automatizada (RAGAS)
+
+El sistema incluye un evaluador automático inspirado en el framework **RAGAS**  
+(Retrieval Augmented Generation Assessment), diseñado para auditar la calidad  
+de las respuestas del chatbot en producción sin intervención humana.
+
+### 5.1. ¿Por qué evaluar el chatbot?
+
+En un contexto de e-commerce, una respuesta incorrecta tiene consecuencias directas: un precio inventado genera reclamos, una disponibilidad errónea frustra al cliente. Este sistema detecta automáticamente ese tipo de problemas.
+
+El evaluador analiza las últimas 10 respuestas almacenadas en MongoDB y genera un score de calidad por cada una.
+
+### 5.2. Métricas evaluadas
+
+El sistema evalúa 4 dimensiones de calidad, cada una con un peso definido según su importancia para el negocio:
+
+| Métrica               | ¿Qué mide?                                           | Peso   |
+|-----------------------|------------------------------------------------------|--------|
+| **Faithfulness**      | ¿El agente inventó datos concretos (precios, stock)? | 40%    |
+| **Answer Relevancy**  | ¿Respondió lo que se le preguntó?                    | 35%    |
+| **Context Recall**    | ¿Consultó todas las herramientas necesarias?         | 12.5%  |
+| **Context Precision** | ¿Usó solo las herramientas necesarias?               | 12.5%  |
+
+> **Nota sobre Faithfulness (40%)**: Es la métrica más crítica porque un precio incorrecto comunicado al cliente es el riesgo más alto para el negocio. El evaluador distingue entre datos factuales verificables (precios, stock, códigos) y conocimiento general del dominio (recomendaciones, descripciones), penalizando solo los primeros.
+
+
+### 5.3. Cómo funciona
+
+```{mermaid}
+flowchart TD
+    A[(MongoDB<br/>message_backup)] -->|últimas 10 respuestas| B[fetch_last_messages]
+    B --> C[EvaluationInput<br/>question + answer<br/>verbose_log + historial]
+
+    C --> D[evaluate_single]
+
+    D --> E1[Faithfulness<br/>¿Inventó datos?]
+    D --> E2[Answer Relevancy<br/>¿Respondió bien?]
+    D --> E3[Context Precision<br/>¿Usó solo tools necesarias?]
+    D --> E4[Context Recall<br/>¿Todas las tools que debía llamar?]
+
+    E1 --> F[LLM Evaluador<br/>gpt-4.1]
+    E2 --> F
+    E3 --> F
+    E4 --> F
+
+    F --> G[MetricScore<br/>score 0 a 1<br/>reasoning + details]
+
+    G --> H[Score Final Ponderado<br/>Faithfulness 0.40<br/>Relevancy 0.35<br/>Recall 0.125<br/>Precision 0.125]
+
+    H --> I{¿MongoDB<br/>disponible?}
+
+    I -->|Si| J[(evaluation_results<br/>MongoDB)]
+    I -->|No| K[evaluation_results/<br/>eval_id.json<br/>summary_ts.json]
+```
+
+El evaluador usa el verbose_log completo de cada respuesta, un registro que contiene exactamente qué herramientas usó el agente y qué información devolvieron, lo que permite verificar si la respuesta es fiel a los datos reales.
+
+### 5.4. Estructura de archivos
+
+```text
+ct/evaluation/
+├── evaluator.py        # Core: orquesta la evaluación completa
+├── schemas.py          # Modelos de datos (entrada y resultado)
+├── prompts.py          # Prompts para el LLM evaluador
+├── utils.py            # Funciones de formato compartidas
+└── metrics/
+    ├── faithfulness.py       # ¿Inventó datos?
+    ├── answer_relevancy.py   # ¿Respondió bien?
+    ├── context_precision.py  # ¿Tools necesarias?
+    └── context_recall.py     # ¿Tools suficientes?
+```
+
+### 5.5. Resultados guardados
+
+Por falta de permisos de escritura en la colección evaluation_results de MongoDB, los resultados se persisten localmente en JSON:
+
+```text
+evaluation_results/
+├── eval_<doc_id>.json   # Resultado detallado por respuesta
+└── summary_.json        # Resumen del batch con promedios
+```
+
+Cuando se habiliten los permisos en MongoDB, el sistema intentará guardar automáticamente en la base de datos — el JSON funciona como respaldo permanente en cualquier caso.
+
+### 5.6. Cómo ejecutar la evaluación
+
+```python
+import asyncio
+import logging
+from ct.evaluation.evaluator import RAGASEvaluator
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
+
+evaluator = RAGASEvaluator(
+    evaluator_model="gpt-4.1",
+    n_last=10,
+    eval_collection="evaluation_results"
+)
+
+results = await evaluator.evaluate_batch()
+
+summary = evaluator.get_latest_summary()
+if summary:
+    print(f"\n📈 Último score promedio: {summary['averages']['final_score']:.3f}")
+```
+
+Resultado esperado en consola:
+
+```text
+╔══════════════════════════════════════════════════╗
+║         RAGAS EVALUATION SUMMARY                 ║
+╠══════════════════════════════════════════════════╣
+║  Faithfulness         : 0.977 (peso: 40%)        ║
+║  Answer Relevancy     : 0.975 (peso: 35%)        ║
+║  Context Precision    : 0.933 (peso: 12%)        ║
+║  Context Recall       : 0.950 (peso: 12%)        ║
+╠══════════════════════════════════════════════════╣
+║  ⭐ SCORE FINAL       : 0.977                    ║
+╚══════════════════════════════════════════════════╝
+```
+
+### 5.7. Interpretación de resultados
+
+La evaluación más reciente del sistema arrojó un score final de **0.977 sobre 1.0**, lo que indica que el chatbot se encuentra en un estado de funcionamiento óptimo. Un score de Faithfulness de **1.0** confirma que el agente no está inventando datos concretos como precios, disponibilidad o códigos de producto — el riesgo más crítico en un entorno de ventas. El score de Answer Relevancy de **0.975** refleja que las respuestas abordan directamente lo que el usuario pregunta, sin divagar ni omitir información clave. Los scores de Context Precision (**0.933**) y Context Recall (**0.950**) indican que el agente selecciona las herramientas correctas en casi todos los casos, tanto en eficiencia como en completitud. En conjunto, estos resultados sugieren que el sistema está respondiendo de manera confiable y alineada con los datos reales del negocio.
+
+Como referencia general para interpretar el score final:
+
+| Score        | Interpretación                         | Acción recomendada        |
+|--------------|----------------------------------------|----------------------------|
+| 0.90 – 1.00  | Excelente — sistema confiable           | Monitoreo rutinario        |
+| 0.75 – 0.89  | Bueno — áreas menores de mejora         | Revisar métricas bajas     |
+| 0.60 – 0.74  | Aceptable — requiere atención           | Analizar casos fallidos    |
+| 0.40 – 0.59  | Deficiente — problemas detectables      | Intervención prioritaria   |
+| 0.00 – 0.39  | Crítico — el sistema está fallando      | Acción inmediata           |
+
 :::

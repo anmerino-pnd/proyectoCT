@@ -2,6 +2,7 @@ import time
 import traceback
 from toon import encode
 from typing import Any, cast
+from pydantic import SecretStr
 from datetime import datetime, timezone
 from ct.settings.prompt import prompt_dict
 from ct.settings.schemas import UserContext
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from langchain_openai import ChatOpenAI
+from langchain_ollama import ChatOllama
 from langchain.agents import create_agent
 from langchain_core.caches import InMemoryCache, BaseCache
 from langchain_core.globals import get_llm_cache
@@ -35,6 +37,7 @@ from ct.settings.tokens import TokenCostProcess, MODEL_COST_PER_1K_TOKENS
 from ct.settings.clients import (
     openai_api_key,
     gemini_api_key,
+    ollama_api_key,
     mongo_uri, 
     mongo_collection_sessions, 
     mongo_collection_message_backup
@@ -55,7 +58,8 @@ class ToolAgent:
         )
 
         # self.llm = ChatGoogleGenerativeAI(
-        #     model = self.model 
+        #     model = self.model,
+        #     thinking_level="medium"
         # )
 
         self.llm = ChatOpenAI(                    # En caso de volver a OpenAI
