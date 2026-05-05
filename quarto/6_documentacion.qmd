@@ -18,7 +18,7 @@ toc-depth: 5
 * Archivo `.env` con variables cargadas.
 * Todas las credenciales y configuraciones sensibles se gestionan mediante un archivo de variables de entorno (`.env`), garantizando la seguridad y facilidad de configuración.
 
-### 1.2. Requisitios del sistema
+### 1.2. Requisitos del sistema
 
 * **Python**: Versión 3.12.9.
 * **Pip**: Última versión.
@@ -33,7 +33,7 @@ toc-depth: 5
 
 * `langchain`: Framework principal para la construcción de cadenas RAG y la orquestación del flujo del chatbot.
 * `OpenAI`: API de OpenAI con créditos para poder utilizar los modelos de LLM y Embeddings.
-* `tiktoken`: Utilizado para el conteo preciso de tokens en las consutlas y respuestas, fundamental para la estimación de costos.
+* `tiktoken`: Utilizado para el conteo preciso de tokens en las consultas y respuestas, fundamental para la estimación de costos.
 * `ollama`: Herramienta para servir modelos de lenguaje *open-source* localmente, como `gemma3:12b`, permitiendo flexibilidad en la elección del LLM.
 * `pymongo`: Driver Python para la interacción con MongoDB, utilizado para el almacenamiento y recuperación de sesiones de usuario, historial de mensajes, fichas técnicas, y datos de productos/ofertas.
 * `mysql-connector-python`: Conector para MySQL, empleado para la extracción de datos de producto, sus detalles y precios desde la base de datos relacional.
@@ -219,48 +219,454 @@ MONGO_COLLECTION_PRODUCTS="tbl_productos"
 MONGO_COLLECTION_SALES="tbl_ofertas"         
 MONGO_COLLECTION_SPECIFICATIONS="tbl_mongo_collection_specifications"
 MONGO_COLLECTION_PEDIDOS="tbl_pedidos"
+MONGO_URI_PROD="mongodb://"
+MONGO_DB_PROD=""
+MONGO_COLLECTION_PEDIDOS_PROD="tbl_pedidos"
 
-PODMAN_REDIS_URL=redis://localhost:6379
+# Conexión a Base de Datos Dev
+IP_DEV=
+PORT_DEV=
+USER_DEV=
+PWD_DEV=
+DB_DEV=
 
+# Redis
+PODMAN_REDIS_URL=redis://localhost:6380
+
+# Algolia
 ALGOLIA_URL=
 ALGOLIA_SORT_URL=
 ALGOLIA_APP_ID=
 ALGOLIA_API_KEY=
 ALGOLIA_CONTENT_TYPE=
+
 ```
 
-#### 1.4.5. Levantar el backend con Gunicorn
+#### 1.4.5. Despliegue persistente con systemd
 
-  Este comando inicia la API, especificando el número de *workers*, el *binding* de IP y puerto, y la configuración de SSL/TLS para HTTPS.
+  **Nota:** Para producción, se recomienda usar `systemd` en lugar de `nohup`, ya que garantiza que el servicio arranque automáticamente después de un reinicio del servidor.
+
+  El uso de `nohup` y `&` solo asegura que el proceso continúe ejecutándose en segundo plano si se cierra la sesión SSH, pero **no** garantiza que el servicio arranque automáticamente después de un reinicio del servidor. Para ambientes de producción o semi-producción se usa `systemd`.
+
+  El comando para levantar la API con Gunicorn es:
 
 ```bash
-nohup gunicorn ct.main:app   --workers 4   --bind 0.0.0.0:8000   --certfile=static/ssl/cert.pem   --keyfile=static/ssl/key.pem   -k uvicorn.workers.UvicornWorker --timeout 120 --access-logfile -   --error-logfile - &
+cd /home/angel.merino/proyectoCT
+
+/home/angel.merino/proyectoCT/.venv/bin/python -m gunicorn ct.main:app \
+  --workers 4 \
+  --bind 0.0.0.0:8000 \
+  --certfile=/home/angel.merino/proyectoCT/static/ssl/cert.pem \
+  --keyfile=/home/angel.merino/proyectoCT/static/ssl/key.pem \
+  -k uvicorn.workers.UvicornWorker \
+  --timeout 120 \
+  --access-logfile - \
+  --error-logfile -
 ```
 
-  El uso de `nogup` y `&` asegura que el proceso continúe ejecutándose en segundo plano incluso si la sesión SSH se cierra.
+> Este comando es solo para prueba manual. En operación normal se usa systemd.
+
+##### 1.4.5.1. Verificación del entorno virtual
+
+Para verificar que el entorno virtual está correctamente configurado:
+
+```bash
+cd /home/angel.merino/proyectoCT
+
+ls -la .venv/bin | grep -E "streamlit|gunicorn|uvicorn|python"
+
+.venv/bin/python --version
+.venv/bin/python -m streamlit --version
+.venv/bin/python -m gunicorn --version
+.venv/bin/python -m uvicorn --version
+
+find /home/angel.merino/proyectoCT -name "run_report.py"
+```
+
+En el servidor actual se confirmó:
+- `streamlit` versión 1.45.0.
+- `gunicorn` versión 23.0.0.
+- `uvicorn` versión 0.34.0.
+- Python 3.13.1 dentro del virtualenv generado con `uv`.
+- El script real del reporte está en: `/home/angel.merino/proyectoCT/src/ct/reportes/run_report.py`.
+
+##### 1.4.5.2. Servicio systemd para Streamlit
+
+Este servicio levanta el dashboard/reporte automatizado de Streamlit en el puerto `3000`. Se usa `python -m streamlit` para evitar problemas al ejecutar directamente el script de entrada del virtualenv. Además se define `PYTHONPATH` para que el proyecto pueda resolver correctamente los módulos internos.
+
+Para crear el archivo de servicio:
+
+```bash
+sudo nano /etc/systemd/system/streamlit-reporte.service
+```
+
+Contenido del archivo:
+
+```ini
+[Unit]
+Description=Reporte de analisis con Streamlit
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=angel.merino
+Group=angel.merino
+WorkingDirectory=/home/angel.merino/proyectoCT
+Environment=HOME=/home/angel.merino
+Environment=PATH=/home/angel.merino/proyectoCT/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=PYTHONPATH=/home/angel.merino/proyectoCT/src:/home/angel.merino/proyectoCT
+ExecStart=/home/angel.merino/proyectoCT/.venv/bin/python -m streamlit run /home/angel.merino/proyectoCT/src/ct/reportes/run_report.py --server.fileWatcherType none --server.port 3000 --server.address 0.0.0.0 --server.headless true
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Explicación:
+- `User` y `Group`: ejecutan el servicio con el usuario propietario del proyecto.
+- `WorkingDirectory`: raíz del proyecto.
+- `Environment=PATH`: asegura que systemd use el virtualenv.
+- `Environment=PYTHONPATH`: permite resolver imports internos como `ct`.
+- `ExecStart`: comando real que levanta Streamlit.
+- `Restart=always`: reinicia el servicio si falla.
+- `WantedBy=multi-user.target`: habilita arranque automático en modo multiusuario.
+
+##### 1.4.5.3. Servicio systemd para backend/chatbot
+
+Este servicio levanta la API FastAPI del chatbot mediante Gunicorn con workers Uvicorn, escuchando en `0.0.0.0:8000` y usando certificados SSL locales.
+
+Para crear el archivo de servicio:
+
+```bash
+sudo nano /etc/systemd/system/chatbot-api.service
+```
+
+Contenido del archivo:
+
+```ini
+[Unit]
+Description=Servidor chatbot FastAPI con Gunicorn y Uvicorn
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=angel.merino
+Group=angel.merino
+WorkingDirectory=/home/angel.merino/proyectoCT
+Environment=HOME=/home/angel.merino
+Environment=PATH=/home/angel.merino/proyectoCT/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=PYTHONPATH=/home/angel.merino/proyectoCT/src:/home/angel.merino/proyectoCT
+ExecStart=/home/angel.merino/proyectoCT/.venv/bin/python -m gunicorn ct.main:app --workers 4 --bind 0.0.0.0:8000 --certfile=/home/angel.merino/proyectoCT/static/ssl/cert.pem --keyfile=/home/angel.merino/proyectoCT/static/ssl/key.pem -k uvicorn.workers.UvicornWorker --timeout 120 --access-logfile - --error-logfile -
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Explicación:
+- Se usan rutas absolutas para `cert.pem` y `key.pem` porque los servicios systemd no siempre resuelven rutas relativas como una terminal interactiva.
+
+##### 1.4.5.4. Recargar, habilitar e iniciar servicios
+
+Después de crear o modificar archivos `.service`, se debe recargar systemd:
+
+```bash
+sudo systemctl daemon-reload
+```
+
+`daemon-reload` no reinicia el servidor ni reinicia las aplicaciones. Solo hace que systemd vuelva a leer los archivos de configuración ubicados en `/etc/systemd/system/`.
+
+Verificación de la configuración:
+
+```bash
+sudo systemd-analyze verify /etc/systemd/system/streamlit-reporte.service
+sudo systemd-analyze verify /etc/systemd/system/chatbot-api.service
+```
+
+Puede aparecer una advertencia como:
+
+```text
+Accepting user/group name 'angel.merino', which does not match strict user/group name rules.
+```
+
+Esto ocurre porque el usuario contiene un punto (`angel.merino`). En este caso systemd lo acepta y no representa un error fatal.
+
+Habilitar al arranque:
+
+```bash
+sudo systemctl enable streamlit-reporte
+sudo systemctl enable chatbot-api
+```
+
+`enable` deja preparado el servicio para arrancar automáticamente en el próximo boot. No reinicia el servidor ni necesariamente arranca el servicio en ese momento.
+
+Iniciar manualmente:
+
+```bash
+sudo systemctl start streamlit-reporte
+sudo systemctl start chatbot-api
+```
+
+Verificar estado:
+
+```bash
+systemctl is-enabled streamlit-reporte
+systemctl is-enabled chatbot-api
+
+sudo systemctl status streamlit-reporte
+sudo systemctl status chatbot-api
+```
+
+El estado esperado es:
+
+```text
+Active: active (running)
+```
+
+Para salir de `systemctl status`, presionar `q`. Si accidentalmente se presiona `Ctrl + Z`, el proceso queda detenido en background. Se puede recuperar con:
+
+```bash
+fg
+```
+
+y luego salir con `q`, o terminarlo con:
+
+```bash
+kill %1
+```
+
+##### 1.4.5.5. Apertura persistente de puertos con firewalld
+
+El servidor utiliza `firewalld`. Para que los puertos sigan abiertos después de reinicios se deben agregar con `--permanent`.
+
+```bash
+sudo firewall-cmd --state
+
+sudo firewall-cmd --permanent --add-port=3000/tcp
+sudo firewall-cmd --permanent --add-port=8000/tcp
+sudo firewall-cmd --reload
+
+sudo firewall-cmd --list-ports
+```
+
+Explicación:
+- `3000/tcp` corresponde al reporte Streamlit.
+- `8000/tcp` corresponde al backend/chatbot.
+- `--permanent` guarda la regla para futuros reinicios.
+- `--reload` aplica la configuración permanente al firewall activo.
+
+Verificación de arranque de firewalld:
+
+```bash
+systemctl is-enabled firewalld
+sudo systemctl status firewalld
+```
+
+Nota:
+Si `firewalld` aparece como `disabled`, no habilitarlo sin validar con infraestructura/administración del servidor, ya que podría cambiar reglas activas de red en servidores productivos.
+
+##### 1.4.5.6. Consideraciones de SELinux
+
+En el servidor se detectó SELinux en modo `Enforcing`:
+
+```bash
+getenforce
+```
+
+Resultado:
+
+```text
+Enforcing
+```
+
+Al iniciar los servicios inicialmente, fallaban con:
+
+```text
+status=203/EXEC
+Failed at step EXEC spawning /home/angel.merino/proyectoCT/.venv/bin/python: Permission denied
+```
+
+Aunque ejecutar Python manualmente como el usuario sí funcionaba:
+
+```bash
+sudo -u angel.merino /home/angel.merino/proyectoCT/.venv/bin/python --version
+```
+
+Esto indicó que el bloqueo no era por permisos UNIX tradicionales, sino por contexto SELinux. El Python del virtualenv y el Python instalado por `uv` tenían contextos como:
+
+```text
+user_home_t
+data_home_t
+```
+
+Comandos de diagnóstico:
+
+```bash
+getenforce
+
+ls -Z /home/angel.merino/proyectoCT/.venv/bin/python
+readlink -f /home/angel.merino/proyectoCT/.venv/bin/python
+ls -Z $(readlink -f /home/angel.merino/proyectoCT/.venv/bin/python)
+```
+
+Comandos usados para permitir la ejecución desde systemd:
+
+```bash
+command -v semanage || sudo dnf install -y policycoreutils-python-utils
+
+sudo semanage fcontext -a -t bin_t '/home/angel\.merino/proyectoCT/\.venv/bin(/.*)?' 2>/dev/null || sudo semanage fcontext -m -t bin_t '/home/angel\.merino/proyectoCT/\.venv/bin(/.*)?'
+
+sudo semanage fcontext -a -t bin_t '/home/angel\.merino/\.local/share/uv/python/cpython-3\.13\.1-linux-x86_64-gnu/bin(/.*)?' 2>/dev/null || sudo semanage fcontext -m -t bin_t '/home/angel\.merino/\.local/share/uv/python/cpython-3\.13\.1-linux-x86_64-gnu/bin(/.*)?'
+
+sudo semanage fcontext -a -t lib_t '/home/angel\.merino/\.local/share/uv/python/cpython-3\.13\.1-linux-x86_64-gnu/lib(/.*)?' 2>/dev/null || sudo semanage fcontext -m -t lib_t '/home/angel\.merino/\.local/share/uv/python/cpython-3\.13\.1-linux-x86_64-gnu/lib(/.*)?'
+
+sudo restorecon -Rv /home/angel.merino/proyectoCT/.venv/bin
+sudo restorecon -Rv /home/angel.merino/.local/share/uv/python/cpython-3.13.1-linux-x86_64-gnu/bin
+sudo restorecon -Rv /home/angel.merino/.local/share/uv/python/cpython-3.13.1-linux-x86_64-gnu/lib
+```
+
+Explicación:
+- `semanage fcontext` registra una regla persistente de contexto SELinux.
+- `restorecon` aplica el contexto a los archivos existentes.
+- Se etiquetó `.venv/bin` y el Python real instalado por `uv`.
+- Esto corrigió el error `status=203/EXEC`.
+
+Importante:
+No se recomienda deshabilitar SELinux en servidores productivos. La solución correcta es ajustar contextos o políticas.
 
 #### 1.4.6. Regenerar el certificado SSL (si expira o es necesario)
 
   Si el certificado SSL autofirmado ha expirado o necesitas uno nuevo:
 
 ```bash
-openssl req -x509 -newkey rsa:2048 -nodes -keyout static/ssl/key.pem -out static/ssl/cert.pem -days 365
+openssl req -x509 -newkey rsa:2048 -nodes -keyout static/ssl/key.pem -out static/ssl/cert.pem -days 365
 ```
 
   Asegurarse de que los archivos `cert.pem` y `key.pem` estén en la ruta `static/ssl` dentro de tu proyecto.
 
 #### 1.4.7. Verificar logs
 
-  Al correr la API con `nohup`, este genera un archivo `nohup.out`, con el cual podemos ver los logs del sistema, para eso solo hay que ubicarse en donde está dicho archivo y correr lo siguiente:
+Los servicios configurados con systemd envían salida estándar y errores a `journald`, por lo que los logs se consultan con `journalctl`.
+
+Para seguir logs en tiempo real:
 
 ```bash
-tail -f nohup.out
+journalctl -u streamlit-reporte -f
+journalctl -u chatbot-api -f
 ```
 
-Los logs también se pueden analizar para el reporte automatizado
+Para ver últimos logs sin quedarse en modo seguimiento:
+
 ```bash
-nohup streamlit run run_report.py --server.fileWatcherType none --server.port 3000 &
+journalctl -u streamlit-reporte -n 100 --no-pager
+journalctl -u chatbot-api -n 100 --no-pager
 ```
+
+Para ver logs desde el último arranque del sistema:
+
+```bash
+journalctl -u streamlit-reporte -b --no-pager
+journalctl -u chatbot-api -b --no-pager
+```
+
+Explicación:
+- `-u` filtra por unidad systemd.
+- `-f` sigue logs en tiempo real.
+- `-n 100` muestra las últimas 100 líneas.
+- `--no-pager` evita abrir el visor interactivo.
+- `-b` muestra logs desde el último boot.
+
+`nohup.out` solo aplica si se decide ejecutar manualmente algún comando con `nohup`, pero ya no es la fuente principal de logs para el despliegue persistente.
+
+#### 1.4.8. Comandos útiles de operación diaria
+
+| Acción                                    | Comando                                                                                              |
+|-------------------------------------------|------------------------------------------------------------------------------------------------------|
+| Ver estado de Streamlit                   | `sudo systemctl status streamlit-reporte`                                                           |
+| Ver estado del backend/chatbot            | `sudo systemctl status chatbot-api`                                                                 |
+| Iniciar Streamlit                         | `sudo systemctl start streamlit-reporte`                                                            |
+| Iniciar backend/chatbot                   | `sudo systemctl start chatbot-api`                                                                  |
+| Detener Streamlit                         | `sudo systemctl stop streamlit-reporte`                                                             |
+| Detener backend/chatbot                   | `sudo systemctl stop chatbot-api`                                                                   |
+| Reiniciar Streamlit                       | `sudo systemctl restart streamlit-reporte`                                                          |
+| Reiniciar backend/chatbot                 | `sudo systemctl restart chatbot-api`                                                                |
+| Habilitar Streamlit al arranque           | `sudo systemctl enable streamlit-reporte`                                                           |
+| Habilitar backend/chatbot al arranque     | `sudo systemctl enable chatbot-api`                                                                 |
+| Deshabilitar Streamlit al arranque        | `sudo systemctl disable streamlit-reporte`                                                          |
+| Deshabilitar backend/chatbot al arranque  | `sudo systemctl disable chatbot-api`                                                                |
+| Ver si Streamlit está habilitado          | `systemctl is-enabled streamlit-reporte`                                                            |
+| Ver si backend/chatbot está habilitado    | `systemctl is-enabled chatbot-api`                                                                  |
+| Recargar configuración de systemd         | `sudo systemctl daemon-reload`                                                                      |
+| Ver logs en vivo de Streamlit             | `journalctl -u streamlit-reporte -f`                                                                |
+| Ver logs en vivo del backend/chatbot      | `journalctl -u chatbot-api -f`                                                                      |
+| Ver últimos 100 logs de Streamlit         | `journalctl -u streamlit-reporte -n 100 --no-pager`                                                 |
+| Ver últimos 100 logs del backend/chatbot  | `journalctl -u chatbot-api -n 100 --no-pager`                                                       |
+| Ver puertos 3000 y 8000 escuchando        | `sudo ss -ltnp \| grep -E ':3000\|:8000'`                                                           |
+| Probar Streamlit localmente               | `curl -I http://127.0.0.1:3000`                                                                     |
+| Probar backend localmente con HTTPS       | `curl -k -I https://127.0.0.1:8000`                                                                 |
+| Ver puertos abiertos en firewalld         | `sudo firewall-cmd --list-ports`                                                                    |
+| Abrir puerto 3000 permanentemente         | `sudo firewall-cmd --permanent --add-port=3000/tcp && sudo firewall-cmd --reload`                   |
+| Abrir puerto 8000 permanentemente         | `sudo firewall-cmd --permanent --add-port=8000/tcp && sudo firewall-cmd --reload`                    |
+| Ver estado de SELinux                     | `getenforce`                                                                                         |
+| Ver contexto SELinux del Python del venv  | `ls -Z /home/angel.merino/proyectoCT/.venv/bin/python`                                               |
+
+#### 1.4.9. Verificación final del despliegue
+
+Para validar que todo está configurado correctamente:
+
+```bash
+# Verificar que los servicios están habilitados
+systemctl is-enabled streamlit-reporte
+systemctl is-enabled chatbot-api
+
+# Verificar estado de los servicios
+sudo systemctl status streamlit-reporte
+sudo systemctl status chatbot-api
+
+# Verificar que los puertos están escuchando
+sudo ss -ltnp | grep -E ':3000|:8000'
+
+# Verificar que los puertos están abiertos en firewalld
+sudo firewall-cmd --list-ports
+```
+
+Resultado esperado:
+
+**Servicios habilitados:**
+```text
+enabled
+enabled
+```
+
+**Servicios activos:**
+```text
+Active: active (running)
+```
+
+**Puertos escuchando:**
+```text
+0.0.0.0:3000
+0.0.0.0:8000
+```
+
+**Puertos abiertos en firewalld:**
+```text
+3000/tcp 8000/tcp
+```
+
+Con esto se valida que:
+- Streamlit está activo en el puerto 3000.
+- El backend/chatbot está activo en el puerto 8000.
+- Ambos servicios están habilitados para iniciar después de un reinicio.
+- Los puertos están abiertos de forma persistente.
+- No es necesario mantener sesiones SSH abiertas.
+- No es necesario usar `nohup` para operación normal.
 
 ### 1.5. Instalación del frontend (Widget)
 
