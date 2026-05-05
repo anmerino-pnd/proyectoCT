@@ -284,6 +284,7 @@ find /home/angel.merino/proyectoCT -name "run_report.py"
 ```
 
 En el servidor actual se confirmó:
+
 - `streamlit` versión 1.45.0.
 - `gunicorn` versión 23.0.0.
 - `uvicorn` versión 0.34.0.
@@ -326,6 +327,7 @@ WantedBy=multi-user.target
 ```
 
 Explicación:
+
 - `User` y `Group`: ejecutan el servicio con el usuario propietario del proyecto.
 - `WorkingDirectory`: raíz del proyecto.
 - `Environment=PATH`: asegura que systemd use el virtualenv.
@@ -532,6 +534,7 @@ sudo restorecon -Rv /home/angel.merino/.local/share/uv/python/cpython-3.13.1-lin
 ```
 
 Explicación:
+
 - `semanage fcontext` registra una regla persistente de contexto SELinux.
 - `restorecon` aplica el contexto a los archivos existentes.
 - Se etiquetó `.venv/bin` y el Python real instalado por `uv`.
@@ -576,6 +579,7 @@ journalctl -u chatbot-api -b --no-pager
 ```
 
 Explicación:
+
 - `-u` filtra por unidad systemd.
 - `-f` sigue logs en tiempo real.
 - `-n 100` muestra las últimas 100 líneas.
@@ -661,6 +665,7 @@ Active: active (running)
 ```
 
 Con esto se valida que:
+
 - Streamlit está activo en el puerto 3000.
 - El backend/chatbot está activo en el puerto 8000.
 - Ambos servicios están habilitados para iniciar después de un reinicio.
