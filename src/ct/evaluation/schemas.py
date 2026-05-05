@@ -89,8 +89,26 @@ class WindowEntry(BaseModel):
 
 class EvaluationState(BaseModel):
     """Estado del evaluador RAG con ventana deslizante."""
+
+    # Cursor principal
     last_evaluated_doc_id: Optional[str] = None
     last_evaluated_at: Optional[datetime] = None
+
+    # Estado de bootstrap RAGAS
+    ragas_initialized: bool = False
+    ragas_bootstrap_at: Optional[datetime] = None
+    ragas_bootstrap_doc_id: Optional[str] = None
+
+    # Últimas métricas
     last_score: Optional[float] = None
     last_averages: Optional[dict] = None
-    history: list[WindowEntry] = Field(default_factory=list, description="Historial de ventanas evaluadas")
+
+    # Errores visibles en UI
+    last_error: Optional[str] = None
+    last_error_at: Optional[datetime] = None
+
+    # Historial de ventanas
+    history: list[WindowEntry] = Field(
+        default_factory=list,
+        description="Historial de ventanas evaluadas"
+    )

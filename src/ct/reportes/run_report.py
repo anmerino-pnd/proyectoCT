@@ -34,6 +34,7 @@ MODEL_PRICING = {
     "gpt-4o":       {"input": 2.50, "output": 10.00},
 }
 WINDOW_SIZE = 10
+MAX_BATCHES_PER_RUN = 5
 
 # ---- NLTK con rutas correctas ----
 nltk_needed = {
@@ -93,32 +94,83 @@ evaluator = get_evaluator()
 #                  FUNCIONES AUXILIARES (ANTES de la UI)                #
 # ===================================================================== #
 
-def get_window_progress() -> dict:
-    """Cuántos docs llevan en la ventana actual y stats globales."""
-    history = evaluator.state.history
-    if not history:
-        return {
-            "evaluated": 0,
-            "remaining": WINDOW_SIZE,
-            "total_evaluated": 0,
-            "windows_completed": 0,
-        }
+def get_bootstrap_candidate_count() -> int:
+    """
+    Cuenta documentos relevantes disponibles para iniciar RAGAS.
+    label=True significa relevante/candidato, no evaluado.
+    """
+    return coleccion.count_documents({"label": True})
 
-    total = sum(e.n_evaluated for e in history)
-    in_current = total % WINDOW_SIZE  # 0..9 (0 = ventana recién cerrada)
+
+def get_pending_messages_count() -> int:
+    """
+    Cuenta mensajes relevantes pendientes de evaluación RAGAS.
+
+    Regla:
+    - RAGAS debe estar inicializado.
+    - label=True.
+    - timestamp > ragas_bootstrap_at.
+    - ragas_evaluated != True.
+    """
+    state = evaluator.state
+
+    if not getattr(state, "ragas_initialized", False):
+        return 0
+
+    if not state.ragas_bootstrap_at:
+        return 0
+
+    return coleccion.count_documents({
+        "label": True,
+        "timestamp": {"$gt": state.ragas_bootstrap_at},
+        "ragas_evaluated": {"$ne": True},
+    })
+
+
+def get_window_progress() -> dict:
+    """
+    Progreso real basado en mensajes pendientes después del bootstrap.
+
+    Ejemplos:
+    - pending = 2  -> 0 batches listos, 2/10
+    - pending = 10 -> 1 batch listo, 10/10 visual
+    - pending = 22 -> 2 batches listos, 2/10 sobrantes
+    """
+    state = evaluator.state
+    history = state.history
+    pending = get_pending_messages_count()
+
+    batches_ready = pending // WINDOW_SIZE
+    in_current = pending % WINDOW_SIZE
+
     return {
-        "evaluated":          in_current,
-        "remaining":          WINDOW_SIZE - in_current if in_current else 0,
-        "total_evaluated":    total,
-        "windows_completed":  len(history),
+        "pending_total": pending,
+        "evaluated": in_current,
+        "remaining": WINDOW_SIZE - in_current if in_current else 0,
+        "batches_ready": batches_ready,
+        "total_evaluated": sum(e.n_evaluated for e in history),
+        "windows_completed": len(history),
+        "ragas_initialized": getattr(state, "ragas_initialized", False),
+        "ragas_bootstrap_at": getattr(state, "ragas_bootstrap_at", None),
     }
 
 
 def get_progress_bar_value() -> float:
-    """Valor 0..1 para st.progress: % de la ventana en curso."""
-    info = get_window_progress()
-    return info["evaluated"] / WINDOW_SIZE
+    """
+    Valor 0..1 para st.progress.
 
+    Si hay exactamente 10, 20, 30... pendientes,
+    mostramos barra llena porque hay al menos un batch completo listo.
+    """
+    info = get_window_progress()
+
+    if not info["ragas_initialized"]:
+        return 0.0
+
+    if info["batches_ready"] > 0 and info["evaluated"] == 0:
+        return 1.0
+
+    return info["evaluated"] / WINDOW_SIZE
 
 def get_history_data() -> list[dict]:
     """Datos del historial de ventanas (para tabla y gráfico)."""
@@ -152,31 +204,104 @@ with tabs[1]:
 
     # ---- Estado actual ----
     st.markdown("### 📊 Estado Actual")
+
+    ragas_initialized = getattr(state, "ragas_initialized", False)
+
     c1, c2, c3 = st.columns(3)
+
     with c1:
-        if state.last_score is not None:
+        if ragas_initialized and state.last_score is not None:
             st.metric("⭐ Score más reciente", f"{state.last_score:.4f}")
         else:
             st.metric("⭐ Score más reciente", "Sin evaluar")
+
     with c2:
         last_date = (
-            state.last_evaluated_at.strftime("%Y-%m-%d")
-            if state.last_evaluated_at else "N/A"
+            state.last_evaluated_at.strftime("%Y-%m-%d %H:%M")
+            if ragas_initialized and state.last_evaluated_at else "N/A"
         )
-        st.metric("Última evaluación", last_date)
-    with c3:
-        st.metric("Ventanas completadas", len(state.history))
+        st.metric("Último mensaje evaluado", last_date)
 
-    # Progreso interno (acumulado en la ventana actual)
-    in_curr = progress_info.get("evaluated", 0) if state.history else 0
-    st.markdown(
-        f"**Mensajes acumulados en la ventana actual:** {in_curr}/{WINDOW_SIZE}"
-    )
-    st.progress(get_progress_bar_value())
+    with c3:
+        completed = len(state.history) if ragas_initialized else 0
+        st.metric("Ventanas completadas", completed)
+
+    # Mostrar último error persistido, si existe
+    if getattr(state, "last_error", None):
+        error_date = (
+            state.last_error_at.strftime("%Y-%m-%d %H:%M:%S")
+            if state.last_error_at else "fecha desconocida"
+        )
+
+        st.error(
+            f"Último error RAGAS ({error_date}):\n\n"
+            f"{state.last_error}"
+        )
+
+    # Progreso real basado en mensajes pendientes RAGAS
+    pending_total = progress_info.get("pending_total", 0)
+    in_curr = progress_info.get("evaluated", 0)
+    batches_ready = progress_info.get("batches_ready", 0)
+    remaining = progress_info.get("remaining", WINDOW_SIZE)
+    ragas_initialized = progress_info.get("ragas_initialized", False)
+
+    if not ragas_initialized:
+        st.markdown(
+            f"**Mensajes acumulados en la ventana actual:** 0/{WINDOW_SIZE}"
+        )
+        st.progress(0.0)
+
+        bootstrap_candidates = get_bootstrap_candidate_count()
+
+        st.info(
+            "RAGAS aún no está inicializado.\n\n"
+            f"Hay **{bootstrap_candidates}** documento(s) relevante(s) disponibles "
+            f"con `label: True`.\n\n"
+            f"Para comenzar, ejecuta el proceso inicial con los últimos "
+            f"**{WINDOW_SIZE} documentos relevantes**. "
+            "Los documentos anteriores no serán marcados ni contados."
+        )
+
+    else:
+        if batches_ready > 0 and in_curr == 0:
+            # Ejemplo: 10, 20, 30 pendientes.
+            st.markdown(
+                f"**Mensajes acumulados en la ventana actual:** "
+                f"{WINDOW_SIZE}/{WINDOW_SIZE}"
+            )
+        else:
+            # Ejemplo: 2/10, 7/10, 22 pendientes -> 2/10
+            st.markdown(
+                f"**Mensajes acumulados en la ventana actual:** "
+                f"{in_curr}/{WINDOW_SIZE}"
+            )
+
+        st.progress(get_progress_bar_value())
+
+        if pending_total == 0:
+            st.caption("No hay mensajes relevantes nuevos pendientes de evaluación.")
+
+        elif batches_ready == 0:
+            st.caption(
+                f"Hay **{pending_total}** mensaje(s) relevante(s) nuevo(s). "
+                f"Faltan **{remaining}** para completar la siguiente ventana."
+            )
+
+        else:
+            st.warning(
+                f"Hay **{pending_total}** mensaje(s) relevante(s) pendiente(s). "
+                f"Eso equivale a **{batches_ready}** batch(es) completo(s) "
+                f"listo(s) para evaluar"
+                + (
+                    f" y **{in_curr}** mensaje(s) acumulado(s) para la siguiente ventana."
+                    if in_curr > 0
+                    else "."
+                )
+            )
 
     # ---- Métricas de la última ventana ----
     st.markdown("### 📈 Métricas de la última ventana")
-    if state.last_averages:
+    if ragas_initialized and state.last_averages:
         m1, m2, m3, m4 = st.columns(4)
         m1.metric("Faithfulness",      f"{state.last_averages.get('faithfulness', 0):.3f}")
         m2.metric("Answer Relevancy",  f"{state.last_averages.get('answer_relevancy', 0):.3f}")
@@ -187,7 +312,7 @@ with tabs[1]:
 
     # ---- Histórico ----
     st.markdown("### 📜 Histórico de ventanas evaluadas")
-    history_data = get_history_data()
+    history_data = get_history_data() if ragas_initialized else []
 
     if history_data:
         df_history = pd.DataFrame(history_data)
@@ -232,36 +357,176 @@ with tabs[1]:
 
     # ---- Acción manual ----
     st.markdown("### 🔧 Acciones")
-    if st.button(
-        "Forzar evaluación de la siguiente ventana",
-        type="primary", use_container_width=True, key="force_window",
-    ):
-        try:
-            with st.spinner("⏳ Evaluando la siguiente ventana de 10 mensajes…"):
-                results = asyncio.run(
-                    evaluator.evaluate_batch(mode="sliding")
-                )
-            if results:
-                st.success(f"✅ {len(results)} documentos evaluados.")
-                # Forzar recarga del evaluator (relee eval_state.json)
+
+    ragas_initialized = getattr(evaluator.state, "ragas_initialized", False)
+    bootstrap_candidates = get_bootstrap_candidate_count()
+
+    if not ragas_initialized:
+        bootstrap_disabled = bootstrap_candidates < WINDOW_SIZE
+
+        st.warning(
+            "El proceso RAGAS todavía no está inicializado. "
+            "El primer paso evaluará únicamente los últimos "
+            f"{WINDOW_SIZE} documentos relevantes actuales. "
+            "Los documentos anteriores se ignorarán."
+        )
+
+        if st.button(
+            f"Empezar proceso de evaluación con los últimos {WINDOW_SIZE} documentos",
+            type="primary",
+            use_container_width=True,
+            key="bootstrap_ragas",
+            disabled=bootstrap_disabled,
+        ):
+            try:
+                with st.spinner(
+                    f"⏳ Inicializando RAGAS con los últimos {WINDOW_SIZE} documentos relevantes…"
+                ):
+                    results = asyncio.run(
+                        evaluator.bootstrap_latest_window()
+                    )
+
+                if results:
+                    st.success(
+                        f"✅ Bootstrap completado. "
+                        f"Se evaluaron {len(results)} documentos."
+                    )
+
+                    evaluator.state = evaluator._load_state()
+                    st.rerun()
+
+                else:
+                    st.info(
+                        f"ℹ️ No se pudo inicializar. "
+                        f"Se requieren al menos {WINDOW_SIZE} documentos relevantes."
+                    )
+
+            except Exception as e:
                 evaluator.state = evaluator._load_state()
+                st.error(f"❌ Error inicializando RAGAS: {e}")
+                logger.exception("Error inicializando RAGAS")
                 st.rerun()
-            else:
-                st.info(
-                    f"ℹ️ No hay suficientes mensajes nuevos "
-                    f"(se requieren ≥ {WINDOW_SIZE})."
-                )
-        except Exception as e:
-            st.error(f"❌ Error durante la evaluación: {e}")
-            logger.exception("Error forzando ventana")
+
+        if bootstrap_disabled:
+            st.caption(
+                f"Se requieren al menos {WINDOW_SIZE} documentos relevantes "
+                f"con `label: True`. Actualmente hay {bootstrap_candidates}."
+            )
+
+    else:
+        col_action_1, col_action_2 = st.columns(2)
+
+        next_batch_disabled = batches_ready < 1
+        all_batches_disabled = batches_ready <= 1
+
+        with col_action_1:
+            if st.button(
+                "Evaluar siguiente batch",
+                type="primary" if not next_batch_disabled else "secondary",
+                use_container_width=True,
+                key="force_next_window",
+                disabled=next_batch_disabled,
+            ):
+                try:
+                    with st.spinner("⏳ Evaluando siguiente batch de 10 mensajes relevantes…"):
+                        results = asyncio.run(
+                            evaluator.evaluate_batch(mode="sliding")
+                        )
+
+                    if results:
+                        st.success(f"✅ {len(results)} documentos evaluados.")
+                        evaluator.state = evaluator._load_state()
+                        st.rerun()
+
+                    else:
+                        st.info(
+                            f"ℹ️ No hay suficientes mensajes relevantes nuevos. "
+                            f"Se requieren al menos {WINDOW_SIZE}."
+                        )
+
+                except Exception as e:
+                    evaluator.state = evaluator._load_state()
+                    st.error(f"❌ Error durante la evaluación del batch: {e}")
+                    logger.exception("Error evaluando siguiente batch")
+                    st.rerun()
+
+        with col_action_2:
+            batches_to_run = min(batches_ready, MAX_BATCHES_PER_RUN)
+
+            if st.button(
+                f"Evaluar todos los batches listos"
+                + (
+                    f" ({batches_to_run} máx.)"
+                    if batches_ready > 1
+                    else ""
+                ),
+                type="primary" if not all_batches_disabled else "secondary",
+                use_container_width=True,
+                key="force_all_ready_windows",
+                disabled=all_batches_disabled,
+            ):
+                try:
+                    with st.spinner(
+                        f"⏳ Evaluando hasta {MAX_BATCHES_PER_RUN} batches completos…"
+                    ):
+                        results = asyncio.run(
+                            evaluator.evaluate_ready_windows(
+                                max_batches=MAX_BATCHES_PER_RUN
+                            )
+                        )
+
+                    if results:
+                        completed_batches = len(results) // WINDOW_SIZE
+
+                        st.success(
+                            f"✅ Se evaluaron {len(results)} documentos "
+                            f"en {completed_batches} batch(es)."
+                        )
+
+                        evaluator.state = evaluator._load_state()
+                        st.rerun()
+
+                    else:
+                        st.info("ℹ️ No había batches completos para evaluar.")
+
+                except Exception as e:
+                    evaluator.state = evaluator._load_state()
+                    st.error(f"❌ Error durante la evaluación masiva: {e}")
+                    logger.exception("Error evaluando todos los batches listos")
+                    st.rerun()
+
+        if next_batch_disabled:
+            st.caption(
+                f"No hay batches completos listos. "
+                f"Pendientes actuales: {pending_total}/{WINDOW_SIZE}."
+            )
+
+        elif all_batches_disabled:
+            st.caption(
+                "Hay exactamente 1 batch listo. "
+                "Usa `Evaluar siguiente batch`. "
+                "El botón de evaluación masiva se habilita cuando hay más de 1 batch listo."
+            )
+
+        if batches_ready > MAX_BATCHES_PER_RUN:
+            st.warning(
+                f"Hay {batches_ready} batches listos, pero por seguridad solo se evaluarán "
+                f"{MAX_BATCHES_PER_RUN} por ejecución."
+            )
 
     st.info(
-        f"**Sistema de Ventana Deslizante:**\n"
-        f"- El evaluador procesa **{WINDOW_SIZE} documentos por ventana**.\n"
-        f"- Si hay menos de {WINDOW_SIZE} mensajes nuevos, no se reevalúa "
-        f"para ahorrar tokens.\n"
-        f"- El cursor persiste en `{evaluator.state_file}`.\n"
-        f"- Solo se evalúan mensajes nuevos (posteriores al último evaluado)."
+        f"**Sistema RAGAS por ventanas:**\n"
+        f"- `label: True` significa que el mensaje es relevante/candidato, "
+        f"no que ya fue evaluado.\n"
+        f"- El bootstrap inicial evalúa los últimos **{WINDOW_SIZE} documentos relevantes**.\n"
+        f"- Los documentos anteriores al bootstrap se ignoran usando `ragas_bootstrap_at`.\n"
+        f"- Después del bootstrap, solo cuentan documentos con "
+        f"`timestamp > ragas_bootstrap_at` y `ragas_evaluated != True`.\n"
+        f"- Cada ventana evalúa **{WINDOW_SIZE} documentos**.\n"
+        f"- Si hay menos de {WINDOW_SIZE}, no se evalúa para ahorrar tokens.\n"
+        f"- La evaluación masiva procesa máximo **{MAX_BATCHES_PER_RUN} batches** por ejecución.\n"
+        f"- El estado global persiste en `{evaluator.state_file}`.\n"
+        f"- Los documentos evaluados se marcan en MongoDB con campos `ragas_*`."
     )
 
 # --------------------------- TAB 0: DASHBOARD --------------------------- #

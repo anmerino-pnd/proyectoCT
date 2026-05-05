@@ -8,7 +8,8 @@ from pydantic import SecretStr
 from pymongo.errors import PyMongoError
 from langchain_openai import ChatOpenAI
 from datetime import datetime, timezone
-from pymongo import MongoClient, DESCENDING, ASCENDING
+from pymongo import MongoClient, DESCENDING, ASCENDING, UpdateOne
+from bson import ObjectId
 
 from ct.settings.config import EVAL_OUTPUT_DIR, EVAL_STATE_FILE
 from ct.evaluation.metrics.faithfulness import evaluate_faithfulness
@@ -79,6 +80,199 @@ class RAGASEvaluator:
 
         # Cargar estado persistente del evaluador
         self.state: EvaluationState = self._load_state()
+    # ================================================================== #
+    # RAGAS WINDOW STATE / FETCH / FLAGS                                  #
+    # ================================================================== #
+
+    def _now_utc(self) -> datetime:
+        return datetime.now(timezone.utc)
+
+    def _set_last_error(self, message: str):
+        """Guarda último error en eval_state.json para mostrarlo en UI."""
+        self.state.last_error = str(message)
+        self.state.last_error_at = self._now_utc()
+        self._save_state()
+
+    def _clear_last_error(self):
+        """Limpia último error persistido."""
+        self.state.last_error = None
+        self.state.last_error_at = None
+
+    def _build_window_id(self, batch_type: str) -> str:
+        """ID legible para asociar docs evaluados a una ventana."""
+        ts = self._now_utc().strftime("%Y%m%d_%H%M%S")
+        return f"ragas_{batch_type}_{ts}"
+
+    def fetch_latest_bootstrap_messages(self, n: int = WINDOW_SIZE) -> list[EvaluationInput]:
+        """
+        Bootstrap inicial:
+        toma los últimos N documentos relevantes actuales.
+        
+        Nota:
+        - No usamos ragas_evaluated aquí.
+        - No marcamos los anteriores.
+        - Los anteriores se ignorarán mediante ragas_bootstrap_at.
+        """
+        try:
+            docs = list(
+                self.message_backup
+                .find({"label": True})
+                .sort("timestamp", DESCENDING)
+                .limit(n)
+            )
+
+            if not docs:
+                return []
+
+            docs.reverse()  # evaluar en orden cronológico ascendente
+            return [self._doc_to_input(d) for d in docs]
+
+        except PyMongoError as e:
+            logger.error(f"Error fetching bootstrap messages: {e}")
+            return []
+
+    def count_bootstrap_candidates(self) -> int:
+        """Cuenta cuántos documentos relevantes existen para poder iniciar bootstrap."""
+        try:
+            return self.message_backup.count_documents({"label": True})
+        except PyMongoError as e:
+            logger.error(f"Error contando candidatos bootstrap: {e}")
+            return 0
+
+    def _pending_ragas_query(self) -> dict:
+        """
+        Query central de pendientes RAGAS.
+
+        Regla:
+        - label=True: mensaje relevante/candidato.
+        - timestamp > ragas_bootstrap_at: ignora histórico anterior al bootstrap.
+        - ragas_evaluated != True: aún no fue evaluado por RAGAS.
+        """
+        if not self.state.ragas_initialized or not self.state.ragas_bootstrap_at:
+            return {
+                "_id": {"$exists": False}
+            }
+
+        return {
+            "label": True,
+            "timestamp": {"$gt": self.state.ragas_bootstrap_at},
+            "ragas_evaluated": {"$ne": True},
+        }
+
+    def count_pending_ragas_messages(self) -> int:
+        """Cuenta mensajes relevantes pendientes después del bootstrap."""
+        try:
+            return self.message_backup.count_documents(self._pending_ragas_query())
+        except PyMongoError as e:
+            logger.error(f"Error contando pendientes RAGAS: {e}")
+            return 0
+
+    def fetch_pending_ragas_messages(self, limit: int = WINDOW_SIZE) -> list[EvaluationInput]:
+        """
+        Trae mensajes pendientes RAGAS en orden cronológico.
+
+        Importante:
+        No depende solo de last_evaluated_at.
+        Usa ragas_bootstrap_at + ragas_evaluated != True.
+        """
+        try:
+            docs = list(
+                self.message_backup
+                .find(self._pending_ragas_query())
+                .sort("timestamp", ASCENDING)
+                .limit(limit)
+            )
+
+            if not docs:
+                return []
+
+            return [self._doc_to_input(d) for d in docs]
+
+        except PyMongoError as e:
+            logger.error(f"Error fetching pending RAGAS messages: {e}")
+            return []
+
+    def _mark_messages_as_ragas_evaluated(
+        self,
+        results: list[EvaluationResult],
+        window_id: str,
+        batch_type: str,
+    ):
+        """
+        Marca los documentos originales en message_backup como evaluados por RAGAS.
+
+        Si falla, lanza excepción para NO avanzar estado.
+        """
+        if not results:
+            raise RuntimeError("No hay resultados para marcar como evaluados.")
+
+        evaluated_at = self._now_utc()
+        operations = []
+
+        for r in results:
+            try:
+                obj_id = ObjectId(r.doc_id)
+            except Exception as e:
+                raise RuntimeError(f"doc_id inválido para ObjectId: {r.doc_id}") from e
+
+            operations.append(
+                UpdateOne(
+                    {"_id": obj_id},
+                    {
+                        "$set": {
+                            "ragas_evaluated": True,
+                            "ragas_evaluated_at": evaluated_at,
+                            "ragas_window_id": window_id,
+                            "ragas_batch_type": batch_type,
+                            "ragas_evaluator_model": self.evaluator_model,
+                            "ragas_final_score": r.final_score,
+                            "ragas_scores": {
+                                "faithfulness": r.faithfulness.score,
+                                "answer_relevancy": r.answer_relevancy.score,
+                                "context_precision": r.context_precision.score,
+                                "context_recall": r.context_recall.score,
+                            },
+                        }
+                    },
+                )
+            )
+
+        try:
+            bulk_result = self.message_backup.bulk_write(operations, ordered=True)
+
+            if bulk_result.matched_count != len(results):
+                raise RuntimeError(
+                    f"Solo se encontraron {bulk_result.matched_count}/{len(results)} "
+                    f"documentos para marcar como RAGAS evaluados."
+                )
+
+        except Exception as e:
+            # Intento de rollback parcial si el bulk alcanzó a marcar algunos.
+            try:
+                ids = [ObjectId(r.doc_id) for r in results]
+                self.message_backup.update_many(
+                    {
+                        "_id": {"$in": ids},
+                        "ragas_window_id": window_id,
+                    },
+                    {
+                        "$unset": {
+                            "ragas_evaluated": "",
+                            "ragas_evaluated_at": "",
+                            "ragas_window_id": "",
+                            "ragas_batch_type": "",
+                            "ragas_evaluator_model": "",
+                            "ragas_final_score": "",
+                            "ragas_scores": "",
+                        }
+                    },
+                )
+            except Exception as rollback_error:
+                logger.error(f"Rollback RAGAS falló: {rollback_error}")
+
+            raise RuntimeError(
+                f"No se pudieron marcar documentos como evaluados en MongoDB: {e}"
+            ) from e
 
     # ================================================================== #
     # ESTADO PERSISTENTE (eval_state.json)                                 #
@@ -264,67 +458,221 @@ class RAGASEvaluator:
         self._save_batch_summary(results)
         return results
 
+    async def bootstrap_latest_window(self) -> list[EvaluationResult]:
+        """
+        Momento 0:
+        evalúa los últimos WINDOW_SIZE documentos relevantes actuales.
+
+        Si sale bien:
+        - marca esos 10 como ragas_evaluated=True
+        - inicializa ragas_bootstrap_at
+        - inicializa last_evaluated_at
+        - limpia historial anterior del estado local
+        """
+        inputs = self.fetch_latest_bootstrap_messages(n=WINDOW_SIZE)
+
+        if len(inputs) < WINDOW_SIZE:
+            msg = (
+                f"No hay suficientes documentos relevantes para iniciar RAGAS. "
+                f"Se encontraron {len(inputs)}, se requieren {WINDOW_SIZE}."
+            )
+            self._set_last_error(msg)
+            logger.warning(msg)
+            return []
+
+        try:
+            return await self._evaluate_ragas_window(
+                inputs=inputs,
+                batch_type="bootstrap",
+            )
+
+        except Exception as e:
+            msg = f"Falló el bootstrap RAGAS. No se avanzó estado. Error: {e}"
+            self._set_last_error(msg)
+            logger.exception(msg)
+            raise
+
+    async def evaluate_ready_windows(
+        self,
+        max_batches: int = 5,
+    ) -> list[EvaluationResult]:
+        """
+        Evalúa todos los batches completos disponibles, con límite.
+
+        Ejemplo:
+        - Si hay 22 pendientes y max_batches=5:
+          evalúa 2 batches = 20 docs, deja 2 pendientes.
+
+        Si un batch falla:
+        - los batches anteriores exitosos quedan cerrados
+        - el batch fallido no avanza cursor
+        - se lanza error para mostrar en UI
+        """
+        all_results: list[EvaluationResult] = []
+        batches_done = 0
+
+        while batches_done < max_batches:
+            pending = self.count_pending_ragas_messages()
+
+            if pending < WINDOW_SIZE:
+                break
+
+            try:
+                results = await self._evaluate_sliding_window()
+
+                if not results:
+                    break
+
+                all_results.extend(results)
+                batches_done += 1
+
+            except Exception as e:
+                msg = (
+                    f"Falló la evaluación masiva después de "
+                    f"{batches_done} batch(es) completado(s). "
+                    f"El batch actual no se cerró. Error: {e}"
+                )
+                self._set_last_error(msg)
+                logger.exception(msg)
+                raise RuntimeError(msg) from e
+
+        return all_results
+
     async def _evaluate_sliding_window(self) -> list[EvaluationResult]:
         """
-        Evalúa UNA ventana de WINDOW_SIZE mensajes nuevos.
-        - Primera ejecución (state vacío): toma los últimos WINDOW_SIZE.
-        - Siguientes: toma los próximos WINDOW_SIZE en orden cronológico.
-        - Si no hay suficientes mensajes nuevos, no evalúa nada.
-        """
-        last_ts = self.state.last_evaluated_at
+        Evalúa UNA ventana de WINDOW_SIZE mensajes relevantes pendientes.
 
-        if last_ts is None:
-            # Primera ejecución
-            logger.info("🆕 Primera ejecución: tomando los últimos 10 mensajes.")
-            inputs = self.fetch_last_messages(n=WINDOW_SIZE)
-        else:
-            inputs = self.fetch_after(last_ts, limit=WINDOW_SIZE)
+        Requiere que primero exista bootstrap.
+        """
+        if not self.state.ragas_initialized or not self.state.ragas_bootstrap_at:
+            msg = (
+                "RAGAS aún no está inicializado. "
+                "Primero ejecuta bootstrap_latest_window()."
+            )
+            logger.warning(msg)
+            return []
+
+        inputs = self.fetch_pending_ragas_messages(limit=WINDOW_SIZE)
 
         if len(inputs) < WINDOW_SIZE:
             logger.info(
-                f"⏭️ Solo hay {len(inputs)} mensajes nuevos "
+                f"⏭️ Solo hay {len(inputs)} mensajes relevantes nuevos "
                 f"(< {WINDOW_SIZE}), no se evalúa."
             )
             return []
 
-        # Tomar exactamente WINDOW_SIZE
+        try:
+            return await self._evaluate_ragas_window(
+                inputs=inputs,
+                batch_type="sliding",
+            )
+
+        except Exception as e:
+            msg = f"Falló la evaluación del siguiente batch. No se avanzó estado. Error: {e}"
+            self._set_last_error(msg)
+            logger.exception(msg)
+            raise
+
+    async def _evaluate_ragas_window(
+        self,
+        inputs: list[EvaluationInput],
+        batch_type: Literal["bootstrap", "sliding"],
+    ) -> list[EvaluationResult]:
+        """
+        Evalúa una ventana completa de RAGAS de forma transaccional a nivel lógico.
+
+        Regla:
+        - Si no hay exactamente WINDOW_SIZE inputs, no evalúa.
+        - Primero evalúa todos.
+        - Si todos salen bien, marca Mongo.
+        - Luego guarda JSONs y actualiza estado.
+        - Si algo falla antes de actualizar estado, el batch se puede reintentar completo.
+        """
+        if len(inputs) < WINDOW_SIZE:
+            logger.info(
+                f"⏭️ Ventana incompleta: {len(inputs)}/{WINDOW_SIZE}. No se evalúa."
+            )
+            return []
+
         window_inputs = inputs[:WINDOW_SIZE]
-        logger.info(f"📊 Evaluando ventana de {len(window_inputs)} documentos…")
+        window_id = self._build_window_id(batch_type)
+
+        logger.info(
+            f"📊 Evaluando ventana RAGAS tipo={batch_type} "
+            f"window_id={window_id} docs={len(window_inputs)}"
+        )
 
         results: list[EvaluationResult] = []
-        for inp in window_inputs:
+
+        # 1) Evaluar todos los documentos primero.
+        for i, inp in enumerate(window_inputs):
             try:
                 r = await self.evaluate_single(inp)
                 results.append(r)
-                self._save_to_json(r)
-                self._save_to_mongo(r)
-                logger.info(f"   ✅ {inp.doc_id} | score={r.final_score:.3f}")
+                logger.info(
+                    f"[{i + 1}/{len(window_inputs)}] ✅ {inp.doc_id} "
+                    f"| score={r.final_score:.3f}"
+                )
+
             except Exception as e:
-                logger.error(f"   ❌ Error en {inp.doc_id}: {e}")
+                msg = (
+                    f"Error evaluando doc_id={inp.doc_id}. "
+                    f"No se cerrará la ventana {window_id}. Error: {e}"
+                )
+                logger.exception(msg)
+                raise RuntimeError(msg) from e
 
-        if not results:
-            logger.warning("Ningún documento se evaluó con éxito.")
-            return []
+        if len(results) != WINDOW_SIZE:
+            raise RuntimeError(
+                f"La ventana produjo {len(results)}/{WINDOW_SIZE} resultados. "
+                f"No se cerrará el batch."
+            )
 
-        # ---- Promedios de la ventana ----
+        # 2) Calcular promedios.
         n = len(results)
         averages = {
             "faithfulness":      round(sum(r.faithfulness.score      for r in results) / n, 4),
             "answer_relevancy":  round(sum(r.answer_relevancy.score  for r in results) / n, 4),
             "context_precision": round(sum(r.context_precision.score for r in results) / n, 4),
             "context_recall":    round(sum(r.context_recall.score    for r in results) / n, 4),
-            "final_score":       round(sum(r.final_score              for r in results) / n, 4),
+            "final_score":       round(sum(r.final_score             for r in results) / n, 4),
         }
 
-        # ---- Actualizar estado ----
+        # 3) Marcar Mongo antes de avanzar estado.
+        # Si esto falla, lanzará excepción y NO se actualizará eval_state.json.
+        self._mark_messages_as_ragas_evaluated(
+            results=results,
+            window_id=window_id,
+            batch_type=batch_type,
+        )
+
+        # 4) Guardar resultados individuales.
+        for r in results:
+            self._save_to_json(r)
+            self._save_to_mongo(r)
+
+        # 5) Si es bootstrap, reseteamos estado anterior local.
+        # Esto evita que evaluaciones viejas de prueba aparezcan en la UI.
+        if batch_type == "bootstrap":
+            self.state = EvaluationState()
+            self.state.ragas_initialized = True
+
+            latest_ts = max(r.timestamp for r in results)
+            latest_doc_id = results[-1].doc_id
+
+            self.state.ragas_bootstrap_at = latest_ts
+            self.state.ragas_bootstrap_doc_id = latest_doc_id
+
+        # 6) Actualizar cursor y estado.
         latest_ts = max(r.timestamp for r in results)
+
         self.state.last_evaluated_doc_id = results[-1].doc_id
-        self.state.last_evaluated_at     = latest_ts
-        self.state.last_score            = averages["final_score"]
-        self.state.last_averages         = averages
+        self.state.last_evaluated_at = latest_ts
+        self.state.last_score = averages["final_score"]
+        self.state.last_averages = averages
 
         self.state.history.append(WindowEntry(
-            evaluated_at=datetime.now(timezone.utc),
+            evaluated_at=self._now_utc(),
             window_start_doc_id=results[0].doc_id,
             window_end_doc_id=results[-1].doc_id,
             n_evaluated=n,
@@ -332,13 +680,17 @@ class RAGASEvaluator:
             final_score=averages["final_score"],
         ))
 
+        self._clear_last_error()
         self._save_state()
         self._save_batch_summary(results)
         self._print_summary(results)
 
         logger.info(
-            f"✅ Ventana completada: {n} docs | final_score={averages['final_score']:.4f}"
+            f"✅ Ventana RAGAS completada: "
+            f"type={batch_type} | window_id={window_id} | "
+            f"{n} docs | final_score={averages['final_score']:.4f}"
         )
+
         return results
 
     # ================================================================== #
