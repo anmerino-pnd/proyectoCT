@@ -217,7 +217,7 @@ with tabs[1]:
 
     with c2:
         last_date = (
-            state.last_evaluated_at.strftime("%Y-%m-%d %H:%M")
+            state.last_evaluated_at.strftime("%Y-%m-%d")
             if ragas_initialized and state.last_evaluated_at else "N/A"
         )
         st.metric("Último mensaje evaluado", last_date)
