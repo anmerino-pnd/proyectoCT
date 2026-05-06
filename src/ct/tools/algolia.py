@@ -200,16 +200,16 @@ def algolia_search_tool(
     
     except requests.exceptions.Timeout:
         print(f"❌ Timeout en búsqueda de Algolia: {producto}")
-        return {}
+        return {f"❌ Timeout en búsqueda de Algolia: {producto}"}
         
     except requests.exceptions.RequestException as e:
         print(f"❌ Error en request a Algolia: {e}")
-        return {}
+        return {f"❌ Error en request a Algolia: {e}"}
         
     except KeyError as e:
         print(f"❌ Respuesta de Algolia con estructura inesperada: {e}")
-        return {}
+        return {f"❌ Respuesta de Algolia con estructura inesperada: {e}"}
         
     except Exception as e:
         print(f"❌ Error inesperado en algolia_query: {e}")
-        return {}
+        return {f"❌ Error inesperado en algolia_query: {e}"}
