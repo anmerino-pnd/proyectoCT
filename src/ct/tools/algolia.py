@@ -113,10 +113,8 @@ def algolia_search_tool(
     """Buscador de productos"""
     lista_precio = str(runtime.context.lista_precio)
     userToken = re.sub(r'[._]', '-', runtime.context.session_id)
-    print(userToken)
     scraper = _create_scraper(userToken)
     account = get_user(runtime.context.session_id)
-    print(account)
     especial_hp = query_exec(query.substitute(account = account))
     if especial_hp:
         especial_values = especial_hp[0][1:]
@@ -134,7 +132,6 @@ def algolia_search_tool(
     else:
         final_filters = f"especial_hp = 0 AND especial_cuenta: 'VPG'"
         
-    print(final_filters)
     payload = json.dumps({
         "query": producto,
         "filters": final_filters,
