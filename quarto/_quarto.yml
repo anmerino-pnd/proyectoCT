@@ -43,4 +43,8 @@ format:
     execute:
       echo: false
 
+diagram:             # ← agregar esto
+  mermaid:
+    theme: neutral
+    
 lang: es

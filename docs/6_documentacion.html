@@ -259,8 +259,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#cómo-funciona" id="toc-cómo-funciona" class="nav-link" data-scroll-target="#cómo-funciona">5.3. Cómo funciona</a></li>
   <li><a href="#estructura-de-archivos" id="toc-estructura-de-archivos" class="nav-link" data-scroll-target="#estructura-de-archivos">5.4. Estructura de archivos</a></li>
   <li><a href="#resultados-guardados" id="toc-resultados-guardados" class="nav-link" data-scroll-target="#resultados-guardados">5.5. Resultados guardados</a></li>
-  <li><a href="#cómo-ejecutar-la-evaluación" id="toc-cómo-ejecutar-la-evaluación" class="nav-link" data-scroll-target="#cómo-ejecutar-la-evaluación">5.6. Cómo ejecutar la evaluación</a></li>
+  <li><a href="#cómo-ejecutar-la-evaluación" id="toc-cómo-ejecutar-la-evaluación" class="nav-link" data-scroll-target="#cómo-ejecutar-la-evaluación">5.6. Cómo ejecutar la evaluación</a>
+  <ul>
+  <li><a href="#ejecución-local-python-standalone" id="toc-ejecución-local-python-standalone" class="nav-link" data-scroll-target="#ejecución-local-python-standalone">5.6.1. Ejecución local (Python standalone)</a></li>
+  <li><a href="#ejecución-vía-dashboard-streamlit" id="toc-ejecución-vía-dashboard-streamlit" class="nav-link" data-scroll-target="#ejecución-vía-dashboard-streamlit">5.6.2. Ejecución vía Dashboard Streamlit</a></li>
+  </ul></li>
   <li><a href="#interpretación-de-resultados" id="toc-interpretación-de-resultados" class="nav-link" data-scroll-target="#interpretación-de-resultados">5.7. Interpretación de resultados</a></li>
+  <li><a href="#persistencia-de-resultados-y-mongodb" id="toc-persistencia-de-resultados-y-mongodb" class="nav-link" data-scroll-target="#persistencia-de-resultados-y-mongodb">5.8. Persistencia de resultados y MongoDB</a></li>
+  <li><a href="#dashboard-de-monitoreo-en-tiempo-real" id="toc-dashboard-de-monitoreo-en-tiempo-real" class="nav-link" data-scroll-target="#dashboard-de-monitoreo-en-tiempo-real">5.9. Dashboard de monitoreo en tiempo real</a></li>
+  <li><a href="#estructura-de-archivos-1" id="toc-estructura-de-archivos-1" class="nav-link" data-scroll-target="#estructura-de-archivos-1">5.10. Estructura de archivos</a></li>
+  <li><a href="#interpretación-de-resultados-1" id="toc-interpretación-de-resultados-1" class="nav-link" data-scroll-target="#interpretación-de-resultados-1">5.7. Interpretación de resultados</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -533,7 +541,14 @@ about the RDB error.</code></pre>
 <span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="ex">.venv/bin/python</span> <span class="at">-m</span> uvicorn <span class="at">--version</span></span>
 <span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="fu">find</span> /home/angel.merino/proyectoCT <span class="at">-name</span> <span class="st">"run_report.py"</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>En el servidor actual se confirmó: - <code>streamlit</code> versión 1.45.0. - <code>gunicorn</code> versión 23.0.0. - <code>uvicorn</code> versión 0.34.0. - Python 3.13.1 dentro del virtualenv generado con <code>uv</code>. - El script real del reporte está en: <code>/home/angel.merino/proyectoCT/src/ct/reportes/run_report.py</code>.</p>
+<p>En el servidor actual se confirmó:</p>
+<ul>
+<li><code>streamlit</code> versión 1.45.0.</li>
+<li><code>gunicorn</code> versión 23.0.0.</li>
+<li><code>uvicorn</code> versión 0.34.0.</li>
+<li>Python 3.13.1 dentro del virtualenv generado con <code>uv</code>.</li>
+<li>El script real del reporte está en: <code>/home/angel.merino/proyectoCT/src/ct/reportes/run_report.py</code>.</li>
+</ul>
 </section>
 <section id="servicio-systemd-para-streamlit" class="level5">
 <h5 class="anchored" data-anchor-id="servicio-systemd-para-streamlit">1.4.5.2. Servicio systemd para Streamlit</h5>
@@ -561,7 +576,16 @@ about the RDB error.</code></pre>
 <span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="kw">[Install]</span></span>
 <span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="dt">WantedBy</span><span class="ot">=</span><span class="st">multi-user.target</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Explicación: - <code>User</code> y <code>Group</code>: ejecutan el servicio con el usuario propietario del proyecto. - <code>WorkingDirectory</code>: raíz del proyecto. - <code>Environment=PATH</code>: asegura que systemd use el virtualenv. - <code>Environment=PYTHONPATH</code>: permite resolver imports internos como <code>ct</code>. - <code>ExecStart</code>: comando real que levanta Streamlit. - <code>Restart=always</code>: reinicia el servicio si falla. - <code>WantedBy=multi-user.target</code>: habilita arranque automático en modo multiusuario.</p>
+<p>Explicación:</p>
+<ul>
+<li><code>User</code> y <code>Group</code>: ejecutan el servicio con el usuario propietario del proyecto.</li>
+<li><code>WorkingDirectory</code>: raíz del proyecto.</li>
+<li><code>Environment=PATH</code>: asegura que systemd use el virtualenv.</li>
+<li><code>Environment=PYTHONPATH</code>: permite resolver imports internos como <code>ct</code>.</li>
+<li><code>ExecStart</code>: comando real que levanta Streamlit.</li>
+<li><code>Restart=always</code>: reinicia el servicio si falla.</li>
+<li><code>WantedBy=multi-user.target</code>: habilita arranque automático en modo multiusuario.</li>
+</ul>
 </section>
 <section id="servicio-systemd-para-backendchatbot" class="level5">
 <h5 class="anchored" data-anchor-id="servicio-systemd-para-backendchatbot">1.4.5.3. Servicio systemd para backend/chatbot</h5>
@@ -670,7 +694,13 @@ data_home_t</code></pre>
 <span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> restorecon <span class="at">-Rv</span> /home/angel.merino/proyectoCT/.venv/bin</span>
 <span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> restorecon <span class="at">-Rv</span> /home/angel.merino/.local/share/uv/python/cpython-3.13.1-linux-x86_64-gnu/bin</span>
 <span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> restorecon <span class="at">-Rv</span> /home/angel.merino/.local/share/uv/python/cpython-3.13.1-linux-x86_64-gnu/lib</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Explicación: - <code>semanage fcontext</code> registra una regla persistente de contexto SELinux. - <code>restorecon</code> aplica el contexto a los archivos existentes. - Se etiquetó <code>.venv/bin</code> y el Python real instalado por <code>uv</code>. - Esto corrigió el error <code>status=203/EXEC</code>.</p>
+<p>Explicación:</p>
+<ul>
+<li><code>semanage fcontext</code> registra una regla persistente de contexto SELinux.</li>
+<li><code>restorecon</code> aplica el contexto a los archivos existentes.</li>
+<li>Se etiquetó <code>.venv/bin</code> y el Python real instalado por <code>uv</code>.</li>
+<li>Esto corrigió el error <code>status=203/EXEC</code>.</li>
+</ul>
 <p>Importante: No se recomienda deshabilitar SELinux en servidores productivos. La solución correcta es ajustar contextos o políticas.</p>
 </section>
 </section>
@@ -692,7 +722,14 @@ data_home_t</code></pre>
 <p>Para ver logs desde el último arranque del sistema:</p>
 <div class="sourceCode" id="cb36"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="ex">journalctl</span> <span class="at">-u</span> streamlit-reporte <span class="at">-b</span> <span class="at">--no-pager</span></span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="ex">journalctl</span> <span class="at">-u</span> chatbot-api <span class="at">-b</span> <span class="at">--no-pager</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Explicación: - <code>-u</code> filtra por unidad systemd. - <code>-f</code> sigue logs en tiempo real. - <code>-n 100</code> muestra las últimas 100 líneas. - <code>--no-pager</code> evita abrir el visor interactivo. - <code>-b</code> muestra logs desde el último boot.</p>
+<p>Explicación:</p>
+<ul>
+<li><code>-u</code> filtra por unidad systemd.</li>
+<li><code>-f</code> sigue logs en tiempo real.</li>
+<li><code>-n 100</code> muestra las últimas 100 líneas.</li>
+<li><code>--no-pager</code> evita abrir el visor interactivo.</li>
+<li><code>-b</code> muestra logs desde el último boot.</li>
+</ul>
 <p><code>nohup.out</code> solo aplica si se decide ejecutar manualmente algún comando con <code>nohup</code>, pero ya no es la fuente principal de logs para el despliegue persistente.</p>
 </section>
 <section id="comandos-útiles-de-operación-diaria" class="level4">
@@ -847,7 +884,15 @@ enabled</code></pre>
 0.0.0.0:8000</code></pre>
 <p><strong>Puertos abiertos en firewalld:</strong></p>
 <pre class="text"><code>3000/tcp 8000/tcp</code></pre>
-<p>Con esto se valida que: - Streamlit está activo en el puerto 3000. - El backend/chatbot está activo en el puerto 8000. - Ambos servicios están habilitados para iniciar después de un reinicio. - Los puertos están abiertos de forma persistente. - No es necesario mantener sesiones SSH abiertas. - No es necesario usar <code>nohup</code> para operación normal.</p>
+<p>Con esto se valida que:</p>
+<ul>
+<li>Streamlit está activo en el puerto 3000.</li>
+<li>El backend/chatbot está activo en el puerto 8000.</li>
+<li>Ambos servicios están habilitados para iniciar después de un reinicio.</li>
+<li>Los puertos están abiertos de forma persistente.</li>
+<li>No es necesario mantener sesiones SSH abiertas.</li>
+<li>No es necesario usar <code>nohup</code> para operación normal.</li>
+</ul>
 </section>
 </section>
 <section id="instalación-del-frontend-widget" class="level3">
@@ -2178,36 +2223,43 @@ de las respuestas del chatbot en producción sin intervención humana.</p>
 <p></p><figure class="figure"><p></p>
 <div>
 <pre class="mermaid mermaid-js">flowchart TD
-    A[(MongoDB&lt;br/&gt;message_backup)] --&gt;|últimas 10 respuestas| B[fetch_last_messages]
-    B --&gt; C[EvaluationInput&lt;br/&gt;question + answer&lt;br/&gt;verbose_log + historial]
 
-    C --&gt; D[evaluate_single]
+    A["MongoDB&lt;br&gt;message_backup&lt;br&gt;label=True"]--&gt;|"últimas 10 respuestas"|B["fetch_last_messages"]
 
-    D --&gt; E1[Faithfulness&lt;br/&gt;¿Inventó datos?]
-    D --&gt; E2[Answer Relevancy&lt;br/&gt;¿Respondió bien?]
-    D --&gt; E3[Context Precision&lt;br/&gt;¿Usó solo tools necesarias?]
-    D --&gt; E4[Context Recall&lt;br/&gt;¿Todas las tools que debía llamar?]
+    B --&gt; C["EvaluationInput&lt;br&gt;question + answer&lt;br&gt;verbose_log + historial"]
 
-    E1 --&gt; F[LLM Evaluador&lt;br/&gt;gpt-4.1]
+    C --&gt; D["evaluate_single"]
+
+    D --&gt; E1["Faithfulness&lt;br&gt;¿Inventó datos?"]
+    D --&gt; E2["Answer Relevancy&lt;br&gt;¿Respondió bien?"]
+    D --&gt; E3["Context Precision&lt;br&gt;¿Usó solo tools necesarias?"]
+    D --&gt; E4["Context Recall&lt;br&gt;¿Todas las tools que debía llamar?"]
+
+    E1 --&gt; F["LLM Evaluador&lt;br&gt;gpt-4.1"]
     E2 --&gt; F
     E3 --&gt; F
     E4 --&gt; F
 
-    F --&gt; G[MetricScore&lt;br/&gt;score 0 a 1&lt;br/&gt;reasoning + details]
+    F --&gt; G["MetricScore&lt;br&gt;score 0 a 1&lt;br&gt;reasoning + details"]
 
-    G --&gt; H[Score Final Ponderado&lt;br/&gt;Faithfulness 0.40&lt;br/&gt;Relevancy 0.35&lt;br/&gt;Recall 0.125&lt;br/&gt;Precision 0.125]
+    G --&gt; H["Score Final Ponderado&lt;br&gt;Faithfulness 0.40&lt;br&gt;Relevancy 0.35&lt;br&gt;Recall 0.125&lt;br&gt;Precision 0.125"]
 
-    H --&gt; I{¿MongoDB&lt;br/&gt;disponible?}
+    H --&gt; I{"MongoDB&lt;br&gt;disponible?"}
 
-    I --&gt;|Si| J[(evaluation_results&lt;br/&gt;MongoDB)]
-    I --&gt;|No| K[evaluation_results/&lt;br/&gt;eval_id.json&lt;br/&gt;summary_ts.json]
+    I --&gt;|Si| J["evaluation_results&lt;br&gt;MongoDB"]
+
+    I --&gt;|No| K["evaluation_results&lt;br&gt;eval_id.json&lt;br&gt;summary_ts.json"]
+
+    K --&gt; L["Dashboard Streamlit&lt;br&gt;monitorización en vivo"]
+
+    J --&gt; L
 </pre>
 </div>
 <p></p></figure><p></p>
 </div>
 </div>
 </div>
-<p>El evaluador usa el verbose_log completo de cada respuesta, un registro que contiene exactamente qué herramientas usó el agente y qué información devolvieron, lo que permite verificar si la respuesta es fiel a los datos reales.</p>
+<p>El evaluador usa el <code>verbose_log</code> completo de cada respuesta, un registro que contiene exactamente qué herramientas usó el agente y qué información devolvieron, lo que permite verificar si la respuesta es fiel a los datos reales.</p>
 </section>
 <section id="estructura-de-archivos" class="level3">
 <h3 class="anchored" data-anchor-id="estructura-de-archivos">5.4. Estructura de archivos</h3>
@@ -2232,6 +2284,10 @@ de las respuestas del chatbot en producción sin intervención humana.</p>
 </section>
 <section id="cómo-ejecutar-la-evaluación" class="level3">
 <h3 class="anchored" data-anchor-id="cómo-ejecutar-la-evaluación">5.6. Cómo ejecutar la evaluación</h3>
+<p>El sistema de evaluación RAGAS puede ejecutarse de dos formas: <strong>localmente</strong> (para pruebas rápidas o scripts personalizados) o <strong>a través del dashboard en Streamlit</strong> (para monitoreo continuo y visualización en tiempo real).</p>
+<section id="ejecución-local-python-standalone" class="level4">
+<h4 class="anchored" data-anchor-id="ejecución-local-python-standalone">5.6.1. Ejecución local (Python standalone)</h4>
+<p>Para ejecutar la evaluación de forma aislada, fuera del dashboard:</p>
 <div class="sourceCode" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> asyncio</span>
 <span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> logging</span>
 <span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> ct.evaluation.evaluator <span class="im">import</span> RAGASEvaluator</span>
@@ -2247,25 +2303,237 @@ de las respuestas del chatbot en producción sin intervención humana.</p>
 <span id="cb56-13"><a href="#cb56-13" aria-hidden="true" tabindex="-1"></a>    eval_collection<span class="op">=</span><span class="st">"evaluation_results"</span></span>
 <span id="cb56-14"><a href="#cb56-14" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb56-15"><a href="#cb56-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-16"><a href="#cb56-16" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="cf">await</span> evaluator.evaluate_batch()</span>
-<span id="cb56-17"><a href="#cb56-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-18"><a href="#cb56-18" aria-hidden="true" tabindex="-1"></a>summary <span class="op">=</span> evaluator.get_latest_summary()</span>
-<span id="cb56-19"><a href="#cb56-19" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> summary:</span>
-<span id="cb56-20"><a href="#cb56-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">📈 Último score promedio: </span><span class="sc">{</span>summary[<span class="st">'averages'</span>][<span class="st">'final_score'</span>]<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Resultado esperado en consola:</p>
-<pre class="text"><code>╔══════════════════════════════════════════════════╗
-║         RAGAS EVALUATION SUMMARY                 ║
-╠══════════════════════════════════════════════════╣
-║  Faithfulness         : 0.977 (peso: 40%)        ║
-║  Answer Relevancy     : 0.975 (peso: 35%)        ║
-║  Context Precision    : 0.933 (peso: 12%)        ║
-║  Context Recall       : 0.950 (peso: 12%)        ║
-╠══════════════════════════════════════════════════╣
-║  ⭐ SCORE FINAL       : 0.977                    ║
-╚══════════════════════════════════════════════════╝</code></pre>
+<span id="cb56-16"><a href="#cb56-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluar los últimos N mensajes (modo normal)</span></span>
+<span id="cb56-17"><a href="#cb56-17" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="cf">await</span> evaluator.evaluate_batch()</span>
+<span id="cb56-18"><a href="#cb56-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-19"><a href="#cb56-19" aria-hidden="true" tabindex="-1"></a><span class="co"># O evaluar ventanas RAGAS pendientes</span></span>
+<span id="cb56-20"><a href="#cb56-20" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="cf">await</span> evaluator.evaluate_ready_windows(max_batches<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb56-21"><a href="#cb56-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-22"><a href="#cb56-22" aria-hidden="true" tabindex="-1"></a>summary <span class="op">=</span> evaluator.get_latest_summary()</span>
+<span id="cb56-23"><a href="#cb56-23" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> summary:</span>
+<span id="cb56-24"><a href="#cb56-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">📈 Último score promedio: </span><span class="sc">{</span>summary[<span class="st">'averages'</span>][<span class="st">'final_score'</span>]<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><strong>Nota:</strong> Esta opción es útil para pruebas puntuales, scripts de automatización o ejecuciones fuera del entorno de producción.</p>
+</section>
+<section id="ejecución-vía-dashboard-streamlit" class="level4">
+<h4 class="anchored" data-anchor-id="ejecución-vía-dashboard-streamlit">5.6.2. Ejecución vía Dashboard Streamlit</h4>
+<p>El sistema también está integrado en un <strong>dashboard interactivo</strong> en Streamlit (accesible en <code>http://localhost:3000</code>). Esta es la forma recomendada para el uso en producción, ya que permite:</p>
+<ul>
+<li><strong>Monitoreo en tiempo real</strong> de la salud del sistema</li>
+<li><strong>Visualización de métricas</strong> con gráficos interactivos (Plotly)</li>
+<li><strong>Control manual</strong> de la evaluación (botones para bootstrap, evaluación por batch, etc.)</li>
+<li><strong>Historial completo</strong> de ventanas evaluadas con promedios y scores</li>
+</ul>
+<p><strong>Pasos para acceder:</strong></p>
+<ol type="1">
+<li>Asegurarse de que Streamlit esté corriendo (<code>src/ct/reportes/run_report.py</code>)</li>
+<li>Ir a la URL <code>http://localhost:3000</code></li>
+<li>Navegar a la pestaña <strong>“Evaluación RAGAS”</strong></li>
+<li>Seguir las instrucciones en pantalla para iniciar la evaluación</li>
+</ol>
+<p><strong>Flujo de uso en el dashboard:</strong></p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+
+    A["Dashboard Streamlit&lt;br&gt;http://localhost:3000"]
+    --&gt;|"Pestaña Evaluación RAGAS"|B["Estado Actual"]
+
+    B --&gt;|"Botón Empezar proceso"|C["Bootstrap RAGAS&lt;br&gt;Últimos 10 documentos"]
+
+    C --&gt;|Éxito| D["Ventana 1 evaluada"]
+
+    C --&gt;|Error| E["Error mostrado en UI"]
+
+    D --&gt;|"Botón Evaluar siguiente batch"|F["Ventana 2-3 evaluadas"]
+
+    F --&gt;|"Botón Evaluar todos batches"|G["Evaluación masiva&lt;br&gt;hasta 5 batches"]
+
+    G --&gt;|"Progreso en barra"|H["Historial de ventanas"]
+
+    H --&gt;|"Gráficos y métricas"|I["Monitorización continua"]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+<p><strong>Ventajas del dashboard:</strong></p>
+<ul>
+<li>📊 <strong>Visualización gráfica</strong> de la evolución del score</li>
+<li>🔄 <strong>Progreso en tiempo real</strong> con barra de progreso</li>
+<li>🎯 <strong>Alertas automáticas</strong> de errores persistidos</li>
+<li>📈 <strong>Histórico completo</strong> con gráficos de métricas individuales</li>
+<li>⚙️ <strong>Control granular</strong> de cuántos batches evaluar por ejecución</li>
+</ul>
+<hr>
+</section>
 </section>
 <section id="interpretación-de-resultados" class="level3">
 <h3 class="anchored" data-anchor-id="interpretación-de-resultados">5.7. Interpretación de resultados</h3>
+<p>La evaluación más reciente del sistema arrojó un score final de <strong>0.977 sobre 1.0</strong>, lo que indica que el chatbot se encuentra en un estado de funcionamiento óptimo. Un score de Faithfulness de <strong>1.0</strong> confirma que el agente no está inventando datos concretos como precios, disponibilidad o códigos de producto — el riesgo más crítico en un entorno de ventas. El score de Answer Relevancy de <strong>0.975</strong> refleja que las respuestas abordan directamente lo que el usuario pregunta, sin divagar ni omitir información clave. Los scores de Context Precision (<strong>0.933</strong>) y Context Recall (<strong>0.950</strong>) indican que el agente selecciona las herramientas correctas en casi todos los casos, tanto en eficiencia como en completitud. En conjunto, estos resultados sugieren que el sistema está respondiendo de manera confiable y alineada con los datos reales del negocio.</p>
+<p>Como referencia general para interpretar el score final:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 17%">
+<col style="width: 48%">
+<col style="width: 34%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Score</th>
+<th>Interpretación</th>
+<th>Acción recomendada</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0.90 – 1.00</td>
+<td>Excelente — sistema confiable</td>
+<td>Monitoreo rutinario</td>
+</tr>
+<tr class="even">
+<td>0.75 – 0.89</td>
+<td>Bueno — áreas menores de mejora</td>
+<td>Revisar métricas bajas</td>
+</tr>
+<tr class="odd">
+<td>0.60 – 0.74</td>
+<td>Aceptable — requiere atención</td>
+<td>Analizar casos fallidos</td>
+</tr>
+<tr class="even">
+<td>0.40 – 0.59</td>
+<td>Deficiente — problemas detectables</td>
+<td>Intervención prioritaria</td>
+</tr>
+<tr class="odd">
+<td>0.00 – 0.39</td>
+<td>Crítico — el sistema está fallando</td>
+<td>Acción inmediata</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</section>
+<section id="persistencia-de-resultados-y-mongodb" class="level3">
+<h3 class="anchored" data-anchor-id="persistencia-de-resultados-y-mongodb">5.8. Persistencia de resultados y MongoDB</h3>
+<p>Por defecto, el sistema de evaluación guarda los resultados de dos formas:</p>
+<ol type="1">
+<li><p><strong>JSON local</strong> (siempre): Resultados individuales en <code>evaluation_results/eval_&lt;doc_id&gt;.json</code> y resúmenes en <code>evaluation_results/summary_&lt;timestamp&gt;.json</code>.</p></li>
+<li><p><strong>MongoDB</strong> (si tiene permisos de escritura): Intenta guardar en la colección <code>evaluation_results</code> de la base de datos MongoDB.</p></li>
+</ol>
+<p><strong>Fallback automático:</strong> Si MongoDB no tiene permisos de escritura en la colección <code>evaluation_results</code>, el sistema <strong>continúa funcionando</strong> usando el almacenamiento JSON como fallback permanente. No hay pérdida de datos ni interrupción del servicio.</p>
+<p><strong>Configuración de MongoDB:</strong> Cuando se habiliten los permisos de escritura en MongoDB, el sistema intentará guardar automáticamente los resultados en la base de datos. El JSON funciona como respaldo permanente en cualquier caso.</p>
+<p><strong>Estructura de archivos de salida:</strong></p>
+<pre class="text"><code>evaluation_results/
+├── eval_&lt;doc_id&gt;.json   # Resultado detallado por documento evaluado
+└── summary_&lt;timestamp&gt;.json  # Resumen del batch con promedios</code></pre>
+<p><strong>Estructura de persistencia:</strong></p>
+<pre class="text"><code>eval_state.json        # Estado global del evaluador (ventanas, progreso, errores)
+evaluation_results/     # Resultados individuales y resúmenes
+mongodb.evaluation_results  # (opcional) Si MongoDB tiene permisos</code></pre>
+<hr>
+</section>
+<section id="dashboard-de-monitoreo-en-tiempo-real" class="level3">
+<h3 class="anchored" data-anchor-id="dashboard-de-monitoreo-en-tiempo-real">5.9. Dashboard de monitoreo en tiempo real</h3>
+<p>El dashboard en Streamlit proporciona una visión completa del estado del sistema de evaluación RAGAS:</p>
+<p><strong>Sección “Evaluación RAGAS”</strong> incluye:</p>
+<ul>
+<li><strong>Estado actual</strong>: Score más reciente, fecha de última evaluación, número de ventanas completadas</li>
+<li><strong>Progreso en tiempo real</strong>: Barra de progreso basada en mensajes pendientes vs ventanas completas</li>
+<li><strong>Métricas de la última ventana</strong>: Faithfulness, Answer Relevancy, Context Precision, Context Recall</li>
+<li><strong>Histórico de ventanas</strong>: Tabla con todas las evaluaciones completadas y gráficos de evolución</li>
+<li><strong>Acciones manuales</strong>: Botones para iniciar bootstrap, evaluar batches individuales o múltiples</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/captura_de_pantalla_dashboard_ragas.png" class="img-fluid figure-img" style="width:120.0%"></p>
+<figcaption>Dashboard de Evaluación RAGAS en Streamlit</figcaption>
+</figure>
+</div>
+<p><strong>Gráficos interactivos (Plotly):</strong></p>
+<ul>
+<li><strong>Final Score por ventana</strong>: Línea con marcadores mostrando la evolución del score total</li>
+<li><strong>Métricas individuales</strong>: Comparativa de las 4 métricas a lo largo del tiempo</li>
+<li><strong>Consultas por hora</strong>: Distribución temporal del uso del chatbot</li>
+<li><strong>Tokens y costos</strong>: Evolución del consumo de tokens y costos asociados</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="./images/captura_de_pantalla_dashboard_metricas.png" class="img-fluid figure-img" style="width:120.0%"></p>
+<figcaption>Dashboard de Métricas en Streamlit</figcaption>
+</figure>
+</div>
+<hr>
+</section>
+<section id="estructura-de-archivos-1" class="level3">
+<h3 class="anchored" data-anchor-id="estructura-de-archivos-1">5.10. Estructura de archivos</h3>
+<pre class="text"><code>src/ct/evaluation/
+├── evaluator.py        # Core: orquesta la evaluación completa
+├── schemas.py          # Modelos de datos (entrada y resultado)
+├── prompts.py          # Prompts para el LLM evaluador
+├── utils.py            # Funciones de formato compartidas
+└── metrics/
+    ├── faithfulness.py       # ¿Inventó datos?
+    ├── answer_relevancy.py   # ¿Respondió bien?
+    ├── context_precision.py  # ¿Tools necesarias?
+    └── context_recall.py     # ¿Tools suficientes?
+
+src/ct/reportes/
+└── run_report.py        # Dashboard Streamlit con evaluación RAGAS
+
+evaluation_results/      # (generado automáticamente)
+├── eval_&lt;doc_id&gt;.json   # Resultado detallado por respuesta
+└── summary_&lt;timestamp&gt;.json  # Resumen del batch con promedios</code></pre>
+<p><strong>Diagrama de flujo completo:</strong></p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+
+    A["MongoDB&lt;br&gt;message_backup&lt;br&gt;label=True"]--&gt;|"últimas 10 respuestas"|B["fetch_last_messages"]
+
+    B --&gt; C["EvaluationInput&lt;br&gt;question + answer&lt;br&gt;verbose_log + historial"]
+
+    C --&gt; D["evaluate_single"]
+
+    D --&gt; E1["Faithfulness&lt;br&gt;¿Inventó datos?"]
+    D --&gt; E2["Answer Relevancy&lt;br&gt;¿Respondió bien?"]
+    D --&gt; E3["Context Precision&lt;br&gt;¿Usó solo tools necesarias?"]
+    D --&gt; E4["Context Recall&lt;br&gt;¿Todas las tools que debía llamar?"]
+
+    E1 --&gt; F["LLM Evaluador&lt;br&gt;gpt-4.1"]
+    E2 --&gt; F
+    E3 --&gt; F
+    E4 --&gt; F
+
+    F --&gt; G["MetricScore&lt;br&gt;score 0 a 1&lt;br&gt;reasoning + details"]
+
+    G --&gt; H["Score Final Ponderado&lt;br&gt;Faithfulness 0.40&lt;br&gt;Relevancy 0.35&lt;br&gt;Recall 0.125&lt;br&gt;Precision 0.125"]
+
+    H --&gt; I{"MongoDB&lt;br&gt;disponible?"}
+
+    I --&gt;|Si| J["evaluation_results&lt;br&gt;MongoDB"]
+
+    I --&gt;|No| K["evaluation_results&lt;br&gt;eval_id.json&lt;br&gt;summary_ts.json"]
+
+    K --&gt; L["Dashboard Streamlit&lt;br&gt;monitorización en vivo"]
+
+    J --&gt; L
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+</section>
+<section id="interpretación-de-resultados-1" class="level3">
+<h3 class="anchored" data-anchor-id="interpretación-de-resultados-1">5.7. Interpretación de resultados</h3>
 <p>La evaluación más reciente del sistema arrojó un score final de <strong>0.977 sobre 1.0</strong>, lo que indica que el chatbot se encuentra en un estado de funcionamiento óptimo. Un score de Faithfulness de <strong>1.0</strong> confirma que el agente no está inventando datos concretos como precios, disponibilidad o códigos de producto — el riesgo más crítico en un entorno de ventas. El score de Answer Relevancy de <strong>0.975</strong> refleja que las respuestas abordan directamente lo que el usuario pregunta, sin divagar ni omitir información clave. Los scores de Context Precision (<strong>0.933</strong>) y Context Recall (<strong>0.950</strong>) indican que el agente selecciona las herramientas correctas en casi todos los casos, tanto en eficiencia como en completitud. En conjunto, estos resultados sugieren que el sistema está respondiendo de manera confiable y alineada con los datos reales del negocio.</p>
 <p>Como referencia general para interpretar el score final:</p>
 <table class="caption-top table">
