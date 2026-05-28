@@ -2,13 +2,14 @@ import re
 import pytz
 import locale
 import mysql.connector
+from functools import lru_cache
 from pymongo import MongoClient
 from pydantic import BaseModel, Field
 from typing import Optional, Tuple, cast
 from ct.settings.schemas import UserContext
 from langchain.tools import ToolRuntime, tool
 from ct.settings.clients import (
-    mongo_collection_pedidos_prod, 
+    mongo_collection_pedidos_prod,
     mongo_uri_prod,
     ip,
     port,
@@ -19,9 +20,26 @@ from pymongo import ASCENDING
 import pymysql
 pymysql.install_as_MySQLdb()
 
-locale.setlocale(locale.LC_TIME, "es_MX.UTF-8")
-client = MongoClient(mongo_uri_prod).get_default_database()
-pedidos = client[mongo_collection_pedidos_prod]
+
+pedidos = None  # parcheable desde tests; inicializado lazy por _load_pedidos()
+
+
+def _load_pedidos():
+    global pedidos
+    if pedidos is None:
+        client = MongoClient(mongo_uri_prod).get_default_database()
+        pedidos = client[mongo_collection_pedidos_prod]
+    return pedidos
+
+
+@lru_cache(maxsize=1)
+def _ensure_es_locale() -> None:
+    try:
+        locale.setlocale(locale.LC_TIME, "es_MX.UTF-8")
+    except locale.Error:
+        pass
+
+
 cdmx = pytz.timezone("America/Mexico_City")
 
 class StatusInput(BaseModel):
@@ -74,7 +92,7 @@ def status_tool(factura: str, runtime: ToolRuntime[UserContext]) -> str:
         # Si es un cliente, solo puede ver sus propios pedidos.
         filtro_de_consulta["pedido.encabezado.cliente"] = cliente
 
-    pedido = pedidos.find_one(
+    pedido = _load_pedidos().find_one(
         filtro_de_consulta,
         {"_id": 0, "estatus": 1, "pedido.detalle.producto": 1},
         sort=[("pedido.fecha", ASCENDING)]  # Asumo que ASCENDING está definido
@@ -102,6 +120,7 @@ def status_tool(factura: str, runtime: ToolRuntime[UserContext]) -> str:
         case "Preautorizado" | "Autorizado":
             return "Procesando tu pedido"
         case "Transito":
+            _ensure_es_locale()
             dt_utc = pytz.utc.localize(pedido["estatus"]["Transito"]["fecha"])
             dt_cdmx = dt_utc.astimezone(cdmx)
             return dt_cdmx.strftime(

@@ -1,5 +1,5 @@
 import re
-import ollama 
+import ollama
 from typing import List, Literal
 from string import Template
 from pydantic import BaseModel, Field, SecretStr
@@ -15,9 +15,9 @@ from langchain_community.vectorstores import FAISS
 
 # Define los filtros disponibles usando Literal para que el agente los conozca.
 # Esto es más robusto que solo mencionarlos en el prompt, ya que forma parte del "schema" de la herramienta.
-SupportFilter = Literal['Compra en línea', 'ESD', 
-                        'Terminos, condiciones y políticas', 
-                        'Procedimientos Garantía', 'PartnerCT', 
+SupportFilter = Literal['Compra en línea', 'ESD',
+                        'Terminos, condiciones y políticas',
+                        'Procedimientos Garantía', 'PartnerCT',
                         'Directorio PM', 'CT Connect', 'CT Arrendamiento',
                         'CT Cloud', 'Docusmart']
 
@@ -28,19 +28,27 @@ class SupportInput(BaseModel):
         description="Una lista de filtros a aplicar para la búsqueda. Elige los más relevantes de las opciones disponibles según la consulta del usuario."
     )
 
-#embeddings = OllamaEmbeddings(model="snowflake-arctic-embed2:568m")
-embeddings = OpenAIEmbeddings(api_key=SecretStr(openai_api_key))
 
-vector_store = FAISS.load_local(
-    str(SUPPORT_INFO_VECTOR_PATH),
-    embeddings=embeddings,
-    allow_dangerous_deserialization=True
-)
+vector_store = None  # parcheable desde tests; inicializado lazy por _get_vector_store()
+
+
+def _get_vector_store() -> FAISS:
+    global vector_store
+    if vector_store is None:
+        embeddings = OpenAIEmbeddings(api_key=SecretStr(openai_api_key))
+        vector_store = FAISS.load_local(
+            str(SUPPORT_INFO_VECTOR_PATH),
+            embeddings=embeddings,
+            allow_dangerous_deserialization=True,
+        )
+    return vector_store
+
+
 def get_faiss_retriever(collection_filter: str):
     """
     Crea y devuelve un retriever de FAISS configurado para un filtro de colección específico.
-    """    
-    return vector_store.as_retriever(
+    """
+    return _get_vector_store().as_retriever(
         search_type="similarity",
         search_kwargs={
             'k': 15,

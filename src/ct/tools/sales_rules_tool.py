@@ -11,8 +11,17 @@ import pymysql
 pymysql.install_as_MySQLdb()
 
 
-with open(ID_SUCURSAL, "r", encoding="utf-8") as f:
-    SUCURSALES = json.load(f)
+SUCURSALES: list | None = None
+
+
+def _load_sucursales() -> list:
+    """Carga lazy del archivo idSucursal.json. Respeta valores parcheados en tests."""
+    global SUCURSALES
+    if SUCURSALES is None:
+        with open(ID_SUCURSAL, "r", encoding="utf-8") as f:
+            SUCURSALES = json.load(f)
+    return SUCURSALES
+
 
 class SalesInput(BaseModel):
     clave: str = Field(description="Clave del producto")
@@ -29,7 +38,7 @@ def get_id_sucursal(session_id: str) -> str:
     else:
         raise ValueError(f"No se pudo extraer nemonico de {session_id}")
 
-    for entry in SUCURSALES:
+    for entry in _load_sucursales():
         if entry.get("nemonico") == nemonico:
             return str(entry.get("idSucursal"))
 

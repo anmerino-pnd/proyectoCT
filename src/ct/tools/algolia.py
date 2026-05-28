@@ -14,8 +14,9 @@ import re
 import json
 import pymysql
 import requests
-import cloudscraper 
+import cloudscraper
 import mysql.connector
+from functools import lru_cache
 from toon import encode
 from string import Template
 pymysql.install_as_MySQLdb()
@@ -26,8 +27,11 @@ from ct.settings.schemas import UserContext
 from langchain.tools import ToolRuntime, tool
 from ct.tools.sales_rules_tool import get_id_sucursal
 
-with open(ID_SUCURSAL, "r", encoding="utf-8") as f:
-    SUCURSALES = json.load(f)
+
+@lru_cache(maxsize=1)
+def _get_sucursales() -> list:
+    with open(ID_SUCURSAL, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 class AlgoliaInput(BaseModel):
     producto : str = Field(description="Búsqueda del producto de interés del usuario")
