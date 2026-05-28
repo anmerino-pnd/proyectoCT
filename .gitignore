@@ -24,7 +24,6 @@ __pycache__/
 
 sql/
 
-tests/
 .coverage
 
 PROMPT.md

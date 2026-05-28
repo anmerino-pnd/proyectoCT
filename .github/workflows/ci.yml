@@ -1,0 +1,61 @@
+name: CI/CD con Podman
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: Run Pytest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Instalar uv (Gestor de paquetes)
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: uv sync --all-extras --dev
+
+      - name: Ejecutar pruebas (Pytest)
+        run: uv run pytest tests/ --cov=src/ct --cov-report=xml
+
+  build-podman:
+    name: Build Podman Image
+    runs-on: ubuntu-latest
+    needs: test # Solo corre si las pruebas pasan
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      # Buildah es la herramienta nativa en el ecosistema Podman/RedHat para construir imágenes
+      - name: Construir Imagen con Buildah/Podman
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: proyecto-ct
+          tags: latest ${{ github.sha }}
+          containerfiles: |
+            ./Dockerfile
+
+      # NOTA: Este paso está comentado. Si decides publicarlo en un registro de contenedores (como GitHub Container Registry)
+      # puedes descomentarlo y configurar tus secretos.
+      # - name: Push to Registry
+      #   uses: redhat-actions/push-to-registry@v2
+      #   with:
+      #     image: ${{ steps.build-image.outputs.image }}
+      #     tags: ${{ steps.build-image.outputs.tags }}
+      #     registry: ghcr.io/${{ github.repository_owner }}
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
