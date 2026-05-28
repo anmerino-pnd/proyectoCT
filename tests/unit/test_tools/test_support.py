@@ -80,7 +80,7 @@ class TestGetSupportInfo:
         mock_get_retriever.return_value = mock_retriever
         
         # Execute
-        result = get_support_info("¿Cómo compro en línea?", filters=["Compra en línea"])
+        result = get_support_info.func("¿Cómo compro en línea?", filters=["Compra en línea"])
         
         # Assert
         mock_get_retriever.assert_called_once_with(collection_filter="Compra en línea")
@@ -104,7 +104,7 @@ class TestGetSupportInfo:
         mock_get_retriever.return_value = mock_retriever
         
         # Execute
-        result = get_support_info(
+        result = get_support_info.func(
             "información general",
             filters=["Compra en línea", "ESD"]
         )
@@ -135,7 +135,7 @@ class TestGetSupportInfo:
         mock_get_retriever.return_value = mock_retriever
         
         # Execute
-        result = get_support_info(
+        result = get_support_info.func(
             "¿Quién es el gerente?",
             filters=["Directorio PM"]
         )
@@ -158,7 +158,7 @@ class TestGetSupportInfo:
         mock_get_retriever.return_value = mock_retriever
         
         # Execute
-        result = get_support_info("consulta", filters=["Compra en línea"])
+        result = get_support_info.func("consulta", filters=["Compra en línea"])
         
         # Assert
         assert "No se encontró información relevante" in result
@@ -181,7 +181,7 @@ class TestGetSupportInfo:
         mock_get_retriever.side_effect = side_effect
         
         # Execute - should continue with other filters
-        result = get_support_info(
+        result = get_support_info.func(
             "consulta",
             filters=["ESD", "Compra en línea"]
         )
@@ -198,7 +198,7 @@ class TestGetSupportInfo:
         mock_get_retriever.side_effect = Exception("FAISS error")
         
         # Execute
-        result = get_support_info(
+        result = get_support_info.func(
             "consulta",
             filters=["ESD", "Compra en línea"]
         )
@@ -225,7 +225,7 @@ class TestGetSupportInfo:
         mock_get_retriever.side_effect = [mock_retriever1, mock_retriever2]
         
         # Execute
-        result = get_support_info(
+        result = get_support_info.func(
             "consulta",
             filters=["Compra en línea", "ESD"]
         )

@@ -1982,3 +1982,124 @@ Como referencia general para interpretar el score final:
 | 0.00 – 0.39  | Crítico — el sistema está fallando      | Acción inmediata           |
 
 :::
+
+::: {style="text-align: justify"}
+## 6. Integración Continua (CI/CD)
+
+El proyecto cuenta con un *pipeline* de integración continua definido en `.github/workflows/ci.yml` que se ejecuta automáticamente en cada `push` a `main` y en cada `pull_request` contra `main`. El objetivo es validar que el código pase la suite de pruebas y que la imagen del contenedor se pueda construir sin errores antes de llegar a producción.
+
+### 6.1. Estructura del workflow
+
+El workflow tiene dos jobs encadenados:
+
+1. **`test` — Ejecuta `pytest`**:
+    * Se levanta sobre `ubuntu-latest`.
+    * Instala `uv` con Python 3.13 (la misma versión que define `.python-version` y el `Dockerfile`).
+    * Sincroniza dependencias con `uv sync --frozen --group test`, lo que respeta `uv.lock` e instala adicionalmente el grupo `[dependency-groups] test` definido en `pyproject.toml` (pytest, pytest-cov, pytest-asyncio, pytest-mock, httpx).
+    * Corre `uv run pytest tests/ --cov-report=xml` para ejecutar todas las pruebas y generar un reporte de cobertura en `coverage.xml`.
+
+2. **`build-podman` — Construye la imagen del contenedor**:
+    * Depende del éxito de `test` (`needs: test`), por lo que no corre si las pruebas fallan.
+    * Usa la acción `redhat-actions/buildah-build@v2` para construir la imagen `proyecto-ct:latest` a partir del `Dockerfile` del proyecto.
+    * El job está preparado (pero comentado por defecto) para publicar la imagen en GitHub Container Registry (`ghcr.io`) mediante `redhat-actions/push-to-registry@v2` y `GITHUB_TOKEN`. Para activarlo basta con descomentar el último bloque del workflow.
+
+### 6.2. Estructura de pruebas
+
+Las pruebas viven en el directorio `tests/` y se organizan en subcarpetas por tipo:
+
+```text
+tests/
+├── conftest.py              # Fixtures compartidas (mocks de Mongo, MySQL, OpenAI, Algolia, datos de ejemplo)
+├── unit/
+│   ├── test_main.py         # Pruebas del endpoint /logs de FastAPI
+│   ├── test_settings/       # Pruebas de carga de configuración
+│   └── test_tools/          # Pruebas unitarias de cada herramienta (algolia, status, sales_rules, support, moneda_api)
+```
+
+La configuración de `pytest` está centralizada en `pyproject.toml`, sección `[tool.pytest.ini_options]`. Define `testpaths = ["tests"]`, modo `asyncio_mode = "auto"`, y los `addopts` para que cada corrida genere reporte de cobertura en `htmlcov/` además del término de la consola. La cobertura se mide sobre `src/ct/` (ver `[tool.coverage.run]`), excluyendo módulos como `evaluation`, `reportes` y `ETL` que dependen de servicios externos.
+
+Los markers personalizados (`unit`, `integration`, `slow`) permiten filtrar tests con `pytest -m unit`.
+
+### 6.3. Ejecución local de las pruebas
+
+Para reproducir lo que hace el CI antes de hacer `push`:
+
+```bash
+# Instalar dependencias incluyendo el grupo de test
+uv sync --frozen --group test
+
+# Correr toda la suite
+uv run pytest tests/
+
+# Correr un archivo específico
+uv run pytest tests/unit/test_main.py -v
+
+# Correr sin coverage (más rápido)
+uv run pytest tests/ --no-cov
+
+# Filtrar por marker
+uv run pytest tests/ -m unit
+```
+
+El reporte HTML de cobertura queda en `htmlcov/index.html` para inspección visual.
+
+### 6.4. Diseño de imports para que las pruebas sean independientes
+
+Para que `pytest` pueda correr sin credenciales reales (sin MongoDB, sin OpenAI, sin archivos FAISS), tres módulos del proyecto inicializan recursos externos de forma **diferida** (*lazy*):
+
+* **`src/ct/settings/clients.py`** expone `get_mongo_client()` y `get_db()` decoradas con `functools.lru_cache`. La conexión a MongoDB se crea la primera vez que se solicita, no al importar el módulo.
+
+* **`src/ct/tools/search_information.py`** define `reload_vector_store()` pero **no la invoca al importarse**. La carga del vector store FAISS ocurre en producción mediante el evento `lifespan` de FastAPI definido en `src/ct/main.py`, que se ejecuta al arrancar el servidor (Gunicorn/Uvicorn), no durante los tests.
+
+* **`src/ct/chat.py`** expone `get_assistant()` con `lru_cache` en lugar de instanciar `ModeratedToolAgent()` a nivel de módulo. Esto evita que el agente intente conectarse a Mongo o cargar modelos LLM cuando un test simplemente importa `ct.main`.
+
+Este patrón es importante: si en el futuro alguien añade un nuevo módulo que requiere recursos externos, debe seguir el mismo esquema (factory + `lru_cache`) para no romper el pipeline de CI.
+
+### 6.5. Construcción manual de la imagen con Podman
+
+Aunque el CI ya construye la imagen, puede ser útil hacerlo localmente para validar cambios en el `Dockerfile` antes de hacer `push`:
+
+```bash
+# Construir la imagen
+podman build -t proyecto-ct:latest .
+
+# Verificar que se creó
+podman images | grep proyecto-ct
+
+# Levantar un contenedor de prueba (requiere .env configurado)
+podman run --rm -it \
+  -p 8000:8000 \
+  --env-file .env \
+  proyecto-ct:latest
+
+# Inspeccionar logs
+podman logs <container_id>
+```
+
+### 6.6. Publicación de la imagen en GitHub Container Registry (opcional)
+
+Cuando se desee publicar automáticamente la imagen, descomentar el último bloque de `.github/workflows/ci.yml`:
+
+```yaml
+- name: Push to Registry
+  uses: redhat-actions/push-to-registry@v2
+  with:
+    image: ${{ steps.build-image.outputs.image }}
+    tags: ${{ steps.build-image.outputs.tags }}
+    registry: ghcr.io/${{ github.repository_owner }}
+    username: ${{ github.actor }}
+    password: ${{ secrets.GITHUB_TOKEN }}
+```
+
+No requiere configurar secretos adicionales: GitHub Actions provee `GITHUB_TOKEN` automáticamente, y solo hace falta otorgar permisos de escritura al *workflow* desde la configuración del repositorio (Settings → Actions → General → Workflow permissions → Read and write).
+
+### 6.7. Solución de problemas comunes
+
+| Síntoma                                              | Causa probable                                                                       | Solución                                                                                          |
+|------------------------------------------------------|--------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
+| `pytest: command not found` en CI                    | `uv sync` no instaló el grupo `test`                                                  | Confirmar que el step usa `--group test` (o `--all-groups`), no `--dev` o `--all-extras`.         |
+| `ModuleNotFoundError: ct.X` al correr `pytest`       | El paquete no se instaló en modo editable                                            | Validar que `pyproject.toml` define `[tool.setuptools] package-dir = {"" = "src"}` y `uv sync` corrió. |
+| Tests pasan local pero fallan en CI                  | Versión de Python diferente entre local y CI                                         | Alinear `.python-version`, `Dockerfile` y el `python-version` del step `setup-uv`.                |
+| `ConfigurationError` al importar `ct.main`           | Un módulo con side-effects intenta conectar a Mongo/OpenAI al importarse              | Refactorizar a *lazy init* con `lru_cache` (ver sección 6.4).                                      |
+| El job `build-podman` falla con `no such file Dockerfile` | El path del `containerfiles` no apunta a la raíz                                  | Verificar que la acción reciba `containerfiles: ./Dockerfile` y que el archivo exista en `main`.   |
+:::

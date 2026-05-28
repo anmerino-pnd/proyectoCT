@@ -178,7 +178,7 @@ class TestAlgoliaSearchTool:
         mock_create_scraper.return_value = mock_scraper
         
         # Execute
-        result = algolia_search_tool("laptop HP", runtime=mock_runtime)
+        result = algolia_search_tool.func("laptop HP", runtime=mock_runtime)
         
         # Assert result is not empty
         assert result is not None
@@ -211,7 +211,7 @@ class TestAlgoliaSearchTool:
         mock_create_scraper.return_value = mock_scraper
         
         # Execute
-        algolia_search_tool("laptop HP", runtime=mock_runtime)
+        algolia_search_tool.func("laptop HP", runtime=mock_runtime)
         
         # Verify post was called with filters
         call_args = mock_scraper.post.call_args
@@ -244,7 +244,7 @@ class TestAlgoliaSearchTool:
         mock_create_scraper.return_value = mock_scraper
         
         # Execute with lowest_price=True
-        algolia_search_tool("laptop", runtime=mock_runtime, lowest_price=True)
+        algolia_search_tool.func("laptop", runtime=mock_runtime, lowest_price=True)
         
         # Verify sort URL was used
         call_args = mock_scraper.post.call_args
@@ -270,12 +270,13 @@ class TestAlgoliaSearchTool:
         mock_scraper = MagicMock()
         mock_scraper.post.side_effect = requests.exceptions.Timeout("Timeout")
         mock_create_scraper.return_value = mock_scraper
-        
+
         # Execute
-        result = algolia_search_tool("laptop", runtime=mock_runtime)
-        
-        # Should return empty dict on timeout
-        assert result == {}
+        result = algolia_search_tool.func("laptop", runtime=mock_runtime)
+
+        # Should return a set with a timeout-error message
+        assert isinstance(result, set)
+        assert any("Timeout" in msg for msg in result)
     
     @patch("ct.tools.algolia.query_exec")
     @patch("ct.tools.algolia._create_scraper")
@@ -297,12 +298,13 @@ class TestAlgoliaSearchTool:
         mock_scraper = MagicMock()
         mock_scraper.post.side_effect = requests.exceptions.RequestException("Network error")
         mock_create_scraper.return_value = mock_scraper
-        
+
         # Execute
-        result = algolia_search_tool("laptop", runtime=mock_runtime)
-        
-        # Should return empty dict on error
-        assert result == {}
+        result = algolia_search_tool.func("laptop", runtime=mock_runtime)
+
+        # Should return a set with a request-error message
+        assert isinstance(result, set)
+        assert any("Network error" in msg for msg in result)
     
     @patch("ct.tools.algolia.query_exec")
     @patch("ct.tools.algolia._create_scraper")
@@ -328,7 +330,7 @@ class TestAlgoliaSearchTool:
         mock_create_scraper.return_value = mock_scraper
         
         # Execute
-        result = algolia_search_tool("nonexistent product", runtime=mock_runtime)
+        result = algolia_search_tool.func("nonexistent product", runtime=mock_runtime)
         
         # Should return no results message
         assert "No se encontraron resultados" in result
@@ -373,7 +375,7 @@ class TestAlgoliaSearchTool:
         mock_create_scraper.return_value = mock_scraper
         
         # Execute
-        result = algolia_search_tool("laptop", runtime=mock_runtime)
+        result = algolia_search_tool.func("laptop", runtime=mock_runtime)
         
         # Result should indicate product is in promotion
         # Note: result is encoded, so we check it's not empty
@@ -419,7 +421,7 @@ class TestAlgoliaSearchTool:
         mock_create_scraper.return_value = mock_scraper
         
         # Execute
-        result = algolia_search_tool("laptop", runtime=mock_runtime)
+        result = algolia_search_tool.func("laptop", runtime=mock_runtime)
         
         # Result should be empty or indicate no results
         # since product doesn't have price for lista_precio=1

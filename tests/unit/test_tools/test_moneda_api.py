@@ -211,7 +211,8 @@ class TestDolarConversionTool:
         result = dolar_convertion_tool.func(10.0)
         
         # Assert - should have 3 decimal places
-        assert ".123 MXN" in result or ".1234" in result
+        import re
+        assert re.search(r"\.\d{3} MXN", result), f"Expected 3-decimal format, got: {result}"
     
     def test_query_contains_correct_fields(self):
         """Test that the SQL query includes required fields."""

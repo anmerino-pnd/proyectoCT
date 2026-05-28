@@ -19,17 +19,13 @@ jobs:
         with:
           version: "latest"
           enable-cache: true
+          python-version: "3.13"
 
-      - name: Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Instalar dependencias
-        run: uv sync --all-extras --dev
+      - name: Instalar dependencias (incluye grupo de test)
+        run: uv sync --frozen --group test
 
       - name: Ejecutar pruebas (Pytest)
-        run: uv run pytest tests/ --cov=src/ct --cov-report=xml
+        run: uv run pytest tests/ --cov-report=xml
 
   build-podman:
     name: Build Podman Image

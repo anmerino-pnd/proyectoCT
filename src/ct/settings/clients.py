@@ -1,4 +1,6 @@
 import os
+from functools import lru_cache
+
 import openai as openai_api
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -64,10 +66,10 @@ algolia_sort_url: str = os.getenv("ALGOLIA_SORT_URL", '')
 algolia_app_id: str = os.getenv("ALGOLIA_APP_ID", '')
 algolia_api_key: str = os.getenv("ALGOLIA_API_KEY", '')
 algolia_content_type: str = os.getenv("ALGOLIA_CONTENT_TYPE", '')
-# En ct/settings/clients.py o en app.py
-client = MongoClient(mongo_uri)
-db = client.get_default_database()
+@lru_cache(maxsize=1)
+def get_mongo_client() -> MongoClient:
+    return MongoClient(mongo_uri)
 
-# O como dependencia (mejor práctica en FastAPI)
+
 def get_db():
-    return client.get_default_database()
+    return get_mongo_client().get_default_database()

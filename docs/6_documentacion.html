@@ -270,6 +270,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#estructura-de-archivos-1" id="toc-estructura-de-archivos-1" class="nav-link" data-scroll-target="#estructura-de-archivos-1">5.10. Estructura de archivos</a></li>
   <li><a href="#interpretación-de-resultados-1" id="toc-interpretación-de-resultados-1" class="nav-link" data-scroll-target="#interpretación-de-resultados-1">5.7. Interpretación de resultados</a></li>
   </ul></li>
+  <li><a href="#integración-continua-cicd" id="toc-integración-continua-cicd" class="nav-link" data-scroll-target="#integración-continua-cicd">6. Integración Continua (CI/CD)</a>
+  <ul>
+  <li><a href="#estructura-del-workflow" id="toc-estructura-del-workflow" class="nav-link" data-scroll-target="#estructura-del-workflow">6.1. Estructura del workflow</a></li>
+  <li><a href="#estructura-de-pruebas" id="toc-estructura-de-pruebas" class="nav-link" data-scroll-target="#estructura-de-pruebas">6.2. Estructura de pruebas</a></li>
+  <li><a href="#ejecución-local-de-las-pruebas" id="toc-ejecución-local-de-las-pruebas" class="nav-link" data-scroll-target="#ejecución-local-de-las-pruebas">6.3. Ejecución local de las pruebas</a></li>
+  <li><a href="#diseño-de-imports-para-que-las-pruebas-sean-independientes" id="toc-diseño-de-imports-para-que-las-pruebas-sean-independientes" class="nav-link" data-scroll-target="#diseño-de-imports-para-que-las-pruebas-sean-independientes">6.4. Diseño de imports para que las pruebas sean independientes</a></li>
+  <li><a href="#construcción-manual-de-la-imagen-con-podman" id="toc-construcción-manual-de-la-imagen-con-podman" class="nav-link" data-scroll-target="#construcción-manual-de-la-imagen-con-podman">6.5. Construcción manual de la imagen con Podman</a></li>
+  <li><a href="#publicación-de-la-imagen-en-github-container-registry-opcional" id="toc-publicación-de-la-imagen-en-github-container-registry-opcional" class="nav-link" data-scroll-target="#publicación-de-la-imagen-en-github-container-registry-opcional">6.6. Publicación de la imagen en GitHub Container Registry (opcional)</a></li>
+  <li><a href="#solución-de-problemas-comunes" id="toc-solución-de-problemas-comunes" class="nav-link" data-scroll-target="#solución-de-problemas-comunes">6.7. Solución de problemas comunes</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -2574,6 +2584,145 @@ evaluation_results/      # (generado automáticamente)
 <td>0.00 – 0.39</td>
 <td>Crítico — el sistema está fallando</td>
 <td>Acción inmediata</td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="integración-continua-cicd" class="level2" style="text-align: justify">
+<h2 class="anchored" data-anchor-id="integración-continua-cicd">6. Integración Continua (CI/CD)</h2>
+<p>El proyecto cuenta con un <em>pipeline</em> de integración continua definido en <code>.github/workflows/ci.yml</code> que se ejecuta automáticamente en cada <code>push</code> a <code>main</code> y en cada <code>pull_request</code> contra <code>main</code>. El objetivo es validar que el código pase la suite de pruebas y que la imagen del contenedor se pueda construir sin errores antes de llegar a producción.</p>
+<section id="estructura-del-workflow" class="level3">
+<h3 class="anchored" data-anchor-id="estructura-del-workflow">6.1. Estructura del workflow</h3>
+<p>El workflow tiene dos jobs encadenados:</p>
+<ol type="1">
+<li><strong><code>test</code> — Ejecuta <code>pytest</code></strong>:
+<ul>
+<li>Se levanta sobre <code>ubuntu-latest</code>.</li>
+<li>Instala <code>uv</code> con Python 3.13 (la misma versión que define <code>.python-version</code> y el <code>Dockerfile</code>).</li>
+<li>Sincroniza dependencias con <code>uv sync --frozen --group test</code>, lo que respeta <code>uv.lock</code> e instala adicionalmente el grupo <code>[dependency-groups] test</code> definido en <code>pyproject.toml</code> (pytest, pytest-cov, pytest-asyncio, pytest-mock, httpx).</li>
+<li>Corre <code>uv run pytest tests/ --cov-report=xml</code> para ejecutar todas las pruebas y generar un reporte de cobertura en <code>coverage.xml</code>.</li>
+</ul></li>
+<li><strong><code>build-podman</code> — Construye la imagen del contenedor</strong>:
+<ul>
+<li>Depende del éxito de <code>test</code> (<code>needs: test</code>), por lo que no corre si las pruebas fallan.</li>
+<li>Usa la acción <code>redhat-actions/buildah-build@v2</code> para construir la imagen <code>proyecto-ct:latest</code> a partir del <code>Dockerfile</code> del proyecto.</li>
+<li>El job está preparado (pero comentado por defecto) para publicar la imagen en GitHub Container Registry (<code>ghcr.io</code>) mediante <code>redhat-actions/push-to-registry@v2</code> y <code>GITHUB_TOKEN</code>. Para activarlo basta con descomentar el último bloque del workflow.</li>
+</ul></li>
+</ol>
+</section>
+<section id="estructura-de-pruebas" class="level3">
+<h3 class="anchored" data-anchor-id="estructura-de-pruebas">6.2. Estructura de pruebas</h3>
+<p>Las pruebas viven en el directorio <code>tests/</code> y se organizan en subcarpetas por tipo:</p>
+<pre class="text"><code>tests/
+├── conftest.py              # Fixtures compartidas (mocks de Mongo, MySQL, OpenAI, Algolia, datos de ejemplo)
+├── unit/
+│   ├── test_main.py         # Pruebas del endpoint /logs de FastAPI
+│   ├── test_settings/       # Pruebas de carga de configuración
+│   └── test_tools/          # Pruebas unitarias de cada herramienta (algolia, status, sales_rules, support, moneda_api)</code></pre>
+<p>La configuración de <code>pytest</code> está centralizada en <code>pyproject.toml</code>, sección <code>[tool.pytest.ini_options]</code>. Define <code>testpaths = ["tests"]</code>, modo <code>asyncio_mode = "auto"</code>, y los <code>addopts</code> para que cada corrida genere reporte de cobertura en <code>htmlcov/</code> además del término de la consola. La cobertura se mide sobre <code>src/ct/</code> (ver <code>[tool.coverage.run]</code>), excluyendo módulos como <code>evaluation</code>, <code>reportes</code> y <code>ETL</code> que dependen de servicios externos.</p>
+<p>Los markers personalizados (<code>unit</code>, <code>integration</code>, <code>slow</code>) permiten filtrar tests con <code>pytest -m unit</code>.</p>
+</section>
+<section id="ejecución-local-de-las-pruebas" class="level3">
+<h3 class="anchored" data-anchor-id="ejecución-local-de-las-pruebas">6.3. Ejecución local de las pruebas</h3>
+<p>Para reproducir lo que hace el CI antes de hacer <code>push</code>:</p>
+<div class="sourceCode" id="cb61"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Instalar dependencias incluyendo el grupo de test</span></span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> sync <span class="at">--frozen</span> <span class="at">--group</span> test</span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Correr toda la suite</span></span>
+<span id="cb61-5"><a href="#cb61-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run pytest tests/</span>
+<span id="cb61-6"><a href="#cb61-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-7"><a href="#cb61-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Correr un archivo específico</span></span>
+<span id="cb61-8"><a href="#cb61-8" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run pytest tests/unit/test_main.py <span class="at">-v</span></span>
+<span id="cb61-9"><a href="#cb61-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-10"><a href="#cb61-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Correr sin coverage (más rápido)</span></span>
+<span id="cb61-11"><a href="#cb61-11" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run pytest tests/ <span class="at">--no-cov</span></span>
+<span id="cb61-12"><a href="#cb61-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-13"><a href="#cb61-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Filtrar por marker</span></span>
+<span id="cb61-14"><a href="#cb61-14" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run pytest tests/ <span class="at">-m</span> unit</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>El reporte HTML de cobertura queda en <code>htmlcov/index.html</code> para inspección visual.</p>
+</section>
+<section id="diseño-de-imports-para-que-las-pruebas-sean-independientes" class="level3">
+<h3 class="anchored" data-anchor-id="diseño-de-imports-para-que-las-pruebas-sean-independientes">6.4. Diseño de imports para que las pruebas sean independientes</h3>
+<p>Para que <code>pytest</code> pueda correr sin credenciales reales (sin MongoDB, sin OpenAI, sin archivos FAISS), tres módulos del proyecto inicializan recursos externos de forma <strong>diferida</strong> (<em>lazy</em>):</p>
+<ul>
+<li><p><strong><code>src/ct/settings/clients.py</code></strong> expone <code>get_mongo_client()</code> y <code>get_db()</code> decoradas con <code>functools.lru_cache</code>. La conexión a MongoDB se crea la primera vez que se solicita, no al importar el módulo.</p></li>
+<li><p><strong><code>src/ct/tools/search_information.py</code></strong> define <code>reload_vector_store()</code> pero <strong>no la invoca al importarse</strong>. La carga del vector store FAISS ocurre en producción mediante el evento <code>lifespan</code> de FastAPI definido en <code>src/ct/main.py</code>, que se ejecuta al arrancar el servidor (Gunicorn/Uvicorn), no durante los tests.</p></li>
+<li><p><strong><code>src/ct/chat.py</code></strong> expone <code>get_assistant()</code> con <code>lru_cache</code> en lugar de instanciar <code>ModeratedToolAgent()</code> a nivel de módulo. Esto evita que el agente intente conectarse a Mongo o cargar modelos LLM cuando un test simplemente importa <code>ct.main</code>.</p></li>
+</ul>
+<p>Este patrón es importante: si en el futuro alguien añade un nuevo módulo que requiere recursos externos, debe seguir el mismo esquema (factory + <code>lru_cache</code>) para no romper el pipeline de CI.</p>
+</section>
+<section id="construcción-manual-de-la-imagen-con-podman" class="level3">
+<h3 class="anchored" data-anchor-id="construcción-manual-de-la-imagen-con-podman">6.5. Construcción manual de la imagen con Podman</h3>
+<p>Aunque el CI ya construye la imagen, puede ser útil hacerlo localmente para validar cambios en el <code>Dockerfile</code> antes de hacer <code>push</code>:</p>
+<div class="sourceCode" id="cb62"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Construir la imagen</span></span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> build <span class="at">-t</span> proyecto-ct:latest .</span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar que se creó</span></span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> images <span class="kw">|</span> <span class="fu">grep</span> proyecto-ct</span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Levantar un contenedor de prueba (requiere .env configurado)</span></span>
+<span id="cb62-8"><a href="#cb62-8" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> run <span class="at">--rm</span> <span class="at">-it</span> <span class="dt">\</span></span>
+<span id="cb62-9"><a href="#cb62-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">-p</span> 8000:8000 <span class="dt">\</span></span>
+<span id="cb62-10"><a href="#cb62-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">--env-file</span> .env <span class="dt">\</span></span>
+<span id="cb62-11"><a href="#cb62-11" aria-hidden="true" tabindex="-1"></a>  proyecto-ct:latest</span>
+<span id="cb62-12"><a href="#cb62-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb62-13"><a href="#cb62-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspeccionar logs</span></span>
+<span id="cb62-14"><a href="#cb62-14" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> logs <span class="op">&lt;</span>container_id<span class="op">&gt;</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="publicación-de-la-imagen-en-github-container-registry-opcional" class="level3">
+<h3 class="anchored" data-anchor-id="publicación-de-la-imagen-en-github-container-registry-opcional">6.6. Publicación de la imagen en GitHub Container Registry (opcional)</h3>
+<p>Cuando se desee publicar automáticamente la imagen, descomentar el último bloque de <code>.github/workflows/ci.yml</code>:</p>
+<div class="sourceCode" id="cb63"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Push to Registry</span></span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> redhat-actions/push-to-registry@v2</span></span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">with</span><span class="kw">:</span></span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">image</span><span class="kw">:</span><span class="at"> ${{ steps.build-image.outputs.image }}</span></span>
+<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tags</span><span class="kw">:</span><span class="at"> ${{ steps.build-image.outputs.tags }}</span></span>
+<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">registry</span><span class="kw">:</span><span class="at"> ghcr.io/${{ github.repository_owner }}</span></span>
+<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">username</span><span class="kw">:</span><span class="at"> ${{ github.actor }}</span></span>
+<span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> ${{ secrets.GITHUB_TOKEN }}</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>No requiere configurar secretos adicionales: GitHub Actions provee <code>GITHUB_TOKEN</code> automáticamente, y solo hace falta otorgar permisos de escritura al <em>workflow</em> desde la configuración del repositorio (Settings → Actions → General → Workflow permissions → Read and write).</p>
+</section>
+<section id="solución-de-problemas-comunes" class="level3">
+<h3 class="anchored" data-anchor-id="solución-de-problemas-comunes">6.7. Solución de problemas comunes</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 22%">
+<col style="width: 35%">
+<col style="width: 41%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Síntoma</th>
+<th>Causa probable</th>
+<th>Solución</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>pytest: command not found</code> en CI</td>
+<td><code>uv sync</code> no instaló el grupo <code>test</code></td>
+<td>Confirmar que el step usa <code>--group test</code> (o <code>--all-groups</code>), no <code>--dev</code> o <code>--all-extras</code>.</td>
+</tr>
+<tr class="even">
+<td><code>ModuleNotFoundError: ct.X</code> al correr <code>pytest</code></td>
+<td>El paquete no se instaló en modo editable</td>
+<td>Validar que <code>pyproject.toml</code> define <code>[tool.setuptools] package-dir = {"" = "src"}</code> y <code>uv sync</code> corrió.</td>
+</tr>
+<tr class="odd">
+<td>Tests pasan local pero fallan en CI</td>
+<td>Versión de Python diferente entre local y CI</td>
+<td>Alinear <code>.python-version</code>, <code>Dockerfile</code> y el <code>python-version</code> del step <code>setup-uv</code>.</td>
+</tr>
+<tr class="even">
+<td><code>ConfigurationError</code> al importar <code>ct.main</code></td>
+<td>Un módulo con side-effects intenta conectar a Mongo/OpenAI al importarse</td>
+<td>Refactorizar a <em>lazy init</em> con <code>lru_cache</code> (ver sección 6.4).</td>
+</tr>
+<tr class="odd">
+<td>El job <code>build-podman</code> falla con <code>no such file Dockerfile</code></td>
+<td>El path del <code>containerfiles</code> no apunta a la raíz</td>
+<td>Verificar que la acción reciba <code>containerfiles: ./Dockerfile</code> y que el archivo exista en <code>main</code>.</td>
 </tr>
 </tbody>
 </table>

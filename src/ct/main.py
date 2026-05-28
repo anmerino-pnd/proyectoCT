@@ -1,5 +1,6 @@
 from bson import ObjectId
 from typing import Optional
+from contextlib import asynccontextmanager
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from fastapi import FastAPI, Request
@@ -8,9 +9,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient, DESCENDING, ASCENDING
 from ct.chat import (
-    QueryRequest, 
-    get_chat_history, 
-    async_chat_endpoint, 
+    QueryRequest,
+    get_chat_history,
+    async_chat_endpoint,
     delete_chat_history_endpoint
     )
 from ct.settings.clients import (
@@ -19,7 +20,14 @@ from ct.settings.clients import (
 )
 from ct.tools.search_information import reload_vector_store
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    reload_vector_store()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

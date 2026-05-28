@@ -55,10 +55,6 @@ def reload_vector_store():
     print("✅ Vector store recargado exitosamente.")
     return True
 
-
-# --- CARGA INICIAL ---
-reload_vector_store()
-
 def _merge_grouped_docs(grouped_dict):
     return {k: " ".join(v) for k, v in grouped_dict.items()}
 

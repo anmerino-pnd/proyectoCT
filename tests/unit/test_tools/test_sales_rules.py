@@ -163,7 +163,7 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
         
         # Assert
         assert "ya no se encuentra en promoción" in result
@@ -202,7 +202,7 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
         
         # Assert
         assert "sin promoción vigente" in result
@@ -240,7 +240,7 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
         
         # Assert
         assert "$800.00" in result
@@ -278,7 +278,7 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
         
         # Assert
         assert "$1000.00" in result
@@ -317,7 +317,7 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
         
         # Assert
         assert "En compra de 2" in result
@@ -355,7 +355,7 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
         
         # Assert
         assert "Limitado a 5 unidades" in result
@@ -393,7 +393,7 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
         
         # Assert
         assert "Vigente hasta el" in result
@@ -430,7 +430,7 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
         
         # Assert
         assert "Cambio de precio base" in result
@@ -469,7 +469,7 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
         
         # Assert
         assert "USD" in result
@@ -487,7 +487,7 @@ class TestSalesRulesTool:
         mock_connect.side_effect = mysql.connector.Error("Connection refused")
         
         # Execute
-        result = sales_rules_tool("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
         
         # Assert
         assert "Error de base de datos" in result
@@ -504,7 +504,7 @@ class TestSalesRulesTool:
         mock_get_sucursal.side_effect = Exception("Unexpected error")
         
         # Execute
-        result = sales_rules_tool("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
         
         # Assert
         assert "Ocurrió un error inesperado" in result

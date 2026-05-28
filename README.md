@@ -52,7 +52,8 @@ El sistema se compone de varios módulos que trabajan en conjunto para procesar 
 * **Inteligencia Artificial** : LangChain, OpenAI (`gpt-4.1`), FAISS
 * **Bases de Datos** : MongoDB (con `pymongo`), MySQL (`mysql-connector-python`)
 * **Análisis de Datos y Reportes** : Streamlit, Pandas, Plotly, NLTK, Spacy
-* **Lenguaje** : Python 3.12
+* **CI/CD** : GitHub Actions + Podman/Buildah
+* **Lenguaje** : Python 3.13
 
 ## 🚀 Instalación y Despliegue
 
@@ -60,7 +61,7 @@ Sigue estos pasos para configurar y ejecutar el backend del proyecto.
 
 ### Prerrequisitos
 
-* Python 3.12.9
+* Python 3.13.1
 * `uv` (gestor de paquetes recomendado)
 * Acceso a una instancia de MongoDB y MySQL.
 * Un servidor con Ollama (opcional, si se usan modelos locales).
@@ -82,7 +83,8 @@ pip install uv # En caso de no estar instalado
 uv venv
 source .venv/bin/activate  # Para Linux/macOS
 # o `.venv\Scripts\activate` para Windows
-uv pip install -e .
+uv sync --frozen          # Instala desde uv.lock (producción)
+# o `uv sync --frozen --group test` si vas a correr la suite de pruebas
 
 ```
 
@@ -157,6 +159,44 @@ La API expone los siguientes endpoints principales:
 }
 
 ```
+
+## 🧪 Tests y CI/CD
+
+El proyecto incluye un *pipeline* de integración continua en `.github/workflows/ci.yml` que ejecuta automáticamente la suite de pruebas y construye la imagen del contenedor en cada `push` y `pull_request` contra `main`.
+
+### Ejecutar la suite de pruebas localmente
+
+```bash
+# Instalar dependencias de test
+uv sync --frozen --group test
+
+# Correr toda la suite con cobertura
+uv run pytest tests/
+
+# Correr sin cobertura (más rápido)
+uv run pytest tests/ --no-cov
+
+# Filtrar por marker
+uv run pytest tests/ -m unit
+```
+
+La configuración de `pytest` (paths, markers, cobertura) vive en `pyproject.toml`. Los reportes HTML de cobertura se generan en `htmlcov/`.
+
+### Pipeline en GitHub Actions
+
+El workflow tiene dos jobs encadenados:
+
+1. **`test`**: instala `uv` con Python 3.13, sincroniza dependencias con `uv sync --frozen --group test` y ejecuta `pytest` con reporte de cobertura en XML.
+2. **`build-podman`**: depende del job anterior. Usa `redhat-actions/buildah-build@v2` para construir la imagen `proyecto-ct:latest` a partir del `Dockerfile`. El paso de publicación a `ghcr.io` está incluido pero comentado por defecto — se puede activar habilitando permisos de escritura del workflow desde la configuración del repositorio.
+
+Para construir la imagen localmente:
+
+```bash
+podman build -t proyecto-ct:latest .
+podman run --rm -it -p 8000:8000 --env-file .env proyecto-ct:latest
+```
+
+Más detalles del *pipeline*, estructura de tests, lazy-init de clientes externos y solución de problemas comunes en la sección **6. Integración Continua (CI/CD)** del [sitio de documentación](./docs).
 
 ## 📊 Dashboard de Reportes
 

@@ -124,7 +124,7 @@ class TestStatusTool:
         mock_pedidos.find_one.return_value = None
         
         # Execute
-        status_tool("WXX-12345", runtime=mock_runtime)
+        status_tool.func("WXX-12345", runtime=mock_runtime)
         
         # Assert
         call_args = mock_pedidos.find_one.call_args
@@ -140,7 +140,7 @@ class TestStatusTool:
         mock_pedidos.find_one.return_value = None
         
         # Execute
-        status_tool("FAC-12345", runtime=mock_runtime)
+        status_tool.func("FAC-12345", runtime=mock_runtime)
         
         # Assert
         call_args = mock_pedidos.find_one.call_args
@@ -157,7 +157,7 @@ class TestStatusTool:
         mock_runtime.context.session_id = "HMO4536_user@example.com"
         
         # Execute
-        status_tool("FAC-12345", runtime=mock_runtime)
+        status_tool.func("FAC-12345", runtime=mock_runtime)
         
         # Assert
         call_args = mock_pedidos.find_one.call_args
@@ -175,7 +175,7 @@ class TestStatusTool:
         mock_runtime.context.session_id = "01CTIN_user@example.com"
         
         # Execute
-        status_tool("FAC-12345", runtime=mock_runtime)
+        status_tool.func("FAC-12345", runtime=mock_runtime)
         
         # Assert
         call_args = mock_pedidos.find_one.call_args
@@ -192,7 +192,7 @@ class TestStatusTool:
         mock_pedidos.find_one.return_value = None
         
         # Execute
-        result = status_tool("INVALID-001", runtime=mock_runtime)
+        result = status_tool.func("INVALID-001", runtime=mock_runtime)
         
         # Assert
         assert "no se encontró el pedido" in result
@@ -209,7 +209,7 @@ class TestStatusTool:
         }
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert result == "Pedido en generación"
@@ -226,7 +226,7 @@ class TestStatusTool:
         }
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert result == "Pedido creado"
@@ -243,7 +243,7 @@ class TestStatusTool:
         }
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert "factura" in result.lower()
@@ -261,7 +261,7 @@ class TestStatusTool:
         }
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert "guía" in result.lower()
@@ -289,7 +289,7 @@ class TestStatusTool:
         mock_descargas.return_value = 2
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert "ESD totales: 5" in result
@@ -314,7 +314,7 @@ class TestStatusTool:
         mock_descargas.return_value = 1
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert "ESD totales: 1" in result
@@ -331,7 +331,7 @@ class TestStatusTool:
         }
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert "Procesando tu pedido" in result
@@ -348,7 +348,7 @@ class TestStatusTool:
         }
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert "Procesando tu pedido" in result
@@ -371,7 +371,7 @@ class TestStatusTool:
         }
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert "salió en movimiento" in result
@@ -390,7 +390,7 @@ class TestStatusTool:
         }
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert result == "Pedido entregado al domicilio"
@@ -407,7 +407,7 @@ class TestStatusTool:
         }
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert "revisando tu pedido" in result
@@ -425,7 +425,7 @@ class TestStatusTool:
         }
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert result == "El pedido ha sido cancelado"
@@ -442,7 +442,7 @@ class TestStatusTool:
         }
         
         # Execute
-        result = status_tool("FAC-001", runtime=mock_runtime)
+        result = status_tool.func("FAC-001", runtime=mock_runtime)
         
         # Assert
         assert result == "Estamos trabajando en su pedido"
