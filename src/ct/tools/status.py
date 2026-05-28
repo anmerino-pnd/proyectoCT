@@ -1,8 +1,6 @@
 import re
 import pytz
-import locale
 import mysql.connector
-from functools import lru_cache
 from pymongo import MongoClient
 from pydantic import BaseModel, Field
 from typing import Optional, Tuple, cast
@@ -32,12 +30,11 @@ def _load_pedidos():
     return pedidos
 
 
-@lru_cache(maxsize=1)
-def _ensure_es_locale() -> None:
-    try:
-        locale.setlocale(locale.LC_TIME, "es_MX.UTF-8")
-    except locale.Error:
-        pass
+_MESES_ES = {
+    1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+    5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+    9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre",
+}
 
 
 cdmx = pytz.timezone("America/Mexico_City")
@@ -120,11 +117,11 @@ def status_tool(factura: str, runtime: ToolRuntime[UserContext]) -> str:
         case "Preautorizado" | "Autorizado":
             return "Procesando tu pedido"
         case "Transito":
-            _ensure_es_locale()
             dt_utc = pytz.utc.localize(pedido["estatus"]["Transito"]["fecha"])
             dt_cdmx = dt_utc.astimezone(cdmx)
+            mes = _MESES_ES[dt_cdmx.month]
             return dt_cdmx.strftime(
-                "El pedido salió en movimiento el %d de %B del %Y a las %H:%M:%S, horario Ciudad de México"
+                f"El pedido salió en movimiento el %d de {mes} del %Y a las %H:%M:%S, horario Ciudad de México"
             )
         case "Entregado":
             return "Pedido entregado al domicilio"
