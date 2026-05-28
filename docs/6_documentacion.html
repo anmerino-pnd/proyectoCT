@@ -277,8 +277,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#ejecución-local-de-las-pruebas" id="toc-ejecución-local-de-las-pruebas" class="nav-link" data-scroll-target="#ejecución-local-de-las-pruebas">6.3. Ejecución local de las pruebas</a></li>
   <li><a href="#diseño-de-imports-para-que-las-pruebas-sean-independientes" id="toc-diseño-de-imports-para-que-las-pruebas-sean-independientes" class="nav-link" data-scroll-target="#diseño-de-imports-para-que-las-pruebas-sean-independientes">6.4. Diseño de imports para que las pruebas sean independientes</a></li>
   <li><a href="#construcción-manual-de-la-imagen-con-podman" id="toc-construcción-manual-de-la-imagen-con-podman" class="nav-link" data-scroll-target="#construcción-manual-de-la-imagen-con-podman">6.5. Construcción manual de la imagen con Podman</a></li>
-  <li><a href="#publicación-de-la-imagen-en-github-container-registry-opcional" id="toc-publicación-de-la-imagen-en-github-container-registry-opcional" class="nav-link" data-scroll-target="#publicación-de-la-imagen-en-github-container-registry-opcional">6.6. Publicación de la imagen en GitHub Container Registry (opcional)</a></li>
-  <li><a href="#solución-de-problemas-comunes" id="toc-solución-de-problemas-comunes" class="nav-link" data-scroll-target="#solución-de-problemas-comunes">6.7. Solución de problemas comunes</a></li>
+  <li><a href="#publicación-de-la-imagen-en-github-container-registry" id="toc-publicación-de-la-imagen-en-github-container-registry" class="nav-link" data-scroll-target="#publicación-de-la-imagen-en-github-container-registry">6.6. Publicación de la imagen en GitHub Container Registry</a></li>
+  <li><a href="#despliegue-continuo-al-servidor-cd" id="toc-despliegue-continuo-al-servidor-cd" class="nav-link" data-scroll-target="#despliegue-continuo-al-servidor-cd">6.7. Despliegue continuo al servidor (CD)</a>
+  <ul>
+  <li><a href="#flujo-general" id="toc-flujo-general" class="nav-link" data-scroll-target="#flujo-general">6.7.1. Flujo general</a></li>
+  <li><a href="#paso-1-autenticar-el-servidor-contra-ghcr.io" id="toc-paso-1-autenticar-el-servidor-contra-ghcr.io" class="nav-link" data-scroll-target="#paso-1-autenticar-el-servidor-contra-ghcr.io">6.7.2. Paso 1 — Autenticar el servidor contra ghcr.io</a></li>
+  <li><a href="#paso-2-migrar-el-servicio-systemd-a-podman-recomendado" id="toc-paso-2-migrar-el-servicio-systemd-a-podman-recomendado" class="nav-link" data-scroll-target="#paso-2-migrar-el-servicio-systemd-a-podman-recomendado">6.7.3. Paso 2 — Migrar el servicio systemd a Podman (recomendado)</a></li>
+  <li><a href="#paso-3-script-de-actualización" id="toc-paso-3-script-de-actualización" class="nav-link" data-scroll-target="#paso-3-script-de-actualización">6.7.4. Paso 3 — Script de actualización</a></li>
+  <li><a href="#paso-4-configurar-el-cron" id="toc-paso-4-configurar-el-cron" class="nav-link" data-scroll-target="#paso-4-configurar-el-cron">6.7.5. Paso 4 — Configurar el cron</a></li>
+  <li><a href="#paso-5-permisos-sudo-sin-password" id="toc-paso-5-permisos-sudo-sin-password" class="nav-link" data-scroll-target="#paso-5-permisos-sudo-sin-password">6.7.6. Paso 5 — Permisos <code>sudo</code> sin password</a></li>
+  <li><a href="#limitaciones-y-consideraciones" id="toc-limitaciones-y-consideraciones" class="nav-link" data-scroll-target="#limitaciones-y-consideraciones">6.7.7. Limitaciones y consideraciones</a></li>
+  <li><a href="#alternativas-consideradas-y-descartadas" id="toc-alternativas-consideradas-y-descartadas" class="nav-link" data-scroll-target="#alternativas-consideradas-y-descartadas">6.7.8. Alternativas consideradas y descartadas</a></li>
+  </ul></li>
+  <li><a href="#solución-de-problemas-comunes" id="toc-solución-de-problemas-comunes" class="nav-link" data-scroll-target="#solución-de-problemas-comunes">6.8. Solución de problemas comunes</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -327,6 +338,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Podman</strong>: Gestión y ejecución de los contenedores de los cuales depende la aplicación (MongoDB y Redis).</li>
 <li><strong>MongoDB</strong>: Acceso remoto configurado para las colecciones de historial, productos, ofertas y fichas técnicas.</li>
 <li><strong>Redis</strong>: Acceso a través de Podman para cachear preguntas y respuestas.</li>
+<li><strong>Permisos <code>sudo</code></strong>: El usuario que ejecuta el servicio (<code>angel.merino</code>) requiere <code>sudo</code> <strong>sin password</strong> para <code>systemctl restart chatbot-api</code> y operaciones de Podman desde un cron job. Esto se configura con un archivo en <code>/etc/sudoers.d/chatbot-api</code> que delimita el permiso únicamente a los comandos necesarios (ver sección 6.7 para los detalles). Sin este permiso, el flujo de despliegue continuo (CD) automatizado no puede reiniciar la API.</li>
 </ul>
 </section>
 <section id="dependencias-principales-del-sistema" class="level3">
@@ -2644,13 +2656,19 @@ evaluation_results/      # (generado automáticamente)
 </section>
 <section id="diseño-de-imports-para-que-las-pruebas-sean-independientes" class="level3">
 <h3 class="anchored" data-anchor-id="diseño-de-imports-para-que-las-pruebas-sean-independientes">6.4. Diseño de imports para que las pruebas sean independientes</h3>
-<p>Para que <code>pytest</code> pueda correr sin credenciales reales (sin MongoDB, sin OpenAI, sin archivos FAISS), tres módulos del proyecto inicializan recursos externos de forma <strong>diferida</strong> (<em>lazy</em>):</p>
+<p>Para que <code>pytest</code> pueda correr sin credenciales reales (sin MongoDB, sin OpenAI, sin archivos FAISS, sin archivos CSV/JSON locales), los siguientes módulos inicializan recursos externos de forma <strong>diferida</strong> (<em>lazy</em>) usando <code>functools.lru_cache</code> o el patrón “global parcheable + función <code>_load_*()</code>”:</p>
 <ul>
-<li><p><strong><code>src/ct/settings/clients.py</code></strong> expone <code>get_mongo_client()</code> y <code>get_db()</code> decoradas con <code>functools.lru_cache</code>. La conexión a MongoDB se crea la primera vez que se solicita, no al importar el módulo.</p></li>
-<li><p><strong><code>src/ct/tools/search_information.py</code></strong> define <code>reload_vector_store()</code> pero <strong>no la invoca al importarse</strong>. La carga del vector store FAISS ocurre en producción mediante el evento <code>lifespan</code> de FastAPI definido en <code>src/ct/main.py</code>, que se ejecuta al arrancar el servidor (Gunicorn/Uvicorn), no durante los tests.</p></li>
-<li><p><strong><code>src/ct/chat.py</code></strong> expone <code>get_assistant()</code> con <code>lru_cache</code> en lugar de instanciar <code>ModeratedToolAgent()</code> a nivel de módulo. Esto evita que el agente intente conectarse a Mongo o cargar modelos LLM cuando un test simplemente importa <code>ct.main</code>.</p></li>
+<li><strong><code>src/ct/settings/clients.py</code></strong> — <code>get_mongo_client()</code> y <code>get_db()</code> con <code>lru_cache</code>. La conexión a MongoDB se crea la primera vez que se solicita, no al importar el módulo.</li>
+<li><strong><code>src/ct/tools/search_information.py</code></strong> — <code>reload_vector_store()</code> ya <strong>no se invoca al importarse</strong>. La carga del vector store FAISS ocurre mediante el evento <code>lifespan</code> de FastAPI en <code>src/ct/main.py</code>, al arrancar el servidor real, no durante los tests.</li>
+<li><strong><code>src/ct/chat.py</code></strong> — <code>get_assistant()</code> con <code>lru_cache</code> reemplaza al <code>ModeratedToolAgent()</code> instanciado a nivel de módulo.</li>
+<li><strong><code>src/ct/tools/support.py</code></strong> — <code>vector_store = None</code> a nivel de módulo + helper <code>_get_vector_store()</code> que lo carga lazy. Mantiene compatibilidad con <code>@patch("ct.tools.support.vector_store", ...)</code> de los tests existentes.</li>
+<li><strong><code>src/ct/tools/status.py</code></strong> — <code>pedidos = None</code> + helper <code>_load_pedidos()</code> lazy. Además, se removió <code>locale.setlocale("es_MX.UTF-8")</code> y la dependencia del SO: ahora un diccionario <code>_MESES_ES</code> mapea <code>1 → "enero"</code>, etc., para el formato de fecha del case “Transito”.</li>
+<li><strong><code>src/ct/tools/algolia.py</code></strong> — <code>_get_sucursales()</code> con <code>lru_cache</code> reemplaza la lectura inmediata de <code>datos/idSucursal.json</code>.</li>
+<li><strong><code>src/ct/tools/sales_rules_tool.py</code></strong> — patrón “global <code>SUCURSALES = None</code> + <code>_load_sucursales()</code>” para preservar el contrato <code>@patch("ct.tools.sales_rules_tool.SUCURSALES", ...)</code> de los tests.</li>
+<li><strong><code>src/ct/tools/sucursales.py</code></strong> — <code>_load_sucursales_df()</code> con <code>lru_cache</code> reemplaza el <code>pd.read_csv("datos/sucursales.csv")</code> que se ejecutaba al import.</li>
 </ul>
-<p>Este patrón es importante: si en el futuro alguien añade un nuevo módulo que requiere recursos externos, debe seguir el mismo esquema (factory + <code>lru_cache</code>) para no romper el pipeline de CI.</p>
+<p>Este patrón es importante: si en el futuro alguien añade un nuevo módulo que requiere recursos externos (archivos, conexiones, locales del SO), debe seguir el mismo esquema para no romper el pipeline de CI.</p>
+<p><strong>Nota histórica — vector stores y archivos huérfanos:</strong> Algunos módulos cargan recursos que pueden parecer obsoletos a primera vista (los vector stores FAISS en <code>support.py</code> y <code>search_information.py</code>, o <code>idSucursal.json</code> en <code>algolia.py</code>). Previo a la integración con <strong>Algolia</strong>, el chatbot resolvía búsquedas de productos y promociones con vectorización propia: embeddings de OpenAI + índice FAISS sobre los catálogos. Algolia sustituyó la mayor parte de ese flujo por una solución gestionada con mejor relevancia y latencia, pero el código vectorial <strong>se preservó como fallback</strong> en caso de necesitar volver atrás, hacer búsqueda híbrida, o reactivarlo para colecciones específicas (por ejemplo, soporte/garantías, que todavía usa FAISS). Por eso conviven los dos caminos: <code>algolia.py</code> es el principal y <code>search_information.py</code> / <code>support.py</code> son el legado mantenido en <em>standby</em>. Tener todos detrás de <code>lru_cache</code> permite que coexistan sin penalizar tests ni arranques en frío — solo se paga el costo de carga cuando algo los invoca.</p>
 </section>
 <section id="construcción-manual-de-la-imagen-con-podman" class="level3">
 <h3 class="anchored" data-anchor-id="construcción-manual-de-la-imagen-con-podman">6.5. Construcción manual de la imagen con Podman</h3>
@@ -2670,9 +2688,9 @@ evaluation_results/      # (generado automáticamente)
 <span id="cb62-13"><a href="#cb62-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspeccionar logs</span></span>
 <span id="cb62-14"><a href="#cb62-14" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> logs <span class="op">&lt;</span>container_id<span class="op">&gt;</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
-<section id="publicación-de-la-imagen-en-github-container-registry-opcional" class="level3">
-<h3 class="anchored" data-anchor-id="publicación-de-la-imagen-en-github-container-registry-opcional">6.6. Publicación de la imagen en GitHub Container Registry (opcional)</h3>
-<p>Cuando se desee publicar automáticamente la imagen, descomentar el último bloque de <code>.github/workflows/ci.yml</code>:</p>
+<section id="publicación-de-la-imagen-en-github-container-registry" class="level3">
+<h3 class="anchored" data-anchor-id="publicación-de-la-imagen-en-github-container-registry">6.6. Publicación de la imagen en GitHub Container Registry</h3>
+<p>Para que el servidor pueda descargar la imagen construida en CI, primero hay que publicarla. Descomentar el último bloque de <code>.github/workflows/ci.yml</code>:</p>
 <div class="sourceCode" id="cb63"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Push to Registry</span></span>
 <span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> redhat-actions/push-to-registry@v2</span></span>
 <span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">with</span><span class="kw">:</span></span>
@@ -2681,10 +2699,136 @@ evaluation_results/      # (generado automáticamente)
 <span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">registry</span><span class="kw">:</span><span class="at"> ghcr.io/${{ github.repository_owner }}</span></span>
 <span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">username</span><span class="kw">:</span><span class="at"> ${{ github.actor }}</span></span>
 <span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> ${{ secrets.GITHUB_TOKEN }}</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>No requiere configurar secretos adicionales: GitHub Actions provee <code>GITHUB_TOKEN</code> automáticamente, y solo hace falta otorgar permisos de escritura al <em>workflow</em> desde la configuración del repositorio (Settings → Actions → General → Workflow permissions → Read and write).</p>
+<p>No requiere configurar secretos adicionales: GitHub Actions provee <code>GITHUB_TOKEN</code> automáticamente. Solo hace falta otorgar permisos de escritura al <em>workflow</em> desde <strong>Settings → Actions → General → Workflow permissions → Read and write</strong>.</p>
+<p>Tras el primer push exitoso, la imagen queda disponible en:</p>
+<pre class="text"><code>ghcr.io/anmerino-pnd/proyecto-ct:latest
+ghcr.io/anmerino-pnd/proyecto-ct:&lt;sha-del-commit&gt;</code></pre>
+<p>Por defecto el paquete es <strong>privado</strong>. Para que el servidor pueda hacer pull, hay que (a) autenticar al servidor con un PAT (siguiente sección) o (b) marcar el paquete como público desde la página del package en GitHub.</p>
+</section>
+<section id="despliegue-continuo-al-servidor-cd" class="level3">
+<h3 class="anchored" data-anchor-id="despliegue-continuo-al-servidor-cd">6.7. Despliegue continuo al servidor (CD)</h3>
+<p>El CI termina entregando una imagen en <code>ghcr.io</code>. Falta el último tramo: que el servidor productivo descargue esa imagen y reinicie el servicio. La opción recomendada es un <strong>cron job local en el servidor</strong> que pollee el registry y reinicie <code>chatbot-api</code> cuando detecte una imagen nueva. Es la opción más simple, no requiere abrir puertos ni gestionar llaves SSH, y deja el control en el servidor.</p>
+<section id="flujo-general" class="level4">
+<h4 class="anchored" data-anchor-id="flujo-general">6.7.1. Flujo general</h4>
+<pre class="mermaid"><code>flowchart LR
+    A[Developer push a main] --&gt; B[GitHub Actions]
+    B --&gt; C{Tests pasan?}
+    C --&gt;|No| X[CI rojo, no se publica]
+    C --&gt;|Sí| D[buildah-build]
+    D --&gt; E[push a ghcr.io]
+    E --&gt; F[(ghcr.io/proyecto-ct:latest)]
+    F -.poll cada 5 min.-&gt; G[cron en servidor]
+    G --&gt; H{digest cambió?}
+    H --&gt;|No| I[no-op]
+    H --&gt;|Sí| J[sudo systemctl restart chatbot-api]
+    J --&gt; K[systemd levanta contenedor con imagen nueva]</code></pre>
+</section>
+<section id="paso-1-autenticar-el-servidor-contra-ghcr.io" class="level4">
+<h4 class="anchored" data-anchor-id="paso-1-autenticar-el-servidor-contra-ghcr.io">6.7.2. Paso 1 — Autenticar el servidor contra ghcr.io</h4>
+<p>En GitHub, generar un <strong>Personal Access Token (classic)</strong> con scope <code>read:packages</code>. En el servidor, autenticar Podman una sola vez:</p>
+<div class="sourceCode" id="cb66"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">"</span><span class="va">$GHCR_PAT</span><span class="st">"</span> <span class="kw">|</span> <span class="ex">podman</span> login ghcr.io <span class="at">-u</span> <span class="op">&lt;</span>usuario_github<span class="op">&gt;</span> --password-stdin</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Las credenciales quedan persistidas en <code>~/.config/containers/auth.json</code> y el cron las reutiliza sin volver a pedir password.</p>
+</section>
+<section id="paso-2-migrar-el-servicio-systemd-a-podman-recomendado" class="level4">
+<h4 class="anchored" data-anchor-id="paso-2-migrar-el-servicio-systemd-a-podman-recomendado">6.7.3. Paso 2 — Migrar el servicio systemd a Podman (recomendado)</h4>
+<p>Hasta ahora <code>chatbot-api.service</code> ejecuta Gunicorn directo sobre el virtualenv del proyecto (sección 1.4.5.3). Para que <code>systemctl restart</code> levante la imagen recién pulleada, conviene cambiar el <code>ExecStart</code> a un <code>podman run</code>:</p>
+<div class="sourceCode" id="cb67"><pre class="sourceCode ini code-with-copy"><code class="sourceCode ini"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="kw">[Service]</span></span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="dt">ExecStartPre</span><span class="ot">=</span><span class="st">-/usr/bin/podman stop -t 30 chatbot-api</span></span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a><span class="dt">ExecStartPre</span><span class="ot">=</span><span class="st">-/usr/bin/podman rm chatbot-api</span></span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a><span class="dt">ExecStart</span><span class="ot">=</span><span class="st">/usr/bin/podman run --rm --name chatbot-api \</span></span>
+<span id="cb67-5"><a href="#cb67-5" aria-hidden="true" tabindex="-1"></a><span class="dt">  -p 8000:8000 \</span></span>
+<span id="cb67-6"><a href="#cb67-6" aria-hidden="true" tabindex="-1"></a><span class="dt">  --env-file /home/angel.merino/proyectoCT/.env \</span></span>
+<span id="cb67-7"><a href="#cb67-7" aria-hidden="true" tabindex="-1"></a><span class="dt">  -v /home/angel.merino/proyectoCT/static/ssl:/app/static/ssl:ro \</span></span>
+<span id="cb67-8"><a href="#cb67-8" aria-hidden="true" tabindex="-1"></a><span class="dt">  ghcr.io/anmerino-pnd/proyecto-ct:latest</span></span>
+<span id="cb67-9"><a href="#cb67-9" aria-hidden="true" tabindex="-1"></a><span class="dt">ExecStop</span><span class="ot">=</span><span class="st">/usr/bin/podman stop -t 30 chatbot-api</span></span>
+<span id="cb67-10"><a href="#cb67-10" aria-hidden="true" tabindex="-1"></a><span class="dt">Restart</span><span class="ot">=</span><span class="st">always</span></span>
+<span id="cb67-11"><a href="#cb67-11" aria-hidden="true" tabindex="-1"></a><span class="dt">RestartSec</span><span class="ot">=</span><span class="dv">5</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Notas:</p>
+<ul>
+<li>Los <code>ExecStartPre</code> con <code>-</code> ignoran fallos: si el contenedor no existía, no aborta el arranque.</li>
+<li>El volumen de <code>static/ssl</code> se monta como solo lectura porque la imagen no incluye los certificados — siguen viviendo en el host.</li>
+<li><code>--env-file</code> apunta al <code>.env</code> del host; <strong>no se debe</strong> copiar el <code>.env</code> dentro de la imagen.</li>
+</ul>
+<p>Después de editar el archivo <code>.service</code>:</p>
+<div class="sourceCode" id="cb68"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl daemon-reload</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl restart chatbot-api</span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> systemctl status chatbot-api</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="paso-3-script-de-actualización" class="level4">
+<h4 class="anchored" data-anchor-id="paso-3-script-de-actualización">6.7.4. Paso 3 — Script de actualización</h4>
+<p>Crear <code>~/proyectoCT/update_image.sh</code>:</p>
+<div class="sourceCode" id="cb69"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-euo</span> pipefail</span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a><span class="va">IMAGE</span><span class="op">=</span><span class="st">"ghcr.io/anmerino-pnd/proyecto-ct:latest"</span></span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a><span class="va">LOG</span><span class="op">=</span>~/proyectoCT/logs/update_image.log</span>
+<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> <span class="st">"</span><span class="va">$(</span><span class="fu">dirname</span> <span class="st">"</span><span class="va">$LOG</span><span class="st">"</span><span class="va">)</span><span class="st">"</span></span>
+<span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-8"><a href="#cb69-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Digest actual antes del pull (vacío si no existe localmente)</span></span>
+<span id="cb69-9"><a href="#cb69-9" aria-hidden="true" tabindex="-1"></a><span class="va">CURRENT</span><span class="op">=</span><span class="va">$(</span><span class="ex">podman</span> image inspect <span class="st">"</span><span class="va">$IMAGE</span><span class="st">"</span> <span class="at">--format</span> <span class="st">'{{.Digest}}'</span> <span class="dv">2</span><span class="op">&gt;</span>/dev/null <span class="kw">||</span> <span class="bu">echo</span> <span class="st">"none"</span><span class="va">)</span></span>
+<span id="cb69-10"><a href="#cb69-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-11"><a href="#cb69-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Pull silencioso (logs van al archivo)</span></span>
+<span id="cb69-12"><a href="#cb69-12" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> pull <span class="st">"</span><span class="va">$IMAGE</span><span class="st">"</span> <span class="op">&gt;&gt;</span><span class="st">"</span><span class="va">$LOG</span><span class="st">"</span> <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span>
+<span id="cb69-13"><a href="#cb69-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-14"><a href="#cb69-14" aria-hidden="true" tabindex="-1"></a><span class="co"># Digest después del pull</span></span>
+<span id="cb69-15"><a href="#cb69-15" aria-hidden="true" tabindex="-1"></a><span class="va">NEW</span><span class="op">=</span><span class="va">$(</span><span class="ex">podman</span> image inspect <span class="st">"</span><span class="va">$IMAGE</span><span class="st">"</span> <span class="at">--format</span> <span class="st">'{{.Digest}}'</span><span class="va">)</span></span>
+<span id="cb69-16"><a href="#cb69-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb69-17"><a href="#cb69-17" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="bu">[</span> <span class="st">"</span><span class="va">$CURRENT</span><span class="st">"</span> <span class="ot">!=</span> <span class="st">"</span><span class="va">$NEW</span><span class="st">"</span> <span class="bu">]</span><span class="kw">;</span> <span class="cf">then</span></span>
+<span id="cb69-18"><a href="#cb69-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">echo</span> <span class="st">"</span><span class="va">$(</span><span class="fu">date</span> <span class="at">-Is</span><span class="va">)</span><span class="st"> imagen actualizada (</span><span class="va">$CURRENT</span><span class="st"> → </span><span class="va">$NEW</span><span class="st">), reiniciando servicio"</span> <span class="op">&gt;&gt;</span><span class="st">"</span><span class="va">$LOG</span><span class="st">"</span></span>
+<span id="cb69-19"><a href="#cb69-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sudo</span> /bin/systemctl restart chatbot-api</span>
+<span id="cb69-20"><a href="#cb69-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">echo</span> <span class="st">"</span><span class="va">$(</span><span class="fu">date</span> <span class="at">-Is</span><span class="va">)</span><span class="st"> restart completado"</span> <span class="op">&gt;&gt;</span><span class="st">"</span><span class="va">$LOG</span><span class="st">"</span></span>
+<span id="cb69-21"><a href="#cb69-21" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span></span>
+<span id="cb69-22"><a href="#cb69-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">echo</span> <span class="st">"</span><span class="va">$(</span><span class="fu">date</span> <span class="at">-Is</span><span class="va">)</span><span class="st"> sin cambios"</span> <span class="op">&gt;&gt;</span><span class="st">"</span><span class="va">$LOG</span><span class="st">"</span></span>
+<span id="cb69-23"><a href="#cb69-23" aria-hidden="true" tabindex="-1"></a><span class="cf">fi</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Hacerlo ejecutable:</p>
+<div class="sourceCode" id="cb70"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">chmod</span> +x ~/proyectoCT/update_image.sh</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="paso-4-configurar-el-cron" class="level4">
+<h4 class="anchored" data-anchor-id="paso-4-configurar-el-cron">6.7.5. Paso 4 — Configurar el cron</h4>
+<div class="sourceCode" id="cb71"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Añadir, por ejemplo, una corrida cada 5 minutos (ajustable):</p>
+<pre class="cron"><code># Polling de la imagen del chatbot cada 5 minutos
+*/5 * * * * ~/proyectoCT/update_image.sh</code></pre>
+<p>Verificar:</p>
+<div class="sourceCode" id="cb73"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-f</span> ~/proyectoCT/logs/update_image.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="paso-5-permisos-sudo-sin-password" class="level4">
+<h4 class="anchored" data-anchor-id="paso-5-permisos-sudo-sin-password">6.7.6. Paso 5 — Permisos <code>sudo</code> sin password</h4>
+<p>El script invoca <code>sudo systemctl restart chatbot-api</code> y necesita poder hacerlo sin teclear la contraseña (cron es no-interactivo). Crear un archivo de sudoers acotado:</p>
+<div class="sourceCode" id="cb74"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> visudo <span class="at">-f</span> /etc/sudoers.d/chatbot-api</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Contenido:</p>
+<pre class="text"><code># Permite al usuario de despliegue reiniciar solo el servicio del chatbot
+angel.merino ALL=(ALL) NOPASSWD: /bin/systemctl restart chatbot-api</code></pre>
+<p>Importante:</p>
+<ul>
+<li>El permiso queda <strong>delimitado al comando exacto</strong>; el usuario NO obtiene <code>sudo</code> global.</li>
+<li>Usar siempre <code>visudo</code> para que valide la sintaxis antes de guardar — un error tipográfico aquí puede bloquear <code>sudo</code> para todo el sistema.</li>
+<li>Validar:</li>
+</ul>
+<div class="sourceCode" id="cb76"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> <span class="at">-l</span> <span class="at">-U</span> angel.merino <span class="kw">|</span> <span class="fu">grep</span> chatbot-api</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Debe listar exactamente la línea <code>NOPASSWD: /bin/systemctl restart chatbot-api</code>.</p>
+</section>
+<section id="limitaciones-y-consideraciones" class="level4">
+<h4 class="anchored" data-anchor-id="limitaciones-y-consideraciones">6.7.7. Limitaciones y consideraciones</h4>
+<ul>
+<li><strong>Latencia</strong>: hasta 5 minutos entre el push y el deploy efectivo (ajustable bajando el intervalo del cron, pero más frecuente = más llamadas a <code>ghcr.io</code>).</li>
+<li><strong>Sin rollback automático</strong>: si la imagen nueva está rota, <code>systemd</code> la reinicia indefinidamente. Mitigación: mantener un tag <code>:stable</code> además de <code>:latest</code> y promover manualmente, o agregar una verificación de health-check antes de marcar el deploy como exitoso.</li>
+<li><strong>Sin alertas de pull fallido</strong>: si <code>podman pull</code> falla por red, el cron reintenta en el siguiente tick. Considerar añadir notificación (Slack/email) si el log muestra errores recurrentes.</li>
+<li><strong>Visibilidad de logs</strong>: los logs del contenedor van a <code>journalctl -u chatbot-api</code> (como antes); los logs del cron de despliegue van a <code>~/proyectoCT/logs/update_image.log</code>.</li>
+</ul>
+</section>
+<section id="alternativas-consideradas-y-descartadas" class="level4">
+<h4 class="anchored" data-anchor-id="alternativas-consideradas-y-descartadas">6.7.8. Alternativas consideradas y descartadas</h4>
+<ul>
+<li><strong>SSH desde GitHub Actions</strong> (<code>appleboy/ssh-action</code>): requiere abrir SSH a internet o mantener una IP allowlist, gestionar una llave privada como secret de GitHub, y añade un punto de falla externo al servidor. El cron es más simple y deja al servidor en control de cuándo se actualiza.</li>
+<li><strong>Webhook <code>repository_dispatch</code></strong>: requiere correr un listener HTTP en el servidor (Flask, GitHub Webhook receiver), abrir un puerto público, validar firmas HMAC. Más infraestructura para mantener; solo justificable si se necesita deploy inmediato (latencia menor a 1 minuto).</li>
+<li><strong>Watchtower / Podman auto-update</strong>: existen daemons que monitorean cambios de imagen automáticamente. Son válidos pero introducen una dependencia más; el cron de 4 líneas cumple la misma función con código que cualquiera del equipo puede leer.</li>
+</ul>
+</section>
 </section>
 <section id="solución-de-problemas-comunes" class="level3">
-<h3 class="anchored" data-anchor-id="solución-de-problemas-comunes">6.7. Solución de problemas comunes</h3>
+<h3 class="anchored" data-anchor-id="solución-de-problemas-comunes">6.8. Solución de problemas comunes</h3>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 22%">

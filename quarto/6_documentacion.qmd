@@ -28,6 +28,7 @@ toc-depth: 5
 * **Podman**: Gestión y ejecución de los contenedores de los cuales depende la aplicación (MongoDB y Redis).
 * **MongoDB**: Acceso remoto configurado para las colecciones de historial, productos, ofertas y fichas técnicas.
 * **Redis**: Acceso a través de Podman para cachear preguntas y respuestas.
+* **Permisos `sudo`**: El usuario que ejecuta el servicio (`angel.merino`) requiere `sudo` **sin password** para `systemctl restart chatbot-api` y operaciones de Podman desde un cron job. Esto se configura con un archivo en `/etc/sudoers.d/chatbot-api` que delimita el permiso únicamente a los comandos necesarios (ver sección 6.7 para los detalles). Sin este permiso, el flujo de despliegue continuo (CD) automatizado no puede reiniciar la API.
 
 ### 1.3. Dependencias principales del sistema
 
@@ -2045,15 +2046,20 @@ El reporte HTML de cobertura queda en `htmlcov/index.html` para inspección visu
 
 ### 6.4. Diseño de imports para que las pruebas sean independientes
 
-Para que `pytest` pueda correr sin credenciales reales (sin MongoDB, sin OpenAI, sin archivos FAISS), tres módulos del proyecto inicializan recursos externos de forma **diferida** (*lazy*):
+Para que `pytest` pueda correr sin credenciales reales (sin MongoDB, sin OpenAI, sin archivos FAISS, sin archivos CSV/JSON locales), los siguientes módulos inicializan recursos externos de forma **diferida** (*lazy*) usando `functools.lru_cache` o el patrón "global parcheable + función `_load_*()`":
 
-* **`src/ct/settings/clients.py`** expone `get_mongo_client()` y `get_db()` decoradas con `functools.lru_cache`. La conexión a MongoDB se crea la primera vez que se solicita, no al importar el módulo.
+* **`src/ct/settings/clients.py`** — `get_mongo_client()` y `get_db()` con `lru_cache`. La conexión a MongoDB se crea la primera vez que se solicita, no al importar el módulo.
+* **`src/ct/tools/search_information.py`** — `reload_vector_store()` ya **no se invoca al importarse**. La carga del vector store FAISS ocurre mediante el evento `lifespan` de FastAPI en `src/ct/main.py`, al arrancar el servidor real, no durante los tests.
+* **`src/ct/chat.py`** — `get_assistant()` con `lru_cache` reemplaza al `ModeratedToolAgent()` instanciado a nivel de módulo.
+* **`src/ct/tools/support.py`** — `vector_store = None` a nivel de módulo + helper `_get_vector_store()` que lo carga lazy. Mantiene compatibilidad con `@patch("ct.tools.support.vector_store", ...)` de los tests existentes.
+* **`src/ct/tools/status.py`** — `pedidos = None` + helper `_load_pedidos()` lazy. Además, se removió `locale.setlocale("es_MX.UTF-8")` y la dependencia del SO: ahora un diccionario `_MESES_ES` mapea `1 → "enero"`, etc., para el formato de fecha del case "Transito".
+* **`src/ct/tools/algolia.py`** — `_get_sucursales()` con `lru_cache` reemplaza la lectura inmediata de `datos/idSucursal.json`.
+* **`src/ct/tools/sales_rules_tool.py`** — patrón "global `SUCURSALES = None` + `_load_sucursales()`" para preservar el contrato `@patch("ct.tools.sales_rules_tool.SUCURSALES", ...)` de los tests.
+* **`src/ct/tools/sucursales.py`** — `_load_sucursales_df()` con `lru_cache` reemplaza el `pd.read_csv("datos/sucursales.csv")` que se ejecutaba al import.
 
-* **`src/ct/tools/search_information.py`** define `reload_vector_store()` pero **no la invoca al importarse**. La carga del vector store FAISS ocurre en producción mediante el evento `lifespan` de FastAPI definido en `src/ct/main.py`, que se ejecuta al arrancar el servidor (Gunicorn/Uvicorn), no durante los tests.
+Este patrón es importante: si en el futuro alguien añade un nuevo módulo que requiere recursos externos (archivos, conexiones, locales del SO), debe seguir el mismo esquema para no romper el pipeline de CI.
 
-* **`src/ct/chat.py`** expone `get_assistant()` con `lru_cache` en lugar de instanciar `ModeratedToolAgent()` a nivel de módulo. Esto evita que el agente intente conectarse a Mongo o cargar modelos LLM cuando un test simplemente importa `ct.main`.
-
-Este patrón es importante: si en el futuro alguien añade un nuevo módulo que requiere recursos externos, debe seguir el mismo esquema (factory + `lru_cache`) para no romper el pipeline de CI.
+**Nota histórica — vector stores y archivos huérfanos:** Algunos módulos cargan recursos que pueden parecer obsoletos a primera vista (los vector stores FAISS en `support.py` y `search_information.py`, o `idSucursal.json` en `algolia.py`). Previo a la integración con **Algolia**, el chatbot resolvía búsquedas de productos y promociones con vectorización propia: embeddings de OpenAI + índice FAISS sobre los catálogos. Algolia sustituyó la mayor parte de ese flujo por una solución gestionada con mejor relevancia y latencia, pero el código vectorial **se preservó como fallback** en caso de necesitar volver atrás, hacer búsqueda híbrida, o reactivarlo para colecciones específicas (por ejemplo, soporte/garantías, que todavía usa FAISS). Por eso conviven los dos caminos: `algolia.py` es el principal y `search_information.py` / `support.py` son el legado mantenido en *standby*. Tener todos detrás de `lru_cache` permite que coexistan sin penalizar tests ni arranques en frío — solo se paga el costo de carga cuando algo los invoca.
 
 ### 6.5. Construcción manual de la imagen con Podman
 
@@ -2076,9 +2082,9 @@ podman run --rm -it \
 podman logs <container_id>
 ```
 
-### 6.6. Publicación de la imagen en GitHub Container Registry (opcional)
+### 6.6. Publicación de la imagen en GitHub Container Registry
 
-Cuando se desee publicar automáticamente la imagen, descomentar el último bloque de `.github/workflows/ci.yml`:
+Para que el servidor pueda descargar la imagen construida en CI, primero hay que publicarla. Descomentar el último bloque de `.github/workflows/ci.yml`:
 
 ```yaml
 - name: Push to Registry
@@ -2091,9 +2097,177 @@ Cuando se desee publicar automáticamente la imagen, descomentar el último bloq
     password: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-No requiere configurar secretos adicionales: GitHub Actions provee `GITHUB_TOKEN` automáticamente, y solo hace falta otorgar permisos de escritura al *workflow* desde la configuración del repositorio (Settings → Actions → General → Workflow permissions → Read and write).
+No requiere configurar secretos adicionales: GitHub Actions provee `GITHUB_TOKEN` automáticamente. Solo hace falta otorgar permisos de escritura al *workflow* desde **Settings → Actions → General → Workflow permissions → Read and write**.
 
-### 6.7. Solución de problemas comunes
+Tras el primer push exitoso, la imagen queda disponible en:
+
+```text
+ghcr.io/anmerino-pnd/proyecto-ct:latest
+ghcr.io/anmerino-pnd/proyecto-ct:<sha-del-commit>
+```
+
+Por defecto el paquete es **privado**. Para que el servidor pueda hacer pull, hay que (a) autenticar al servidor con un PAT (siguiente sección) o (b) marcar el paquete como público desde la página del package en GitHub.
+
+### 6.7. Despliegue continuo al servidor (CD)
+
+El CI termina entregando una imagen en `ghcr.io`. Falta el último tramo: que el servidor productivo descargue esa imagen y reinicie el servicio. La opción recomendada es un **cron job local en el servidor** que pollee el registry y reinicie `chatbot-api` cuando detecte una imagen nueva. Es la opción más simple, no requiere abrir puertos ni gestionar llaves SSH, y deja el control en el servidor.
+
+#### 6.7.1. Flujo general
+
+```mermaid
+flowchart LR
+    A[Developer push a main] --> B[GitHub Actions]
+    B --> C{Tests pasan?}
+    C -->|No| X[CI rojo, no se publica]
+    C -->|Sí| D[buildah-build]
+    D --> E[push a ghcr.io]
+    E --> F[(ghcr.io/proyecto-ct:latest)]
+    F -.poll cada 5 min.-> G[cron en servidor]
+    G --> H{digest cambió?}
+    H -->|No| I[no-op]
+    H -->|Sí| J[sudo systemctl restart chatbot-api]
+    J --> K[systemd levanta contenedor con imagen nueva]
+```
+
+#### 6.7.2. Paso 1 — Autenticar el servidor contra ghcr.io
+
+En GitHub, generar un **Personal Access Token (classic)** con scope `read:packages`. En el servidor, autenticar Podman una sola vez:
+
+```bash
+echo "$GHCR_PAT" | podman login ghcr.io -u <usuario_github> --password-stdin
+```
+
+Las credenciales quedan persistidas en `~/.config/containers/auth.json` y el cron las reutiliza sin volver a pedir password.
+
+#### 6.7.3. Paso 2 — Migrar el servicio systemd a Podman (recomendado)
+
+Hasta ahora `chatbot-api.service` ejecuta Gunicorn directo sobre el virtualenv del proyecto (sección 1.4.5.3). Para que `systemctl restart` levante la imagen recién pulleada, conviene cambiar el `ExecStart` a un `podman run`:
+
+```ini
+[Service]
+ExecStartPre=-/usr/bin/podman stop -t 30 chatbot-api
+ExecStartPre=-/usr/bin/podman rm chatbot-api
+ExecStart=/usr/bin/podman run --rm --name chatbot-api \
+  -p 8000:8000 \
+  --env-file /home/angel.merino/proyectoCT/.env \
+  -v /home/angel.merino/proyectoCT/static/ssl:/app/static/ssl:ro \
+  ghcr.io/anmerino-pnd/proyecto-ct:latest
+ExecStop=/usr/bin/podman stop -t 30 chatbot-api
+Restart=always
+RestartSec=5
+```
+
+Notas:
+
+- Los `ExecStartPre` con `-` ignoran fallos: si el contenedor no existía, no aborta el arranque.
+- El volumen de `static/ssl` se monta como solo lectura porque la imagen no incluye los certificados — siguen viviendo en el host.
+- `--env-file` apunta al `.env` del host; **no se debe** copiar el `.env` dentro de la imagen.
+
+Después de editar el archivo `.service`:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart chatbot-api
+sudo systemctl status chatbot-api
+```
+
+#### 6.7.4. Paso 3 — Script de actualización
+
+Crear `~/proyectoCT/update_image.sh`:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+IMAGE="ghcr.io/anmerino-pnd/proyecto-ct:latest"
+LOG=~/proyectoCT/logs/update_image.log
+mkdir -p "$(dirname "$LOG")"
+
+# Digest actual antes del pull (vacío si no existe localmente)
+CURRENT=$(podman image inspect "$IMAGE" --format '{{.Digest}}' 2>/dev/null || echo "none")
+
+# Pull silencioso (logs van al archivo)
+podman pull "$IMAGE" >>"$LOG" 2>&1
+
+# Digest después del pull
+NEW=$(podman image inspect "$IMAGE" --format '{{.Digest}}')
+
+if [ "$CURRENT" != "$NEW" ]; then
+    echo "$(date -Is) imagen actualizada ($CURRENT → $NEW), reiniciando servicio" >>"$LOG"
+    sudo /bin/systemctl restart chatbot-api
+    echo "$(date -Is) restart completado" >>"$LOG"
+else
+    echo "$(date -Is) sin cambios" >>"$LOG"
+fi
+```
+
+Hacerlo ejecutable:
+
+```bash
+chmod +x ~/proyectoCT/update_image.sh
+```
+
+#### 6.7.5. Paso 4 — Configurar el cron
+
+```bash
+crontab -e
+```
+
+Añadir, por ejemplo, una corrida cada 5 minutos (ajustable):
+
+```cron
+# Polling de la imagen del chatbot cada 5 minutos
+*/5 * * * * ~/proyectoCT/update_image.sh
+```
+
+Verificar:
+
+```bash
+crontab -l
+tail -f ~/proyectoCT/logs/update_image.log
+```
+
+#### 6.7.6. Paso 5 — Permisos `sudo` sin password
+
+El script invoca `sudo systemctl restart chatbot-api` y necesita poder hacerlo sin teclear la contraseña (cron es no-interactivo). Crear un archivo de sudoers acotado:
+
+```bash
+sudo visudo -f /etc/sudoers.d/chatbot-api
+```
+
+Contenido:
+
+```text
+# Permite al usuario de despliegue reiniciar solo el servicio del chatbot
+angel.merino ALL=(ALL) NOPASSWD: /bin/systemctl restart chatbot-api
+```
+
+Importante:
+
+- El permiso queda **delimitado al comando exacto**; el usuario NO obtiene `sudo` global.
+- Usar siempre `visudo` para que valide la sintaxis antes de guardar — un error tipográfico aquí puede bloquear `sudo` para todo el sistema.
+- Validar:
+
+```bash
+sudo -l -U angel.merino | grep chatbot-api
+```
+
+Debe listar exactamente la línea `NOPASSWD: /bin/systemctl restart chatbot-api`.
+
+#### 6.7.7. Limitaciones y consideraciones
+
+- **Latencia**: hasta 5 minutos entre el push y el deploy efectivo (ajustable bajando el intervalo del cron, pero más frecuente = más llamadas a `ghcr.io`).
+- **Sin rollback automático**: si la imagen nueva está rota, `systemd` la reinicia indefinidamente. Mitigación: mantener un tag `:stable` además de `:latest` y promover manualmente, o agregar una verificación de health-check antes de marcar el deploy como exitoso.
+- **Sin alertas de pull fallido**: si `podman pull` falla por red, el cron reintenta en el siguiente tick. Considerar añadir notificación (Slack/email) si el log muestra errores recurrentes.
+- **Visibilidad de logs**: los logs del contenedor van a `journalctl -u chatbot-api` (como antes); los logs del cron de despliegue van a `~/proyectoCT/logs/update_image.log`.
+
+#### 6.7.8. Alternativas consideradas y descartadas
+
+- **SSH desde GitHub Actions** (`appleboy/ssh-action`): requiere abrir SSH a internet o mantener una IP allowlist, gestionar una llave privada como secret de GitHub, y añade un punto de falla externo al servidor. El cron es más simple y deja al servidor en control de cuándo se actualiza.
+- **Webhook `repository_dispatch`**: requiere correr un listener HTTP en el servidor (Flask, GitHub Webhook receiver), abrir un puerto público, validar firmas HMAC. Más infraestructura para mantener; solo justificable si se necesita deploy inmediato (latencia menor a 1 minuto).
+- **Watchtower / Podman auto-update**: existen daemons que monitorean cambios de imagen automáticamente. Son válidos pero introducen una dependencia más; el cron de 4 líneas cumple la misma función con código que cualquiera del equipo puede leer.
+
+### 6.8. Solución de problemas comunes
 
 | Síntoma                                              | Causa probable                                                                       | Solución                                                                                          |
 |------------------------------------------------------|--------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
