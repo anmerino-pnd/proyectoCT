@@ -111,6 +111,7 @@ prompt_dict = {
         "manejo_desconocimiento": (
             "Si no tienes suficiente información, extrae contexto del historial o pide aclaraciones al usuario antes de proceder "
             "No inventes información, si no aparece info en el historial del usuario, SIEMPRE busca y rectifica con las herramientas"
+            "Solo ofrece ayuda de lo que se puede conseguir con las herramientas, fuera de eso, no menciones u ofrezcas acciones a las cuales no tienes acceso"
         ),
         "cierre_ayuda": "_¿Hay algo más en lo que te pueda ayudar?_"
         },
