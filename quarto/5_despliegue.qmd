@@ -122,3 +122,67 @@ A partir del despliegue en el ambiente de pruebas, donde recopilamos retroalimen
 
 ![Chatbot desplegado en el ambiente de producción](./images/ctonline.jpg){width=90%}
 :::
+
+::: {style="text-align: justify"}
+## 3. Integración y Despliegue Continuo (CI/CD)
+
+Para cerrar el ciclo de entrega, el proyecto cuenta con un flujo de **integración continua (CI)**
+y **despliegue continuo (CD)** complementarios.
+
+### 3.1. Integración Continua (CI)
+
+El *pipeline* de CI vive en `.github/workflows/ci.yml` y se dispara en cada `push` y
+`pull_request` contra `main`. Consta de dos *jobs* encadenados:
+
+1. **`test`**: instala dependencias con `uv` y ejecuta la suite de `pytest` con reporte de
+   cobertura.
+2. **`build-podman`**: solo corre si las pruebas pasan; construye la imagen del contenedor con
+   Buildah a partir del `Dockerfile`.
+
+### 3.2. Servicio de producción (systemd)
+
+La API se ejecuta como un servicio de **systemd** (`chatbot-api`), no con `nohup`. Esto permite
+que arranque automáticamente al iniciar el servidor y que se reinicie sola ante caídas, gracias a
+`Restart=always`:
+
+```ini
+# /etc/systemd/system/chatbot-api.service (resumen)
+[Service]
+User=angel.merino
+WorkingDirectory=/home/angel.merino/proyectoCT
+ExecStart=/home/angel.merino/proyectoCT/.venv/bin/python -m gunicorn ct.main:app \
+  --workers 4 --bind 0.0.0.0:8000 \
+  --certfile=static/ssl/cert.pem --keyfile=static/ssl/key.pem \
+  -k uvicorn.workers.UvicornWorker --timeout 120 \
+  --access-logfile - --error-logfile -
+Restart=always
+```
+
+### 3.3. Despliegue Continuo (CD) por modelo *pull*
+
+El despliegue sigue un esquema **pull (GitOps)**: el propio servidor sondea el repositorio y se
+actualiza solo, evitando exponer accesos SSH o credenciales de un registro hacia GitHub. Lo maneja
+el script `deploy.sh`, ejecutado por `cron` cada 5 minutos:
+
+```bash
+*/5 * * * * /bin/bash $HOME/proyectoCT/deploy.sh >> $HOME/proyectoCT/logs/deploy.cron.log 2>&1
+```
+
+En cada corrida el script:
+
+1. Hace `git fetch` y compara `HEAD` con `origin/main`; si no hay cambios, termina en silencio.
+2. **Valida el CI** del commit remoto: solo continúa si todos los *check-runs* de GitHub Actions
+   quedaron en `success` (consulta vía `gh api`, usando un `GH_TOKEN` guardado en `.env`). Si el
+   CI sigue en curso o falló, pospone el despliegue.
+3. Aplica los cambios con `git merge --ff-only` y decide la acción según **qué archivos
+   cambiaron**:
+   - `pyproject.toml` / `uv.lock` → `uv sync --frozen` + reinicio completo
+     (`sudo systemctl restart chatbot-api`).
+   - Archivos en `src/` → recarga *graceful* de los workers (`pkill -HUP -f gunicorn`).
+   - Solo documentación, Quarto, UI o tests → aplica el `pull` **sin reiniciar** el servicio.
+
+Dado que `datos/vectorstores/`, `static/ssl/` y `.env` están en `.gitignore`, el `git pull` nunca
+sobrescribe los índices FAISS, los certificados ni los secretos. Si `uv sync` falla, el script
+**no** reinicia el servicio, evitando dejar producción en un estado roto. Los registros del
+despliegue quedan en `logs/deploy.log`.
+:::

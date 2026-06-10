@@ -28,7 +28,7 @@ toc-depth: 5
 * **Podman**: Gestión y ejecución de los contenedores de los cuales depende la aplicación (MongoDB y Redis).
 * **MongoDB**: Acceso remoto configurado para las colecciones de historial, productos, ofertas y fichas técnicas.
 * **Redis**: Acceso a través de Podman para cachear preguntas y respuestas.
-* **Permisos `sudo`**: El usuario que ejecuta el servicio (`angel.merino`) requiere `sudo` **sin password** para `systemctl restart chatbot-api` y operaciones de Podman desde un cron job. Esto se configura con un archivo en `/etc/sudoers.d/chatbot-api` que delimita el permiso únicamente a los comandos necesarios (ver sección 6.7 para los detalles). Sin este permiso, el flujo de despliegue continuo (CD) automatizado no puede reiniciar la API.
+* **Permisos `sudo`**: El usuario que ejecuta el servicio (`angel.merino`) requiere `sudo` **sin password** para operar los servicios systemd (`systemctl restart chatbot-api`, etc.) desde un cron no-interactivo. Esto se configura una sola vez con el archivo versionado [`deploy/chatbot-api.sudoers`](https://github.com/anmerino-pnd/proyectoCT/blob/main/deploy/chatbot-api.sudoers), que se instala en `/etc/sudoers.d/chatbot-api` y delimita el permiso únicamente a los comandos necesarios (ver sección 6.7 para los detalles). Sin este permiso, el flujo de despliegue continuo (CD) automatizado no puede reiniciar la API cuando cambian dependencias.
 
 ### 1.3. Dependencias principales del sistema
 
@@ -2110,101 +2110,111 @@ Por defecto el paquete es **privado**. Para que el servidor pueda hacer pull, ha
 
 ### 6.7. Despliegue continuo al servidor (CD)
 
-El CI termina entregando una imagen en `ghcr.io`. Falta el último tramo: que el servidor productivo descargue esa imagen y reinicie el servicio. La opción recomendada es un **cron job local en el servidor** que pollee el registry y reinicie `chatbot-api` cuando detecte una imagen nueva. Es la opción más simple, no requiere abrir puertos ni gestionar llaves SSH, y deja el control en el servidor.
+El CI valida el código y construye la imagen. Para cerrar el ciclo se eligió un modelo de
+**despliegue por *pull* (GitOps)**: el propio servidor sondea el repositorio cada 5 minutos con un
+cron, y se actualiza solo cuando hay un commit nuevo en `main` **cuyo CI pasó**. No requiere abrir
+puertos, ni llaves SSH, ni publicar la imagen en un registro: el servidor ya tiene el clon de Git y
+corre la API directo sobre su virtualenv (sección 1.4.5.3), así que actualizar producción es,
+esencialmente, un `git pull` selectivo. Lo orquesta el script versionado
+[`deploy.sh`](https://github.com/anmerino-pnd/proyectoCT/blob/main/deploy.sh).
 
 #### 6.7.1. Flujo general
 
 ```mermaid
-flowchart LR
-    A[Developer push a main] --> B[GitHub Actions]
-    B --> C{Tests pasan?}
-    C -->|No| X[CI rojo, no se publica]
-    C -->|Sí| D[buildah-build]
-    D --> E[push a ghcr.io]
-    E --> F[(ghcr.io/proyecto-ct:latest)]
-    F -.poll cada 5 min.-> G[cron en servidor]
-    G --> H{digest cambió?}
-    H -->|No| I[no-op]
-    H -->|Sí| J[sudo systemctl restart chatbot-api]
-    J --> K[systemd levanta contenedor con imagen nueva]
+flowchart TD
+    A[Developer push a main] --> B[GitHub Actions: tests + build]
+    C[cron cada 5 min en servidor] --> D[deploy.sh: git fetch]
+    D --> E{HEAD != origin/main?}
+    E -->|No| F[no-op, sale en silencio]
+    E -->|Sí| G{CI del commit en success?}
+    G -->|No / en curso| H[pospone, reintenta al siguiente tick]
+    G -->|Sí| I[git merge --ff-only]
+    I --> J{Qué archivos cambiaron?}
+    J -->|pyproject / uv.lock| K[uv sync + sudo systemctl restart chatbot-api]
+    J -->|src/| L[pkill -HUP -f gunicorn: recarga graceful]
+    J -->|docs / quarto / ui / tests| M[solo pull, sin reiniciar]
 ```
 
-#### 6.7.2. Paso 1 — Autenticar el servidor contra ghcr.io
+La clasificación por tipo de archivo es la pieza clave: un cambio de Quarto o documentación se
+aplica sin tocar el servicio, mientras que un cambio de código recarga los *workers* y un cambio de
+dependencias reinicia el servicio completo.
 
-En GitHub, generar un **Personal Access Token (classic)** con scope `read:packages`. En el servidor, autenticar Podman una sola vez:
+> **Nota sobre datos y secretos:** como `datos/vectorstores/`, `static/ssl/` y `.env` están en
+> `.gitignore`, el `git pull` **nunca** sobrescribe los índices FAISS, los certificados ni los
+> secretos — viven solo en el servidor.
+
+#### 6.7.2. Paso 1 — Generar el `GH_TOKEN` (para validar el CI)
+
+`deploy.sh` consulta el estado del CI de cada commit vía la API de GitHub
+(`GET /repos/anmerino-pnd/proyectoCT/commits/{sha}/check-runs`), de modo que solo despliega cuando
+todos los *check-runs* de GitHub Actions terminaron en `success`. Para eso necesita un token de
+lectura guardado en `.env`.
+
+Se recomienda un **fine-grained Personal Access Token** (permisos mínimos):
+
+1. En GitHub: **foto de perfil → Settings → Developer settings → Personal access tokens →
+   Fine-grained tokens → Generate new token**.
+2. **Token name**: p. ej. `proyectoCT-cd-readonly`. **Expiration**: fija un vencimiento (p. ej.
+   90 días) y anota recordatorio para renovarlo.
+3. **Resource owner**: `anmerino-pnd` (la cuenta/organización dueña del repo).
+4. **Repository access**: *Only select repositories* → marca **`proyectoCT`**.
+5. **Permissions → Repository permissions**:
+   - **Checks** → *Read-only* (obligatorio: es lo que habilita leer los *check-runs*).
+   - **Metadata** → *Read-only* (se selecciona automáticamente).
+   - **Contents** → *Read-only* (opcional, útil si el repo es privado).
+6. **Generate token** y **copia** el valor (empieza con `github_pat_...`); GitHub solo lo muestra
+   una vez.
+7. En el servidor, agrégalo al `.env` del proyecto:
 
 ```bash
-echo "$GHCR_PAT" | podman login ghcr.io -u <usuario_github> --password-stdin
+echo 'GH_TOKEN=github_pat_xxxxxxxxxxxxxxxxxxxxxxxx' >> /home/angel.merino/proyectoCT/.env
 ```
 
-Las credenciales quedan persistidas en `~/.config/containers/auth.json` y el cron las reutiliza sin volver a pedir password.
-
-#### 6.7.3. Paso 2 — Migrar el servicio systemd a Podman (recomendado)
-
-Hasta ahora `chatbot-api.service` ejecuta Gunicorn directo sobre el virtualenv del proyecto (sección 1.4.5.3). Para que `systemctl restart` levante la imagen recién pulleada, conviene cambiar el `ExecStart` a un `podman run`:
-
-```ini
-[Service]
-ExecStartPre=-/usr/bin/podman stop -t 30 chatbot-api
-ExecStartPre=-/usr/bin/podman rm chatbot-api
-ExecStart=/usr/bin/podman run --rm --name chatbot-api \
-  -p 8000:8000 \
-  --env-file /home/angel.merino/proyectoCT/.env \
-  -v /home/angel.merino/proyectoCT/static/ssl:/app/static/ssl:ro \
-  ghcr.io/anmerino-pnd/proyecto-ct:latest
-ExecStop=/usr/bin/podman stop -t 30 chatbot-api
-Restart=always
-RestartSec=5
-```
-
-Notas:
-
-- Los `ExecStartPre` con `-` ignoran fallos: si el contenedor no existía, no aborta el arranque.
-- El volumen de `static/ssl` se monta como solo lectura porque la imagen no incluye los certificados — siguen viviendo en el host.
-- `--env-file` apunta al `.env` del host; **no se debe** copiar el `.env` dentro de la imagen.
-
-Después de editar el archivo `.service`:
+`deploy.sh` carga el `.env` y exporta `GH_TOKEN` para que `gh` lo use. Validar que funciona:
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl restart chatbot-api
-sudo systemctl status chatbot-api
+cd /home/angel.merino/proyectoCT
+set -a; source .env; set +a
+gh api "repos/anmerino-pnd/proyectoCT/commits/main/check-runs" --jq '.total_count'
 ```
 
-#### 6.7.4. Paso 3 — Script de actualización
+> Alternativa: un **PAT classic** con scope `repo` también sirve (más amplio). El fine-grained es
+> preferible por seguir el principio de menor privilegio.
 
-Crear `~/proyectoCT/update_image.sh`:
+#### 6.7.3. Paso 2 — Instalar `gh` (GitHub CLI) en el servidor
+
+`deploy.sh` usa `gh` para consultar el CI. En RHEL/Rocky/Alma:
 
 ```bash
-#!/bin/bash
-set -euo pipefail
-
-IMAGE="ghcr.io/anmerino-pnd/proyecto-ct:latest"
-LOG=~/proyectoCT/logs/update_image.log
-mkdir -p "$(dirname "$LOG")"
-
-# Digest actual antes del pull (vacío si no existe localmente)
-CURRENT=$(podman image inspect "$IMAGE" --format '{{.Digest}}' 2>/dev/null || echo "none")
-
-# Pull silencioso (logs van al archivo)
-podman pull "$IMAGE" >>"$LOG" 2>&1
-
-# Digest después del pull
-NEW=$(podman image inspect "$IMAGE" --format '{{.Digest}}')
-
-if [ "$CURRENT" != "$NEW" ]; then
-    echo "$(date -Is) imagen actualizada ($CURRENT → $NEW), reiniciando servicio" >>"$LOG"
-    sudo /bin/systemctl restart chatbot-api
-    echo "$(date -Is) restart completado" >>"$LOG"
-else
-    echo "$(date -Is) sin cambios" >>"$LOG"
-fi
+sudo dnf install -y 'dnf-command(config-manager)'
+sudo dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo
+sudo dnf install -y gh
+gh --version
 ```
 
-Hacerlo ejecutable:
+No es necesario `gh auth login`: el script le pasa el `GH_TOKEN` por variable de entorno.
+
+#### 6.7.4. Paso 3 — El script `deploy.sh`
+
+El script ya vive en la raíz del repositorio (`deploy.sh`), así que llega solo con el `git pull`.
+En cada corrida:
+
+1. Toma un **lock** (`flock`) para no solaparse con otra ejecución.
+2. `git fetch origin main` y compara `HEAD` con `origin/main`. Si son iguales, sale en silencio.
+3. **Valida el CI** del commit remoto (sección 6.7.2). Si no está en `success`, pospone.
+4. Aplica con `git merge --ff-only` y **clasifica** los archivos cambiados:
+   - `pyproject.toml` / `uv.lock` → `uv sync --frozen` + `sudo systemctl restart chatbot-api`.
+   - `src/` → `pkill -HUP -f gunicorn` (recarga *graceful* de *workers*, sin sudo).
+   - Solo `quarto/`, `docs/`, `ui/`, `tests/`, etc. → aplica el `pull` **sin reiniciar**.
+5. Si `uv sync` falla, **no** reinicia (evita dejar producción rota). Todo queda en
+   `logs/deploy.log`.
+
+Prueba manual antes de automatizarlo (con el repo ya al día no debe reiniciar nada):
 
 ```bash
-chmod +x ~/proyectoCT/update_image.sh
+cd /home/angel.merino/proyectoCT
+bash deploy.sh
+tail -n 50 logs/deploy.log
 ```
 
 #### 6.7.5. Paso 4 — Configurar el cron
@@ -2213,59 +2223,77 @@ chmod +x ~/proyectoCT/update_image.sh
 crontab -e
 ```
 
-Añadir, por ejemplo, una corrida cada 5 minutos (ajustable):
+Añadir una corrida cada 5 minutos:
 
 ```cron
-# Polling de la imagen del chatbot cada 5 minutos
-*/5 * * * * ~/proyectoCT/update_image.sh
+# Despliegue continuo (pull) del chatbot cada 5 minutos
+*/5 * * * * /bin/bash $HOME/proyectoCT/deploy.sh >> $HOME/proyectoCT/logs/deploy.cron.log 2>&1
 ```
 
 Verificar:
 
 ```bash
 crontab -l
-tail -f ~/proyectoCT/logs/update_image.log
+tail -f ~/proyectoCT/logs/deploy.log
 ```
 
 #### 6.7.6. Paso 5 — Permisos `sudo` sin password
 
-El script invoca `sudo systemctl restart chatbot-api` y necesita poder hacerlo sin teclear la contraseña (cron es no-interactivo). Crear un archivo de sudoers acotado:
+Cuando cambian dependencias, `deploy.sh` ejecuta `sudo systemctl restart chatbot-api`, y el cron es
+no-interactivo (no puede teclear contraseña). El permiso se otorga con el archivo de sudoers
+versionado [`deploy/chatbot-api.sudoers`](https://github.com/anmerino-pnd/proyectoCT/blob/main/deploy/chatbot-api.sudoers),
+que delimita el acceso a operar **solo** los servicios `chatbot-api` y `streamlit-reporte`
+(start/stop/restart/status) — nunca `sudo` global. Instalarlo **una sola vez** como root:
 
 ```bash
-sudo visudo -f /etc/sudoers.d/chatbot-api
-```
-
-Contenido:
-
-```text
-# Permite al usuario de despliegue reiniciar solo el servicio del chatbot
-angel.merino ALL=(ALL) NOPASSWD: /bin/systemctl restart chatbot-api
+cd /home/angel.merino/proyectoCT
+sudo install -o root -g root -m 0440 deploy/chatbot-api.sudoers /etc/sudoers.d/chatbot-api
+sudo visudo -cf /etc/sudoers.d/chatbot-api     # valida la sintaxis ANTES de confiar en él
 ```
 
 Importante:
 
-- El permiso queda **delimitado al comando exacto**; el usuario NO obtiene `sudo` global.
-- Usar siempre `visudo` para que valide la sintaxis antes de guardar — un error tipográfico aquí puede bloquear `sudo` para todo el sistema.
-- Validar:
+- El archivo se valida con `visudo -cf`: un error de sintaxis en `/etc/sudoers.d/` puede bloquear
+  `sudo` para todo el sistema, por eso nunca se edita a mano sin validar.
+- El modo debe ser `0440` y el dueño `root:root`, o `sudo` lo ignora.
+- Verificar que el usuario obtuvo exactamente los permisos esperados:
 
 ```bash
-sudo -l -U angel.merino | grep chatbot-api
+sudo -l -U angel.merino | grep -E 'chatbot-api|streamlit'
+sudo -n systemctl restart chatbot-api    # debe correr SIN pedir password
 ```
 
-Debe listar exactamente la línea `NOPASSWD: /bin/systemctl restart chatbot-api`.
+> **Portabilidad:** si el proyecto se mueve a otro servidor o cambia el usuario, edita
+> `deploy/chatbot-api.sudoers` y reemplaza `angel.merino` por el nuevo usuario, y confirma la ruta
+> real de `systemctl` con `command -v systemctl` (en RHEL es `/usr/bin/systemctl`).
 
 #### 6.7.7. Limitaciones y consideraciones
 
-- **Latencia**: hasta 5 minutos entre el push y el deploy efectivo (ajustable bajando el intervalo del cron, pero más frecuente = más llamadas a `ghcr.io`).
-- **Sin rollback automático**: si la imagen nueva está rota, `systemd` la reinicia indefinidamente. Mitigación: mantener un tag `:stable` además de `:latest` y promover manualmente, o agregar una verificación de health-check antes de marcar el deploy como exitoso.
-- **Sin alertas de pull fallido**: si `podman pull` falla por red, el cron reintenta en el siguiente tick. Considerar añadir notificación (Slack/email) si el log muestra errores recurrentes.
-- **Visibilidad de logs**: los logs del contenedor van a `journalctl -u chatbot-api` (como antes); los logs del cron de despliegue van a `~/proyectoCT/logs/update_image.log`.
+- **Latencia**: hasta 5 minutos entre el `push` (con CI verde) y el deploy efectivo; ajustable
+  bajando el intervalo del cron.
+- **Sin rollback automático**: si un commit en `main` (con CI verde) rompe el arranque, el servicio
+  queda reiniciándose. Mitigación: revertir el commit en `main` (el siguiente tick lo despliega) o
+  hacer `git reset` manual en el servidor + `systemctl restart`.
+- **Divergencia local**: `deploy.sh` usa `git merge --ff-only`; si alguien dejó commits o cambios
+  locales en el servidor, el merge falla a propósito y lo registra en `logs/deploy.log` para que se
+  resuelva a mano (el servidor no debería tener cambios locales fuera de lo *gitignored*).
+- **Renovación del token**: el `GH_TOKEN` fine-grained caduca; si expira, el gate de CI empieza a
+  posponer todos los deploys. Renovarlo y actualizar `.env`.
+- **Visibilidad de logs**: el código de la API sigue logueando en `journalctl -u chatbot-api`; el
+  CD registra en `~/proyectoCT/logs/deploy.log`.
 
 #### 6.7.8. Alternativas consideradas y descartadas
 
-- **SSH desde GitHub Actions** (`appleboy/ssh-action`): requiere abrir SSH a internet o mantener una IP allowlist, gestionar una llave privada como secret de GitHub, y añade un punto de falla externo al servidor. El cron es más simple y deja al servidor en control de cuándo se actualiza.
-- **Webhook `repository_dispatch`**: requiere correr un listener HTTP en el servidor (Flask, GitHub Webhook receiver), abrir un puerto público, validar firmas HMAC. Más infraestructura para mantener; solo justificable si se necesita deploy inmediato (latencia menor a 1 minuto).
-- **Watchtower / Podman auto-update**: existen daemons que monitorean cambios de imagen automáticamente. Son válidos pero introducen una dependencia más; el cron de 4 líneas cumple la misma función con código que cualquiera del equipo puede leer.
+- **Push a `ghcr.io` + `podman pull`**: publicar la imagen en el registry y que el servidor la
+  descargue (requiere autenticar Podman con un PAT `read:packages` y migrar `chatbot-api.service` a
+  un `ExecStart` con `podman run`). Es un modelo válido, pero como el servidor ya corre la API sobre
+  el virtualenv y tiene el clon de Git, el `git pull` evita la complejidad del registry, el *login*
+  de Podman y reconstruir/descargar imágenes por cada cambio.
+- **SSH desde GitHub Actions** (`appleboy/ssh-action`): requiere abrir SSH a internet o mantener una
+  IP allowlist y gestionar una llave privada como secret de GitHub. El *pull* deja el control en el
+  servidor sin exponer accesos entrantes.
+- **Webhook `repository_dispatch`**: requiere correr un listener HTTP en el servidor y abrir un
+  puerto público. Más infraestructura; solo se justifica si se necesita deploy en menos de 1 minuto.
 
 ### 6.8. Solución de problemas comunes
 

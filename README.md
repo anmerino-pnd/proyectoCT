@@ -135,10 +135,29 @@ uvicorn ct.main:app --host 0.0.0.0 --port 8000 --reload
 
 ```
 
-Para producción, se recomienda Gunicorn con workers de Uvicorn:
+En producción la API corre como un **servicio de systemd** (`chatbot-api`), de modo que arranca
+automáticamente en el boot y se reinicia sola ante caídas (`Restart=always`). El servicio ejecuta
+Gunicorn con workers de Uvicorn:
 
+```ini
+# /etc/systemd/system/chatbot-api.service (resumen)
+[Service]
+User=angel.merino
+WorkingDirectory=/home/angel.merino/proyectoCT
+ExecStart=/home/angel.merino/proyectoCT/.venv/bin/python -m gunicorn ct.main:app \
+  --workers 4 --bind 0.0.0.0:8000 \
+  --certfile=static/ssl/cert.pem --keyfile=static/ssl/key.pem \
+  -k uvicorn.workers.UvicornWorker --timeout 120 \
+  --access-logfile - --error-logfile -
+Restart=always
 ```
-nohup gunicorn ct.main:app   --workers 4   --bind 0.0.0.0:8000   --certfile=static/ssl/cert.pem   --keyfile=static/ssl/key.pem   -k uvicorn.workers.UvicornWorker --timeout 120 --access-logfile -   --error-logfile - &
+
+Operación del servicio:
+
+```bash
+sudo systemctl status chatbot-api      # estado / logs recientes
+sudo systemctl restart chatbot-api     # reinicio completo
+journalctl -u chatbot-api -f           # seguir logs en vivo
 ```
 
 ## ⚙️ Uso de la API
@@ -198,15 +217,59 @@ podman run --rm -it -p 8000:8000 --env-file .env proyecto-ct:latest
 
 Más detalles del *pipeline*, estructura de tests, lazy-init de clientes externos y solución de problemas comunes en la sección **6. Integración Continua (CI/CD)** del [sitio de documentación](./docs).
 
+## 🔁 Despliegue Continuo (CD)
+
+El despliegue sigue un modelo **pull (GitOps)**: el propio servidor sondea el repositorio y se
+actualiza solo, sin que GitHub necesite acceso SSH ni a un registro de contenedores. Lo maneja el
+script [`deploy.sh`](./deploy.sh), ejecutado por `cron` cada 5 minutos:
+
+```cron
+*/5 * * * * /bin/bash $HOME/proyectoCT/deploy.sh >> $HOME/proyectoCT/logs/deploy.cron.log 2>&1
+```
+
+En cada ejecución el script:
+
+1. Hace `git fetch` y compara `HEAD` con `origin/main`. Si no hay cambios, termina en silencio.
+2. **Valida el CI**: solo aplica el commit si todos sus *check-runs* en GitHub Actions quedaron en
+   `success` (consulta vía `gh api`, requiere `GH_TOKEN` en `.env`). Si el CI sigue en curso o
+   falló, pospone el despliegue hasta la siguiente corrida.
+3. Aplica los cambios con `git merge --ff-only` y **clasifica** lo que cambió:
+   - `pyproject.toml` / `uv.lock` → corre `uv sync --frozen` y reinicia el servicio completo
+     (`sudo systemctl restart chatbot-api`).
+   - Archivos en `src/` → recarga *graceful* de los workers (`pkill -HUP -f gunicorn`).
+   - Solo documentación/Quarto/UI/tests → aplica el `pull` **sin reiniciar** el servicio.
+
+Como `datos/vectorstores/`, `static/ssl/` y `.env` están en `.gitignore`, el `git pull` nunca
+toca los índices FAISS, los certificados ni los secretos.
+
+**Requisitos en el servidor:**
+
+- `GH_TOKEN` en `.env` (PAT *fine-grained*, solo lectura de *Actions* y *Contents*).
+- Regla sudoers para que el reinicio por cambio de dependencias no pida contraseña:
+  ```
+  angel.merino ALL=(root) NOPASSWD: /usr/bin/systemctl restart chatbot-api
+  ```
+
+Los logs del despliegue quedan en `logs/deploy.log`.
+
 ## 📊 Dashboard de Reportes
 
-Para analizar las conversaciones y visualizar métricas de rendimiento, ejecuta la aplicación de Streamlit:
+El dashboard de Streamlit corre en producción como su propio servicio de systemd
+(`streamlit-reporte`, puerto `3000`), igual que la API. Para operarlo:
 
-```
-nohup streamlit run run_report.py --server.fileWatcherType none --server.port 3000 &
+```bash
+sudo systemctl restart streamlit-reporte
+sudo systemctl status streamlit-reporte
+journalctl -u streamlit-reporte -f
 ```
 
-Esto iniciará un servidor web local con el dashboard interactivo.
+Para una ejecución manual durante el desarrollo:
+
+```bash
+streamlit run run_report.py --server.fileWatcherType none --server.port 3000
+```
+
+El detalle del archivo `.service` está en la documentación de despliegue (`quarto/6_documentacion.qmd`).
 
 ## 🔄 Actualización de la Base de Conocimientos (ETL)
 

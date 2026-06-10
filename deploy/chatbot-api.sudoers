@@ -1,0 +1,42 @@
+# =============================================================================
+# chatbot-api.sudoers — permisos sudo acotados para operar el proyecto
+#
+# Destino en el servidor: /etc/sudoers.d/chatbot-api
+#
+# Permite al usuario que opera el proyecto manejar ÚNICAMENTE los servicios
+# systemd del chatbot y del reporte (start / stop / restart / status) sin pedir
+# contraseña. Esto habilita dos cosas:
+#   1. El Despliegue Continuo (deploy.sh, vía cron) hace 'restart' cuando cambian
+#      dependencias (cron es no-interactivo, no puede teclear password).
+#   2. La operación manual cómoda (status/restart/etc.) de quien administre el server.
+#
+# NO otorga sudo global: queda delimitado a comandos systemctl exactos sobre
+# estos dos servicios.
+#
+# -----------------------------------------------------------------------------
+# Instalación (una sola vez, como root) — queda listo de forma permanente:
+#
+#   sudo install -o root -g root -m 0440 \
+#        deploy/chatbot-api.sudoers /etc/sudoers.d/chatbot-api
+#   sudo visudo -cf /etc/sudoers.d/chatbot-api          # valida la sintaxis
+#   sudo -l -U angel.merino | grep -E 'chatbot-api|streamlit'   # verifica
+#
+# IMPORTANTE — portabilidad (si se cambia de servidor o de usuario):
+#   * Reemplaza 'angel.merino' por el usuario que ejecuta los servicios
+#     (el 'User=' de los archivos .service).
+#   * Verifica la ruta real de systemctl con 'command -v systemctl'. En RHEL/
+#     Rocky/Alma es /usr/bin/systemctl; en algunas distros podría ser /bin/systemctl.
+#     La ruta del Cmnd_Alias debe coincidir con la ruta resuelta por sudo.
+# =============================================================================
+
+Cmnd_Alias CHATBOT_SVC = \
+    /usr/bin/systemctl start chatbot-api, \
+    /usr/bin/systemctl stop chatbot-api, \
+    /usr/bin/systemctl restart chatbot-api, \
+    /usr/bin/systemctl status chatbot-api, \
+    /usr/bin/systemctl start streamlit-reporte, \
+    /usr/bin/systemctl stop streamlit-reporte, \
+    /usr/bin/systemctl restart streamlit-reporte, \
+    /usr/bin/systemctl status streamlit-reporte
+
+angel.merino ALL=(root) NOPASSWD: CHATBOT_SVC
