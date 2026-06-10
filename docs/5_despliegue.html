@@ -20,6 +20,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -151,6 +185,12 @@ ul.task-list li input[type="checkbox"] {
   <li><a href="#experiencia-de-desarrollo" id="toc-experiencia-de-desarrollo" class="nav-link" data-scroll-target="#experiencia-de-desarrollo">2.6. Experiencia de desarrollo</a></li>
   <li><a href="#despliegue-del-chatbot-en-el-sistema-de-desarrollo" id="toc-despliegue-del-chatbot-en-el-sistema-de-desarrollo" class="nav-link" data-scroll-target="#despliegue-del-chatbot-en-el-sistema-de-desarrollo">2.7. Despliegue del chatbot en el sistema de desarrollo</a></li>
   <li><a href="#despliegue-del-chatbot-en-el-sistema-de-producción" id="toc-despliegue-del-chatbot-en-el-sistema-de-producción" class="nav-link" data-scroll-target="#despliegue-del-chatbot-en-el-sistema-de-producción">2.8. Despliegue del chatbot en el sistema de producción</a></li>
+  </ul></li>
+  <li><a href="#integración-y-despliegue-continuo-cicd" id="toc-integración-y-despliegue-continuo-cicd" class="nav-link" data-scroll-target="#integración-y-despliegue-continuo-cicd">3. Integración y Despliegue Continuo (CI/CD)</a>
+  <ul class="collapse">
+  <li><a href="#integración-continua-ci" id="toc-integración-continua-ci" class="nav-link" data-scroll-target="#integración-continua-ci">3.1. Integración Continua (CI)</a></li>
+  <li><a href="#servicio-de-producción-systemd" id="toc-servicio-de-producción-systemd" class="nav-link" data-scroll-target="#servicio-de-producción-systemd">3.2. Servicio de producción (systemd)</a></li>
+  <li><a href="#despliegue-continuo-cd-por-modelo-pull" id="toc-despliegue-continuo-cd-por-modelo-pull" class="nav-link" data-scroll-target="#despliegue-continuo-cd-por-modelo-pull">3.3. Despliegue Continuo (CD) por modelo <em>pull</em></a></li>
   </ul></li>
   </ul>
 </nav>
@@ -289,6 +329,49 @@ ul.task-list li input[type="checkbox"] {
 <figcaption>Chatbot desplegado en el ambiente de producción</figcaption>
 </figure>
 </div>
+</section>
+</section>
+<section id="integración-y-despliegue-continuo-cicd" class="level2" style="text-align: justify">
+<h2 class="anchored" data-anchor-id="integración-y-despliegue-continuo-cicd">3. Integración y Despliegue Continuo (CI/CD)</h2>
+<p>Para cerrar el ciclo de entrega, el proyecto cuenta con un flujo de <strong>integración continua (CI)</strong> y <strong>despliegue continuo (CD)</strong> complementarios.</p>
+<section id="integración-continua-ci" class="level3">
+<h3 class="anchored" data-anchor-id="integración-continua-ci">3.1. Integración Continua (CI)</h3>
+<p>El <em>pipeline</em> de CI vive en <code>.github/workflows/ci.yml</code> y se dispara en cada <code>push</code> y <code>pull_request</code> contra <code>main</code>. Consta de dos <em>jobs</em> encadenados:</p>
+<ol type="1">
+<li><strong><code>test</code></strong>: instala dependencias con <code>uv</code> y ejecuta la suite de <code>pytest</code> con reporte de cobertura.</li>
+<li><strong><code>build-podman</code></strong>: solo corre si las pruebas pasan; construye la imagen del contenedor con Buildah a partir del <code>Dockerfile</code>.</li>
+</ol>
+</section>
+<section id="servicio-de-producción-systemd" class="level3">
+<h3 class="anchored" data-anchor-id="servicio-de-producción-systemd">3.2. Servicio de producción (systemd)</h3>
+<p>La API se ejecuta como un servicio de <strong>systemd</strong> (<code>chatbot-api</code>), no con <code>nohup</code>. Esto permite que arranque automáticamente al iniciar el servidor y que se reinicie sola ante caídas, gracias a <code>Restart=always</code>:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode ini code-with-copy"><code class="sourceCode ini"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># /etc/systemd/system/chatbot-api.service (resumen)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">[Service]</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="dt">User</span><span class="ot">=</span><span class="st">angel.merino</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="dt">WorkingDirectory</span><span class="ot">=</span><span class="st">/home/angel.merino/proyectoCT</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="dt">ExecStart</span><span class="ot">=</span><span class="st">/home/angel.merino/proyectoCT/.venv/bin/python -m gunicorn ct.main:app \</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="dt">  --workers 4 --bind 0.0.0.0:8000 \</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="dt">  --certfile</span><span class="ot">=</span><span class="st">static/ssl/cert.pem --keyfile=static/ssl/key.pem \</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="dt">  -k uvicorn.workers.UvicornWorker --timeout 120 \</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="dt">  --access-logfile - --error-logfile -</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="dt">Restart</span><span class="ot">=</span><span class="st">always</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="despliegue-continuo-cd-por-modelo-pull" class="level3">
+<h3 class="anchored" data-anchor-id="despliegue-continuo-cd-por-modelo-pull">3.3. Despliegue Continuo (CD) por modelo <em>pull</em></h3>
+<p>El despliegue sigue un esquema <strong>pull (GitOps)</strong>: el propio servidor sondea el repositorio y se actualiza solo, evitando exponer accesos SSH o credenciales de un registro hacia GitHub. Lo maneja el script <code>deploy.sh</code>, ejecutado por <code>cron</code> cada 5 minutos:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">*/5</span> <span class="pp">*</span> <span class="pp">*</span> <span class="pp">*</span> <span class="pp">*</span> /bin/bash <span class="va">$HOME</span>/proyectoCT/deploy.sh <span class="op">&gt;&gt;</span> <span class="va">$HOME</span>/proyectoCT/logs/deploy.cron.log <span class="dv">2</span><span class="op">&gt;&amp;</span><span class="dv">1</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>En cada corrida el script:</p>
+<ol type="1">
+<li>Hace <code>git fetch</code> y compara <code>HEAD</code> con <code>origin/main</code>; si no hay cambios, termina en silencio.</li>
+<li><strong>Valida el CI</strong> del commit remoto: solo continúa si todos los <em>check-runs</em> de GitHub Actions quedaron en <code>success</code> (consulta vía <code>gh api</code>, usando un <code>GH_TOKEN</code> guardado en <code>.env</code>). Si el CI sigue en curso o falló, pospone el despliegue.</li>
+<li>Aplica los cambios con <code>git merge --ff-only</code> y decide la acción según <strong>qué archivos cambiaron</strong>:
+<ul>
+<li><code>pyproject.toml</code> / <code>uv.lock</code> → <code>uv sync --frozen</code> + reinicio completo (<code>sudo systemctl restart chatbot-api</code>).</li>
+<li>Archivos en <code>src/</code> → recarga <em>graceful</em> de los workers (<code>pkill -HUP -f gunicorn</code>).</li>
+<li>Solo documentación, Quarto, UI o tests → aplica el <code>pull</code> <strong>sin reiniciar</strong> el servicio.</li>
+</ul></li>
+</ol>
+<p>Dado que <code>datos/vectorstores/</code>, <code>static/ssl/</code> y <code>.env</code> están en <code>.gitignore</code>, el <code>git pull</code> nunca sobrescribe los índices FAISS, los certificados ni los secretos. Si <code>uv sync</code> falla, el script <strong>no</strong> reinicia el servicio, evitando dejar producción en un estado roto. Los registros del despliegue quedan en <code>logs/deploy.log</code>.</p>
 </section>
 </section>
 
