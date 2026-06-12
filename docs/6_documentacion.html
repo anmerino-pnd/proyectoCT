@@ -2710,7 +2710,12 @@ ghcr.io/anmerino-pnd/proyecto-ct:&lt;sha-del-commit&gt;</code></pre>
 <p>El CI valida el código y construye la imagen. Para cerrar el ciclo se eligió un modelo de <strong>despliegue por <em>pull</em> (GitOps)</strong>: el propio servidor sondea el repositorio cada 5 minutos con un cron, y se actualiza solo cuando hay un commit nuevo en <code>main</code> <strong>cuyo CI pasó</strong>. No requiere abrir puertos, ni llaves SSH, ni publicar la imagen en un registro: el servidor ya tiene el clon de Git y corre la API directo sobre su virtualenv (sección 1.4.5.3), así que actualizar producción es, esencialmente, un <code>git pull</code> selectivo. Lo orquesta el script versionado <a href="https://github.com/anmerino-pnd/proyectoCT/blob/main/deploy.sh"><code>deploy.sh</code></a>.</p>
 <section id="flujo-general" class="level4">
 <h4 class="anchored" data-anchor-id="flujo-general">6.7.1. Flujo general</h4>
-<pre class="mermaid"><code>flowchart TD
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
     A[Developer push a main] --&gt; B[GitHub Actions: tests + build]
     C[cron cada 5 min en servidor] --&gt; D[deploy.sh: git fetch]
     D --&gt; E{HEAD != origin/main?}
@@ -2721,7 +2726,13 @@ ghcr.io/anmerino-pnd/proyecto-ct:&lt;sha-del-commit&gt;</code></pre>
     I --&gt; J{Qué archivos cambiaron?}
     J --&gt;|pyproject / uv.lock| K[uv sync + sudo systemctl restart chatbot-api]
     J --&gt;|src/| L[pkill -HUP -f gunicorn: recarga graceful]
-    J --&gt;|docs / quarto / ui / tests| M[solo pull, sin reiniciar]</code></pre>
+    J --&gt;|docs / quarto / ui / tests| M[solo pull, sin reiniciar]
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
 <p>La clasificación por tipo de archivo es la pieza clave: un cambio de Quarto o documentación se aplica sin tocar el servicio, mientras que un cambio de código recarga los <em>workers</em> y un cambio de dependencias reinicia el servicio completo.</p>
 <blockquote class="blockquote">
 <p><strong>Nota sobre datos y secretos:</strong> como <code>datos/vectorstores/</code>, <code>static/ssl/</code> y <code>.env</code> están en <code>.gitignore</code>, el <code>git pull</code> <strong>nunca</strong> sobrescribe los índices FAISS, los certificados ni los secretos — viven solo en el servidor.</p>
@@ -2745,11 +2756,11 @@ ghcr.io/anmerino-pnd/proyecto-ct:&lt;sha-del-commit&gt;</code></pre>
 <li><strong>Generate token</strong> y <strong>copia</strong> el valor (empieza con <code>github_pat_...</code>); GitHub solo lo muestra una vez.</li>
 <li>En el servidor, agrégalo al <code>.env</code> del proyecto:</li>
 </ol>
-<div class="sourceCode" id="cb66"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">'GH_TOKEN=github_pat_xxxxxxxxxxxxxxxxxxxxxxxx'</span> <span class="op">&gt;&gt;</span> /home/angel.merino/proyectoCT/.env</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb65"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">'GH_TOKEN=github_pat_xxxxxxxxxxxxxxxxxxxxxxxx'</span> <span class="op">&gt;&gt;</span> /home/angel.merino/proyectoCT/.env</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><code>deploy.sh</code> carga el <code>.env</code> y exporta <code>GH_TOKEN</code> para que <code>gh</code> lo use. Validar que funciona:</p>
-<div class="sourceCode" id="cb67"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /home/angel.merino/proyectoCT</span>
-<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-a</span><span class="kw">;</span> <span class="bu">source</span> .env<span class="kw">;</span> <span class="bu">set</span> +a</span>
-<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> api <span class="st">"repos/anmerino-pnd/proyectoCT/commits/main/check-runs"</span> <span class="at">--jq</span> <span class="st">'.total_count'</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb66"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /home/angel.merino/proyectoCT</span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-a</span><span class="kw">;</span> <span class="bu">source</span> .env<span class="kw">;</span> <span class="bu">set</span> +a</span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> api <span class="st">"repos/anmerino-pnd/proyectoCT/commits/main/check-runs"</span> <span class="at">--jq</span> <span class="st">'.total_count'</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <blockquote class="blockquote">
 <p>Alternativa: un <strong>PAT classic</strong> con scope <code>repo</code> también sirve (más amplio). El fine-grained es preferible por seguir el principio de menor privilegio.</p>
 </blockquote>
@@ -2757,10 +2768,10 @@ ghcr.io/anmerino-pnd/proyecto-ct:&lt;sha-del-commit&gt;</code></pre>
 <section id="paso-2-instalar-gh-github-cli-en-el-servidor" class="level4">
 <h4 class="anchored" data-anchor-id="paso-2-instalar-gh-github-cli-en-el-servidor">6.7.3. Paso 2 — Instalar <code>gh</code> (GitHub CLI) en el servidor</h4>
 <p><code>deploy.sh</code> usa <code>gh</code> para consultar el CI. En RHEL/Rocky/Alma:</p>
-<div class="sourceCode" id="cb68"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install <span class="at">-y</span> <span class="st">'dnf-command(config-manager)'</span></span>
-<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf config-manager <span class="at">--add-repo</span> https://cli.github.com/packages/rpm/gh-cli.repo</span>
-<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install <span class="at">-y</span> gh</span>
-<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb67"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install <span class="at">-y</span> <span class="st">'dnf-command(config-manager)'</span></span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf config-manager <span class="at">--add-repo</span> https://cli.github.com/packages/rpm/gh-cli.repo</span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install <span class="at">-y</span> gh</span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>No es necesario <code>gh auth login</code>: el script le pasa el <code>GH_TOKEN</code> por variable de entorno.</p>
 </section>
 <section id="paso-3-el-script-deploy.sh" class="level4">
@@ -2779,34 +2790,34 @@ ghcr.io/anmerino-pnd/proyecto-ct:&lt;sha-del-commit&gt;</code></pre>
 <li>Si <code>uv sync</code> falla, <strong>no</strong> reinicia (evita dejar producción rota). Todo queda en <code>logs/deploy.log</code>.</li>
 </ol>
 <p>Prueba manual antes de automatizarlo (con el repo ya al día no debe reiniciar nada):</p>
-<div class="sourceCode" id="cb69"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /home/angel.merino/proyectoCT</span>
-<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> deploy.sh</span>
-<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-n</span> 50 logs/deploy.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb68"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /home/angel.merino/proyectoCT</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> deploy.sh</span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-n</span> 50 logs/deploy.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="paso-4-configurar-el-cron" class="level4">
 <h4 class="anchored" data-anchor-id="paso-4-configurar-el-cron">6.7.5. Paso 4 — Configurar el cron</h4>
-<div class="sourceCode" id="cb70"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb69"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Añadir una corrida cada 5 minutos:</p>
 <pre class="cron"><code># Despliegue continuo (pull) del chatbot cada 5 minutos
 */5 * * * * /bin/bash $HOME/proyectoCT/deploy.sh &gt;&gt; $HOME/proyectoCT/logs/deploy.cron.log 2&gt;&amp;1</code></pre>
 <p>Verificar:</p>
-<div class="sourceCode" id="cb72"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
-<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-f</span> ~/proyectoCT/logs/deploy.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb71"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
+<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-f</span> ~/proyectoCT/logs/deploy.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="paso-5-permisos-sudo-sin-password" class="level4">
 <h4 class="anchored" data-anchor-id="paso-5-permisos-sudo-sin-password">6.7.6. Paso 5 — Permisos <code>sudo</code> sin password</h4>
 <p>Cuando cambian dependencias, <code>deploy.sh</code> ejecuta <code>sudo systemctl restart chatbot-api</code>, y el cron es no-interactivo (no puede teclear contraseña). El permiso se otorga con el archivo de sudoers versionado <a href="https://github.com/anmerino-pnd/proyectoCT/blob/main/deploy/chatbot-api.sudoers"><code>deploy/chatbot-api.sudoers</code></a>, que delimita el acceso a operar <strong>solo</strong> los servicios <code>chatbot-api</code> y <code>streamlit-reporte</code> (start/stop/restart/status) — nunca <code>sudo</code> global. Instalarlo <strong>una sola vez</strong> como root:</p>
-<div class="sourceCode" id="cb73"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /home/angel.merino/proyectoCT</span>
-<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> install <span class="at">-o</span> root <span class="at">-g</span> root <span class="at">-m</span> 0440 deploy/chatbot-api.sudoers /etc/sudoers.d/chatbot-api</span>
-<span id="cb73-3"><a href="#cb73-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> visudo <span class="at">-cf</span> /etc/sudoers.d/chatbot-api     <span class="co"># valida la sintaxis ANTES de confiar en él</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb72"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /home/angel.merino/proyectoCT</span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> install <span class="at">-o</span> root <span class="at">-g</span> root <span class="at">-m</span> 0440 deploy/chatbot-api.sudoers /etc/sudoers.d/chatbot-api</span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> visudo <span class="at">-cf</span> /etc/sudoers.d/chatbot-api     <span class="co"># valida la sintaxis ANTES de confiar en él</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Importante:</p>
 <ul>
 <li>El archivo se valida con <code>visudo -cf</code>: un error de sintaxis en <code>/etc/sudoers.d/</code> puede bloquear <code>sudo</code> para todo el sistema, por eso nunca se edita a mano sin validar.</li>
 <li>El modo debe ser <code>0440</code> y el dueño <code>root:root</code>, o <code>sudo</code> lo ignora.</li>
 <li>Verificar que el usuario obtuvo exactamente los permisos esperados:</li>
 </ul>
-<div class="sourceCode" id="cb74"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> <span class="at">-l</span> <span class="at">-U</span> angel.merino <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-E</span> <span class="st">'chatbot-api|streamlit'</span></span>
-<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> <span class="at">-n</span> systemctl restart chatbot-api    <span class="co"># debe correr SIN pedir password</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb73"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> <span class="at">-l</span> <span class="at">-U</span> angel.merino <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-E</span> <span class="st">'chatbot-api|streamlit'</span></span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> <span class="at">-n</span> systemctl restart chatbot-api    <span class="co"># debe correr SIN pedir password</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <blockquote class="blockquote">
 <p><strong>Portabilidad:</strong> si el proyecto se mueve a otro servidor o cambia el usuario, edita <code>deploy/chatbot-api.sudoers</code> y reemplaza <code>angel.merino</code> por el nuevo usuario, y confirma la ruta real de <code>systemctl</code> con <code>command -v systemctl</code> (en RHEL es <code>/usr/bin/systemctl</code>).</p>
 </blockquote>
