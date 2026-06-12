@@ -2120,7 +2120,7 @@ esencialmente, un `git pull` selectivo. Lo orquesta el script versionado
 
 #### 6.7.1. Flujo general
 
-```mermaid
+```{mermaid}
 flowchart TD
     A[Developer push a main] --> B[GitHub Actions: tests + build]
     C[cron cada 5 min en servidor] --> D[deploy.sh: git fetch]
