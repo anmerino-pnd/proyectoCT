@@ -37,6 +37,7 @@ Cmnd_Alias CHATBOT_SVC = \
     /usr/bin/systemctl start streamlit-reporte, \
     /usr/bin/systemctl stop streamlit-reporte, \
     /usr/bin/systemctl restart streamlit-reporte, \
-    /usr/bin/systemctl status streamlit-reporte
+    /usr/bin/journalctl -u chatbot-api -f, \
+    /usr/bin/journalctl -u streamlit-reporte -f
 
 angel.merino ALL=(root) NOPASSWD: CHATBOT_SVC
