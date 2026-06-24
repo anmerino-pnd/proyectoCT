@@ -1695,6 +1695,27 @@ flowchart TB
     ETL --> MONGO
 
     MONGO --> REP["Reportes (Streamlit)<br/>análisis · RAGAS"]
+
+    %% --- Estilos auto-contenidos: fondo claro + texto oscuro en cada nodo,
+    %% --- legibles tanto en tema claro como oscuro de la página.
+    classDef cliente   fill:#dbeafe,stroke:#3b82f6,stroke-width:1px,color:#1e3a8a;
+    classDef edge      fill:#ffedd5,stroke:#f59e0b,stroke-width:1px,color:#9a3412;
+    classDef servidor  fill:#e0f2fe,stroke:#0284c7,stroke-width:1px,color:#0c4a6e;
+    classDef decision  fill:#fef9c3,stroke:#ca8a04,stroke-width:1px,color:#713f12;
+    classDef bloqueo   fill:#fee2e2,stroke:#dc2626,stroke-width:1px,color:#991b1b;
+    classDef datos     fill:#dcfce7,stroke:#16a34a,stroke-width:1px,color:#14532d;
+    classDef proceso   fill:#f3e8ff,stroke:#9333ea,stroke-width:1px,color:#581c87;
+
+    class U,W cliente;
+    class CF edge;
+    class API,MOD,AG,TOOLS servidor;
+    class CLS decision;
+    class RESP bloqueo;
+    class ALG,MYSQL,FAISS,MONGO datos;
+    class ETL,FICHAS,REP proceso;
+
+    style SRV fill:#f8fafc,stroke:#94a3b8,stroke-width:1px,color:#1e293b;
+    style KB  fill:#f8fafc,stroke:#94a3b8,stroke-width:1px,color:#1e293b;
 ```
 :::
 
