@@ -3,8 +3,9 @@ from typing import Optional
 from contextlib import asynccontextmanager
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient, DESCENDING, ASCENDING
@@ -19,6 +20,7 @@ from ct.settings.clients import (
     mongo_collection_message_backup
 )
 from ct.tools.search_information import reload_vector_store
+from ct.settings.security import cors_origins, verify_origin, rate_limit
 
 
 @asynccontextmanager
@@ -31,21 +33,25 @@ app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
-    allow_credentials=True, 
+    allow_origins=cors_origins(),   # env CHATBOT_ALLOWED_ORIGINS; '*' si no se define
+    allow_credentials=False,        # el widget no usa cookies; evita el combo inválido con '*'
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.get("/history/{user_id}")
+# SDK del widget servido desde este servidor: el compañero embebe
+# <script src="https://<dominio>/sdk/sdk.js" data-user-id=... data-user-key=...>
+app.mount("/sdk", StaticFiles(directory="ui"), name="sdk")
+
+@app.get("/history/{user_id}", dependencies=[Depends(verify_origin)])
 def handle_history(user_id: str):
     return get_chat_history(user_id)
 
-@app.post("/chat")
+@app.post("/chat", dependencies=[Depends(verify_origin), Depends(rate_limit)])
 async def handle_chat(request: QueryRequest):
     return await async_chat_endpoint(request)
 
-@app.delete("/history/{user_id}") 
+@app.delete("/history/{user_id}", dependencies=[Depends(verify_origin)])
 async def handle_delete_history(user_id: str):
     return await delete_chat_history_endpoint(user_id)
 

@@ -20,7 +20,7 @@ from langchain_core.globals import get_llm_cache
 from langchain_core.messages import trim_messages
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.rate_limiters import InMemoryRateLimiter
-from langchain_core.messages import AIMessage, HumanMessage, BaseMessage, ToolMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, BaseMessage, ToolMessage
 
 from ct.tools.ct_info import who_are_we
 from ct.tools.status import status_tool, StatusInput
@@ -52,9 +52,9 @@ class ToolAgent:
         self.model = "gpt-5"
         
         self.rate_limiter = InMemoryRateLimiter(
-            requests_per_second=0.1,
+            requests_per_second=10,      # antes 0.1 (=1 req/10s). Ajusta a tu tier de OpenAI (RPM/60)
             check_every_n_seconds=0.1,
-            max_bucket_size=100,
+            max_bucket_size=10,          # ráfaga máxima permitida
         )
 
         # self.llm = ChatGoogleGenerativeAI(
@@ -64,7 +64,9 @@ class ToolAgent:
 
         self.llm = ChatOpenAI(                    # En caso de volver a OpenAI
             model = self.model,
-            rate_limiter = self.rate_limiter
+            rate_limiter = self.rate_limiter,
+            stream_usage = True,                  # reporta usage_metadata en streaming (costo != 0)
+            reasoning_effort = "low",             # menos razonamiento => respuestas más rápidas
         )
 
         try:
@@ -159,33 +161,56 @@ class ToolAgent:
         result = None
 
         try:
-            result = await self.graph.ainvoke(
+            # stream_mode=["messages", "values"]:
+            #   "messages" -> tuplas (token, metadata) token-a-token del LLM
+            #   "values"   -> estado completo tras cada paso; el último trae result['messages']
+            #                 con usage_metadata para el cálculo de costo/metadata del finally.
+            async for mode, data in self.graph.astream(
                 inputs,
-                context=current_context
-                )
-            last_message = result['messages'][-1]
-            content = last_message.content
-
-            if isinstance(content, str):
-                full_answer = content
-            elif isinstance(content, list):
-                full_answer = "".join([part.get('text', '') for part in content if 'text' in part])
-            else:
-                full_answer = str(content)
-
-            yield full_answer
+                context=current_context,
+                stream_mode=["messages", "values"],
+            ):
+                if mode == "messages":
+                    token = data[0]
+                    # Solo el texto de la respuesta final: los chunks de la fase de tool-call
+                    # llevan content vacío (van en tool_calls) y quedan excluidos por el truthy.
+                    if not isinstance(token, AIMessageChunk):
+                        continue
+                    chunk_text = self._extract_text(token.content)
+                    if chunk_text:
+                        full_answer += chunk_text
+                        yield chunk_text
+                elif mode == "values":
+                    result = data
         finally:
             duration = time.perf_counter() - start_time
             
             if result is not None and full_answer:
                 try:
             
-                    last_msg = result['messages'][-1]
+                    # Obtener el último mensaje de forma segura: result puede no ser un dict
+                    last_msg = None
+                    try:
+                        candidate_msgs = result.get('messages') if isinstance(result, dict) else None
+                        if isinstance(candidate_msgs, list) and candidate_msgs:
+                            last_msg = candidate_msgs[-1]
+                    except Exception:
+                        last_msg = None
+
                     usage_metadata = getattr(last_msg, 'usage_metadata', {}) or {}
                     
                     metadata = self.make_metadata(usage_metadata, duration)
 
-                    verbose_log_str = self._generate_verbose_log(result['messages'])
+                    # Asegurar que result['messages'] es una lista de BaseMessage
+                    messages_for_log = []
+                    try:
+                        candidate = result.get('messages') if isinstance(result, dict) else None
+                        if isinstance(candidate, list):
+                            messages_for_log = candidate
+                    except Exception:
+                        messages_for_log = []
+
+                    verbose_log_str = self._generate_verbose_log(messages_for_log)
                     
                     self.add_message(session_id, "human", query)
                     self.add_message(session_id, "assistant", full_answer)
@@ -326,6 +351,15 @@ class ToolAgent:
             }
         }
         return metadata
+
+    @staticmethod
+    def _extract_text(content: Any) -> str:
+        """Extrae el texto de un content que puede ser str o lista de partes (igual que antes)."""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            return "".join(part.get('text', '') for part in content if isinstance(part, dict) and 'text' in part)
+        return str(content) if content else ""
 
     def _generate_verbose_log(self, messages: list[BaseMessage]) -> str:
         log_buffer = []

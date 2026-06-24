@@ -1,9 +1,5 @@
 from ct.settings.clients import (
-    ip,
-    pwd,
-    port,
-    user,
-    database,
+    get_mysql_connection,
     algolia_url,
     algolia_app_id,
     algolia_api_key,
@@ -87,14 +83,7 @@ def query_exec(query) -> list | str:
     cnx = None
     cursor = None
     try:
-        cnx = mysql.connector.connect(
-            host=ip, 
-            port=port, 
-            user=user, 
-            password=pwd, 
-            database=database,
-            read_timeout=60, write_timeout=15
-        )
+        cnx = get_mysql_connection()
         cursor = cnx.cursor()
         cursor.execute(query)
         return cursor.fetchall()
@@ -185,6 +174,7 @@ def algolia_search_tool(
             existencia_sucursal = hit.get("existencia", {}).get(id_sucursal, 0)
             
             resultados[clave] = {
+                'clave': clave,
                 'marca': hit.get('marca', ''),
                 'modelo': hit.get('modelo', ''),
                 'descripcion': hit.get('descripcion', ''),
@@ -195,6 +185,7 @@ def algolia_search_tool(
                 'moneda': hit.get('moneda', 'MXN'),
                 'en_promocion': en_promocion,
                 'url': hit.get('url', ''),
+                'imagen_url': hit.get('imagen_url', ''),
             }
         
         return encode(resultados)

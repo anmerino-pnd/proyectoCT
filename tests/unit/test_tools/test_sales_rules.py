@@ -144,7 +144,7 @@ class TestSalesRulesTool:
         runtime.context.lista_precio = 1
         return runtime
     
-    @patch("ct.tools.sales_rules_tool.mysql.connector.connect")
+    @patch("ct.tools.sales_rules_tool.get_mysql_connection")
     @patch("ct.tools.sales_rules_tool.get_id_sucursal")
     def test_sales_rules_no_promotion_found(
         self, mock_get_sucursal, mock_connect, mock_runtime
@@ -163,14 +163,14 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func(["PROD-001"], runtime=mock_runtime)
         
         # Assert
         assert "ya no se encuentra en promoción" in result
         mock_cursor.close.assert_called_once()
         mock_cnx.close.assert_called_once()
     
-    @patch("ct.tools.sales_rules_tool.mysql.connector.connect")
+    @patch("ct.tools.sales_rules_tool.get_mysql_connection")
     @patch("ct.tools.sales_rules_tool.get_id_sucursal")
     def test_sales_rules_future_promotion(
         self, mock_get_sucursal, mock_connect, mock_runtime
@@ -202,13 +202,13 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func(["PROD-001"], runtime=mock_runtime)
         
         # Assert
         assert "sin promoción vigente" in result
         assert "$1000.00" in result
     
-    @patch("ct.tools.sales_rules_tool.mysql.connector.connect")
+    @patch("ct.tools.sales_rules_tool.get_mysql_connection")
     @patch("ct.tools.sales_rules_tool.get_id_sucursal")
     def test_sales_rules_with_offer_price(
         self, mock_get_sucursal, mock_connect, mock_runtime
@@ -240,13 +240,13 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func(["PROD-001"], runtime=mock_runtime)
         
         # Assert
         assert "$800.00" in result
         assert "MXN" in result
     
-    @patch("ct.tools.sales_rules_tool.mysql.connector.connect")
+    @patch("ct.tools.sales_rules_tool.get_mysql_connection")
     @patch("ct.tools.sales_rules_tool.get_id_sucursal")
     def test_sales_rules_with_discount_percentage(
         self, mock_get_sucursal, mock_connect, mock_runtime
@@ -278,14 +278,14 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func(["PROD-001"], runtime=mock_runtime)
         
         # Assert
         assert "$1000.00" in result
         assert "$800.00" in result  # 1000 - 20% = 800
         assert "20% desc" in result
     
-    @patch("ct.tools.sales_rules_tool.mysql.connector.connect")
+    @patch("ct.tools.sales_rules_tool.get_mysql_connection")
     @patch("ct.tools.sales_rules_tool.get_id_sucursal")
     def test_sales_rules_buy_x_get_y(
         self, mock_get_sucursal, mock_connect, mock_runtime
@@ -317,13 +317,13 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func(["PROD-001"], runtime=mock_runtime)
         
         # Assert
         assert "En compra de 2" in result
         assert "recibe 1 gratis" in result
     
-    @patch("ct.tools.sales_rules_tool.mysql.connector.connect")
+    @patch("ct.tools.sales_rules_tool.get_mysql_connection")
     @patch("ct.tools.sales_rules_tool.get_id_sucursal")
     def test_sales_rules_with_limit(
         self, mock_get_sucursal, mock_connect, mock_runtime
@@ -355,12 +355,12 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func(["PROD-001"], runtime=mock_runtime)
         
         # Assert
         assert "Limitado a 5 unidades" in result
     
-    @patch("ct.tools.sales_rules_tool.mysql.connector.connect")
+    @patch("ct.tools.sales_rules_tool.get_mysql_connection")
     @patch("ct.tools.sales_rules_tool.get_id_sucursal")
     def test_sales_rules_with_end_date(
         self, mock_get_sucursal, mock_connect, mock_runtime
@@ -393,12 +393,12 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func(["PROD-001"], runtime=mock_runtime)
         
         # Assert
         assert "Vigente hasta el" in result
     
-    @patch("ct.tools.sales_rules_tool.mysql.connector.connect")
+    @patch("ct.tools.sales_rules_tool.get_mysql_connection")
     @patch("ct.tools.sales_rules_tool.get_id_sucursal")
     def test_sales_rules_price_increase(
         self, mock_get_sucursal, mock_connect, mock_runtime
@@ -430,14 +430,14 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func(["PROD-001"], runtime=mock_runtime)
         
         # Assert
         assert "Cambio de precio base" in result
         assert "$1200.00" in result
         assert "no se considera promoción" in result
     
-    @patch("ct.tools.sales_rules_tool.mysql.connector.connect")
+    @patch("ct.tools.sales_rules_tool.get_mysql_connection")
     @patch("ct.tools.sales_rules_tool.get_id_sucursal")
     def test_sales_rules_usd_currency(
         self, mock_get_sucursal, mock_connect, mock_runtime
@@ -469,12 +469,12 @@ class TestSalesRulesTool:
         mock_connect.return_value = mock_cnx
         
         # Execute
-        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func(["PROD-001"], runtime=mock_runtime)
         
         # Assert
         assert "USD" in result
     
-    @patch("ct.tools.sales_rules_tool.mysql.connector.connect")
+    @patch("ct.tools.sales_rules_tool.get_mysql_connection")
     @patch("ct.tools.sales_rules_tool.get_id_sucursal")
     def test_sales_rules_database_error(
         self, mock_get_sucursal, mock_connect, mock_runtime
@@ -487,12 +487,12 @@ class TestSalesRulesTool:
         mock_connect.side_effect = mysql.connector.Error("Connection refused")
         
         # Execute
-        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func(["PROD-001"], runtime=mock_runtime)
         
         # Assert
         assert "Error de base de datos" in result
     
-    @patch("ct.tools.sales_rules_tool.mysql.connector.connect")
+    @patch("ct.tools.sales_rules_tool.get_mysql_connection")
     @patch("ct.tools.sales_rules_tool.get_id_sucursal")
     def test_sales_rules_unexpected_error(
         self, mock_get_sucursal, mock_connect, mock_runtime
@@ -504,7 +504,7 @@ class TestSalesRulesTool:
         mock_get_sucursal.side_effect = Exception("Unexpected error")
         
         # Execute
-        result = sales_rules_tool.func("PROD-001", runtime=mock_runtime)
+        result = sales_rules_tool.func(["PROD-001"], runtime=mock_runtime)
         
         # Assert
         assert "Ocurrió un error inesperado" in result

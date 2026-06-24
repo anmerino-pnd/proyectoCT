@@ -178,6 +178,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#información-estática" id="toc-información-estática" class="nav-link" data-scroll-target="#información-estática">1.2.1. Información estática</a></li>
   <li><a href="#información-dinámica" id="toc-información-dinámica" class="nav-link" data-scroll-target="#información-dinámica">1.2.2. Información dinámica</a></li>
   <li><a href="#flujo-de-datos-para-el-sistema-rag" id="toc-flujo-de-datos-para-el-sistema-rag" class="nav-link" data-scroll-target="#flujo-de-datos-para-el-sistema-rag">1.2.3. Flujo de datos para el sistema RAG</a></li>
+  <li><a href="#entrega-de-la-respuesta-streaming-y-bloques-estructurados" id="toc-entrega-de-la-respuesta-streaming-y-bloques-estructurados" class="nav-link" data-scroll-target="#entrega-de-la-respuesta-streaming-y-bloques-estructurados">1.2.4. Entrega de la respuesta: streaming y bloques estructurados</a></li>
   </ul></li>
   <li><a href="#atributos-del-modelo-y-contexto-de-ejecución" id="toc-atributos-del-modelo-y-contexto-de-ejecución" class="nav-link" data-scroll-target="#atributos-del-modelo-y-contexto-de-ejecución">1.3. Atributos del modelo y contexto de ejecución</a></li>
   <li><a href="#métricas-de-evaluación" id="toc-métricas-de-evaluación" class="nav-link" data-scroll-target="#métricas-de-evaluación">1.4. Métricas de evaluación</a></li>
@@ -213,16 +214,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>El objetivo de esta fase es desarrollar la arquitectura del sistema de recuperación aumentada con generación (RAG) y las herramientas que utilizará el chatbot para la información dinámica. Para ello, se utiliza como fuente de conocimiento la base de datos vectorizada construida en la etapa anterior.</p>
 <section id="modelos" class="level3">
 <h3 class="anchored" data-anchor-id="modelos">1.1. Modelos</h3>
-<p>Dado que el enfoque del proyecto se basa en herramientas de OpenAI, los modelos considerados para esta fase son los siguientes:</p>
+<p>El proyecto se apoya principalmente en modelos de OpenAI, y la selección se actualiza conforme salen modelos más rápidos y capaces. Actualmente se usan dos modelos con roles distintos:</p>
 <ul>
-<li><p><strong>GPT-4o-mini:</strong><br>
-Una versión ligera de GPT-4o, diseñada para ofrecer un buen balance entre costo, velocidad de respuesta y calidad en tareas de lenguaje natural. Es ideal para pruebas rápidas o implementaciones donde se requiere eficiencia.</p></li>
-<li><p><strong>GPT-4o:</strong><br>
-Modelo multimodal de última generación de OpenAI, capaz de procesar texto, imágenes y audio. En este proyecto se utiliza solo su capacidad textual, destacando por su mayor comprensión semántica y coherencia en las respuestas.</p></li>
-<li><p><strong>Modelos open-source integrados mediante Ollama:</strong><br>
-Ollama permite correr modelos de lenguaje open-source de manera local o privada. En este proyecto se contemplan modelos como LLaMA o Mistral, que ofrecen alternativas de código abierto con buen rendimiento en tareas conversacionales.</p></li>
+<li><p><strong>GPT-5 (agente principal):</strong> Orquesta el razonamiento, la invocación de herramientas y la generación de la respuesta final. Se ejecuta con <code>reasoning_effort="low"</code> para priorizar la velocidad (el caso de uso requiere respuestas rápidas con poco razonamiento) y con <code>stream_usage=True</code> para registrar el consumo de tokens al transmitir en <em>streaming</em>.</p></li>
+<li><p><strong>GPT-4.1-mini (moderador):</strong> Modelo pequeño y rápido <strong>dedicado exclusivamente a clasificar</strong> cada consulta (<code>relevante</code> / <code>irrelevante</code> / <code>inapropiado</code>). Como es una tarea de una sola etiqueta, usar un modelo ligero reduce la latencia previa a la respuesta y el costo, en lugar de gastar el modelo principal en moderar.</p></li>
+<li><p><strong>Modelos open-source vía Ollama (opcional):</strong> El sistema mantiene compatibilidad con modelos locales (LLaMA, Mistral, Gemma, etc.) mediante <code>ChatOllama</code>, como alternativa de código abierto; no es el camino por defecto en producción.</p></li>
 </ul>
-<p>Estos modelos son los más recientes por el momento de desarrollo, la idea es actualizar la selección de los modelos de OpenAI conforme vayan saliendo modelos más rápidos, inteligentes, y con mayor potencial.</p>
+<p>El modelo es configurable y los precios por modelo se mantienen sincronizados en <code>settings/tokens.py</code>.</p>
 </section>
 <section id="arquitectura-del-sistema" class="level3">
 <h3 class="anchored" data-anchor-id="arquitectura-del-sistema">1.2. Arquitectura del sistema</h3>
@@ -263,74 +261,51 @@ Ollama permite correr modelos de lenguaje open-source de manera local o privada.
 </section>
 <section id="información-dinámica" class="level4">
 <h4 class="anchored" data-anchor-id="información-dinámica">1.2.2. Información dinámica</h4>
-<p>Además de la información estática precargada en la base vectorial, el sistema cuenta con herramientas dinámicas que permiten consultar datos actualizados en tiempo real, como existencias, precios y promociones. Estas herramientas se integran al agente a través del framework LangChain, lo que permite invocarlas solo cuando el modelo detecta que son necesarias para responder con precisión.</p>
-<p>Las herramientas dinámicas disponibles son:</p>
+<p>Además de la información estática precargada en la base vectorial, el sistema cuenta con herramientas dinámicas que consultan datos actualizados en tiempo real (existencias, precios, promociones, estatus de pedidos, etc.). Las herramientas se registran con el decorador <code>@tool</code> de LangChain y se conectan al agente mediante <code>create_agent</code> (LangGraph), que decide cuándo invocarlas.</p>
+<p>Las herramientas activas del agente son:</p>
 <ul>
-<li><code>search_information_tool</code>: realiza búsquedas básicas en los productos embebidos para encontrar coincidencias.</li>
-<li><code>inventory_tool</code>: consulta las existencias, precio actual y moneda para un producto específico.</li>
-<li><code>sales_rules_tool</code>: calcula promociones y reglas de venta que aplican a un producto según su lista de precios y sucursal.</li>
+<li><code>algolia_search_tool</code>: buscador de productos (Algolia). Devuelve, por cada producto, su <strong>clave CT</strong>, marca, modelo, precio según lista, existencias en la sucursal del usuario y en otras sucursales, si está en promoción, la URL y la <strong>URL de imagen</strong> del producto (esta última la usa la interfaz para armar las tarjetas).</li>
+<li><code>sales_rules_tool</code>: reglas de promoción. <strong>Acepta varias claves en una sola llamada</strong> y reutiliza una única conexión, devolviendo el precio/condición de promoción de cada una.</li>
+<li><code>dolar_convertion_tool</code>: convierte precios de USD a MXN para cálculos de presupuesto.</li>
+<li><code>status_tool</code>: consulta el estatus de un pedido a partir de su factura (MongoDB).</li>
+<li><code>get_support_info</code>: políticas, garantías, devoluciones, términos y condiciones, PartnerCT, directorio de PMs, etc.</li>
+<li><code>who_are_we</code>: información institucional de CT.</li>
+<li><code>get_sucursales_info</code>: ubicación, horarios, teléfonos y directorios de sucursales.</li>
 </ul>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.tools <span class="op">=</span> [</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>            Tool(</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span><span class="st">'search_information_tool'</span>,</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>                func<span class="op">=</span>search_information_tool,</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>                description<span class="op">=</span><span class="st">"Busca productos relacionados con lo que se pide."</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>            ),</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>            StructuredTool.from_function(</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>                func<span class="op">=</span>inventory_tool,</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span><span class="st">'inventory_tool'</span>,</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>                description<span class="op">=</span><span class="st">"Esta herramienta sirve como referencia y devuelve precios, moneda y existencias de un producto por su clave y listaPrecio."</span>,</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>                args_schema<span class="op">=</span>ExistenciasInput <span class="co"># Explicitly link the Pydantic schema</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>            ),</span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>            StructuredTool.from_function(</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            func<span class="op">=</span>sales_rules_tool,</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>            name<span class="op">=</span><span class="st">'sales_rules_tool'</span>,</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>            description<span class="op">=</span><span class="st">"Aplica reglas de promoción, devuelve el precio final y mensaje para mostrar al usuario."</span>,</span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>            args_schema<span class="op">=</span>SalesInput</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>        ),</span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>            StructuredTool.from_function(</span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>                func<span class="op">=</span>dolar_convertion_tool,</span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span><span class="st">'dolar_convertion_tool'</span>,</span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>                description<span class="op">=</span><span class="st">"Solo usa la tool para convertir el precio de un producto de USD a MXN y hacer cuentas"</span>,</span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>                args_schema<span class="op">=</span>DolarInput</span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>        ),</span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>            StructuredTool.from_function(</span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>                func<span class="op">=</span>status_tool,</span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span><span class="st">'status_tool'</span>,</span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>                description<span class="op">=</span><span class="st">"Cuando pregunten por el estatus de algún pedido hecho, pide la factura y busca dicho estatus y no ofrezcas más detalles, solo los regresados por la tool"</span>,</span>
-<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>                args_schema<span class="op">=</span>StatusInput</span>
-<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>        ),</span>
-<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>            StructuredTool.from_function(</span>
-<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>                func<span class="op">=</span>search_by_key_tool,</span>
-<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span><span class="st">"search_by_key_tool"</span>,</span>
-<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>                description<span class="op">=</span><span class="st">"Busca en el docstore un producto o promoción EXACTA usando su clave CT, una sola clave en mayusculas. Búsqueda más específica"</span>,</span>
-<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>                args_schema<span class="op">=</span>ClaveInput</span>
-<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>        ),</span>
-<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>            StructuredTool.from_function(</span>
-<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>                func<span class="op">=</span>get_support_info,</span>
-<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span><span class="st">"get_support_info"</span>,</span>
-<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>                description<span class="op">=</span><span class="st">"Cuando necesites saber sobre cómo hacer compras en líneas, compras y envíos de ESD, políticas, garantías, devoluciones, términos y condiciones, partnerCT (ventas e-commerce), Directorio de Product Managers"</span>,</span>
-<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>                args_schema<span class="op">=</span>SupportInput</span>
-<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>        ),</span>
-<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>            StructuredTool.from_function(</span>
-<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>                func<span class="op">=</span>who_are_we,</span>
-<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span><span class="st">"who_are_we"</span>,</span>
-<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>                description<span class="op">=</span><span class="st">"SIEMPRE que te pregunten por CT y quién es, qué es, valores, etc., usa esta herramienta."</span>,</span>
-<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>        ),</span>
-<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>            StructuredTool.from_function(</span>
-<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>                func<span class="op">=</span>get_sucursales_info,</span>
-<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>                name<span class="op">=</span><span class="st">"get_sucursales_info"</span>,</span>
-<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>                description<span class="op">=</span><span class="st">"Código Python para analizar el DataFrame 'df' con información de las sucursales. Debe usar print() para mostrar resultados o asignar el resultado a la variable 'result'."</span>,</span>
-<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>                args_schema<span class="op">=</span>SucursalesInput</span>
-<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a>            )</span>
-<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a>]</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p>Estas herramientas son invocadas automáticamente por el agente cuando la consulta del usuario requiere información que no está contenida en el contexto estático. Esto permite entregar respuestas más precisas y alineadas con la situación real del negocio (existencias, promociones activas, etc.).</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">self</span>.tools <span class="op">=</span> [</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    algolia_search_tool,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    sales_rules_tool,</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    dolar_convertion_tool,</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    status_tool,</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    get_support_info,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    who_are_we,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    get_sucursales_info,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="va">self</span>.graph <span class="op">=</span> create_agent(</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    model<span class="op">=</span><span class="va">self</span>.llm,</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    tools<span class="op">=</span><span class="va">self</span>.tools,</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    system_prompt<span class="op">=</span>encode(prompt_dict),</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    context_schema<span class="op">=</span>UserContext,</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    cache<span class="op">=</span>InMemoryCache(),</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Estas herramientas son invocadas automáticamente por el agente cuando la consulta requiere información que no está en el contexto estático, lo que permite respuestas alineadas con la situación real del negocio (existencias, promociones activas, etc.). Las consultas a MySQL (existencias y promociones) usan un <strong>pool de conexiones reutilizable</strong> (<code>get_mysql_connection</code> en <code>settings/clients.py</code>) para evitar el costo de abrir una conexión nueva en cada llamada.</p>
 </section>
 <section id="flujo-de-datos-para-el-sistema-rag" class="level4">
 <h4 class="anchored" data-anchor-id="flujo-de-datos-para-el-sistema-rag">1.2.3. Flujo de datos para el sistema RAG</h4>
 <p>El sistema se alimenta con información a través de un proceso ETL (Extracción, Transformación y Carga) que asegura que los datos estén limpios, estructurados y listos para ser utilizados por el modelo y las herramientas.</p>
 <p><strong>Para una descripción detallada de cada etapa del proceso ETL, incluyendo la extracción de datos, la transformación (y el almacenamiento de fichas técnicas en MongoDB), y la carga directa a la base de datos vectorial, por favor, consultar el documento “Preparación de los datos”.</strong></p>
 <p>En resumen, este proceso garantiza que el modelo tenga acceso a una base de datos de conocimiento robusta y actualizada, tanto estática (productos y promociones embedidas) como dinámica (a través de las herramientas que consultan datos en tiempo real).</p>
+</section>
+<section id="entrega-de-la-respuesta-streaming-y-bloques-estructurados" class="level4">
+<h4 class="anchored" data-anchor-id="entrega-de-la-respuesta-streaming-y-bloques-estructurados">1.2.4. Entrega de la respuesta: streaming y bloques estructurados</h4>
+<p>La respuesta se transmite al cliente en <strong>streaming token a token</strong>. El agente usa <code>graph.astream(..., stream_mode=["messages", "values"])</code>: el modo <code>messages</code> emite los tokens conforme el LLM los genera (efecto “escribiendo”), mientras que el último estado de <code>values</code> conserva la metadata final (uso de tokens, costo y <em>verbose log</em>) para registrarla en MongoDB sin romper el guardado. Anteriormente la respuesta se calculaba completa con <code>ainvoke</code> y se entregaba de golpe; el cambio a <code>astream</code> permite mostrarla progresivamente.</p>
+<p>Para enriquecer la interfaz sin abandonar el transporte de texto, el modelo emite —dentro del mismo flujo— <strong>bloques estructurados in-band</strong> delimitados con vallas de código:</p>
+<ul>
+<li><code>```ct-products</code>: arreglo JSON con los productos a mostrar (clave, marca, modelo, imagen, precio, existencias por sucursal y promoción). La interfaz lo convierte en <strong>tarjetas con imagen</strong>.</li>
+<li><code>```ct-suggestions</code>: arreglo JSON de sugerencias accionables que el usuario puede pulsar para continuar la conversación.</li>
+</ul>
+<p>El frontend extrae estos bloques de forma <strong>incremental</strong> (renderiza cada tarjeta/sugerencia en cuanto queda completa, sin esperar a que cierre el bloque) y nunca muestra el JSON crudo.</p>
 </section>
 </section>
 <section id="atributos-del-modelo-y-contexto-de-ejecución" class="level3">
@@ -354,8 +329,8 @@ Ollama permite correr modelos de lenguaje open-source de manera local o privada.
 </ul></li>
 <li><p><strong>Información dinámica (a través de herramientas LangChain)</strong>:</p>
 <ul>
-<li>Se accede a datos en tiempo real mediante herramientas personalizadas integradas con LangChain, como <code>inventory_tool</code> y <code>sales_rules_tool</code>.</li>
-<li>El LLM, basado en la <code>query</code> del usuario y su propio razonamiento, decide cuándo invocar estas herramientas. Por ejemplo, si el usuario pregunta por “el precio de la clave X”, el LLM activará <code>inventory_tool</code> con la clave proporcionada.</li>
+<li>Se accede a datos en tiempo real mediante herramientas personalizadas integradas con LangChain, como <code>algolia_search_tool</code> y <code>sales_rules_tool</code>.</li>
+<li>El LLM, basado en la <code>query</code> del usuario y su propio razonamiento, decide cuándo invocar estas herramientas. Por ejemplo, si el usuario busca un producto, el LLM activará <code>algolia_search_tool</code>, y si hay productos en promoción consultará <code>sales_rules_tool</code> (con las claves correspondientes en una sola llamada).</li>
 <li>El resultado de la ejecución de estas herramientas (e.g., el precio actual, las existencias, el precio final con promoción) se devuelve al LLM y se inyecta también en su <em>context window</em>.</li>
 <li>Esto permite al LLM generar respuestas con datos actualizados y específicos, como la disponibilidad de un producto o el precio final con promociones activas para una <code>listaPrecio</code> y <code>session_id</code> dados.</li>
 </ul></li>
@@ -363,11 +338,11 @@ Ollama permite correr modelos de lenguaje open-source de manera local o privada.
 <p><strong>Moderación y clasificación de la consulta</strong></p>
 <p>Antes de ejecutar cualquier acción, la consulta pasa por una etapa de moderación:</p>
 <ul>
-<li>Se valida si el usuario está baneado (por comportamiento inapropiado).</li>
-<li>Se clasifica la consulta como <code>relevante</code>, <code>irrelevante</code> o <code>inapropiada</code>.</li>
-<li>Dependiendo de esta clasificación, se permite o bloquea el paso al modelo principal y las herramientas.</li>
+<li>Se valida si el usuario está baneado (sistema de <em>ban</em> progresivo por comportamiento inapropiado reincidente).</li>
+<li>Se clasifica la consulta como <code>relevante</code>, <code>irrelevante</code> o <code>inapropiado</code> usando un <strong>modelo dedicado y ligero (GPT-4.1-mini)</strong>, invocado de forma <strong>asíncrona</strong> (<code>ainvoke</code>) para no bloquear el <em>event loop</em> del servidor.</li>
+<li>Dependiendo de esta clasificación, se permite el paso al agente principal y sus herramientas, o se responde con un mensaje predefinido (sin gastar el modelo principal).</li>
 </ul>
-<p>Este flujo asegura robustez, control y trazabilidad en la interacción con el modelo.</p>
+<p>Este flujo asegura robustez, control y trazabilidad, y al separar la moderación en un modelo rápido reduce la latencia previa a la respuesta.</p>
 </section>
 <section id="métricas-de-evaluación" class="level3">
 <h3 class="anchored" data-anchor-id="métricas-de-evaluación">1.4. Métricas de evaluación</h3>
@@ -384,7 +359,7 @@ Ollama permite correr modelos de lenguaje open-source de manera local o privada.
 <section id="evaluación" class="level2" style="text-align: justify">
 <h2 class="anchored" data-anchor-id="evaluación">2. Evaluación</h2>
 <p>Con base en las respuestas generadas durante la etapa de modelado, se llevó a cabo una evaluación cualitativa para analizar la coherencia, relevancia y precisión de las recomendaciones de cada modelo. Este análisis nos permitió identificar oportunidades de mejora en el sistema, así como validar si el comportamiento del modelo es adecuado para continuar con su implementación o si requiere ajustes adicionales.</p>
-<p>A continuación, se presentan las respuestas generadas por el sistema para una serie de consultas simuladas por un usuario. Estas imágenes muestran el resultado del mejor modelo seleccionado (GPT 4o) ante cada solicitud:</p>
+<p>A continuación, se presentan las respuestas generadas por el sistema para una serie de consultas simuladas por un usuario. Estas imágenes muestran el resultado del modelo seleccionado en aquel momento de la evaluación (GPT-4o); la selección de modelos se ha actualizado desde entonces y actualmente el agente principal es <strong>GPT-5</strong> (con GPT-4.1-mini para la moderación):</p>
 <ol type="1">
 <li><p><strong>Consulta:</strong> <em>“¡Hola! Me interesan computadoras de oficina”</em><br>
 <img src="./evaluacion/image1.png" class="img-fluid" style="width:40.0%" alt="Respuesta a consulta 1"></p></li>

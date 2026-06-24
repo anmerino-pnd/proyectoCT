@@ -52,7 +52,7 @@ class TestGetUser:
 class TestQueryExec:
     """Tests for query_exec function."""
     
-    @patch("ct.tools.algolia.mysql.connector.connect")
+    @patch("ct.tools.algolia.get_mysql_connection")
     def test_query_exec_returns_results(self, mock_connect):
         """Test successful query execution."""
         from ct.tools.algolia import query_exec
@@ -76,7 +76,7 @@ class TestQueryExec:
         mock_cursor.close.assert_called_once()
         mock_cnx.close.assert_called_once()
     
-    @patch("ct.tools.algolia.mysql.connector.connect")
+    @patch("ct.tools.algolia.get_mysql_connection")
     def test_query_exec_handles_database_error(self, mock_connect):
         """Test handling of database errors."""
         from ct.tools.algolia import query_exec
@@ -88,7 +88,7 @@ class TestQueryExec:
         
         assert "Error de base de datos" in result
     
-    @patch("ct.tools.algolia.mysql.connector.connect")
+    @patch("ct.tools.algolia.get_mysql_connection")
     def test_query_exec_handles_unexpected_error(self, mock_connect):
         """Test handling of unexpected errors."""
         from ct.tools.algolia import query_exec

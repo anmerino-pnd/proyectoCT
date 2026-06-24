@@ -1,11 +1,18 @@
+// Origen y carpeta del propio SDK, derivados del <script> que lo cargó.
+// __CTAI_ASSET_BASE: carpeta donde viven sdk.js/app.js/styles.css (p.ej. https://<dominio>/sdk/)
+// __CTAI_ORIGIN:     origen para las llamadas a la API (p.ej. https://<dominio>)
+const __ctaiSdkScript = document.currentScript;
+const __CTAI_ASSET_BASE = __ctaiSdkScript ? new URL(".", __ctaiSdkScript.src).href : "";
+const __CTAI_ORIGIN = __ctaiSdkScript ? new URL(__ctaiSdkScript.src).origin : "";
+
 class CTAIWidget {
     static init(config = {}) {
         const settings = {
-            apiBase: config.apiBase,
+            apiBase: config.apiBase || __CTAI_ORIGIN,
             userId: config.userId,
             userKey: config.userKey,
             containerId: config.containerId || "ctai-widget-root",
-            chatIconUrl: config.chatIconUrl || "chat.png"
+            chatIconUrl: config.chatIconUrl || (__CTAI_ASSET_BASE + "chat.png")
         };
         if (!settings.userId || !settings.userKey) {
             const errorDiv = document.createElement("div");
@@ -24,20 +31,31 @@ class CTAIWidget {
             <div class="chat-bubble" onclick="window.CTAIChat.toggle()" aria-label="Abrir/Cerrar chat">
                 <img src="${settings.chatIconUrl}" alt="Abrir chat" class="chat-icon">
             </div>
-            <div class="chat-container" id="ctai-chat-container" style="display:none">
+            <div class="chat-container" id="ctai-chat-container">
                 <div class="chat-header">
-                    <span>CT Ayuda</span>
+                    <div class="ctai-header-info">
+                        <div class="ctai-header-avatar"><img src="${settings.chatIconUrl}" alt=""></div>
+                        <div class="ctai-header-titles">
+                            <span class="ctai-header-title">CT Ayuda</span>
+                            <span class="ctai-header-status">Asistente en línea</span>
+                        </div>
+                    </div>
                     <div class="buttons-container">
-                        <button class="deleteButton" id="ctai-delete-history-button" aria-label="Eliminar historial">
-                             <svg fill="none" viewBox="0 0 50 59" class="bin"> 
-                                <path d="M0 7.5C0 5.01472 2.01472 3 4.5 3H45.5C47.9853 3 50 5.01472 50 7.5V7.5C50 8.32843 49.3284 9 48.5 9H1.5C0.671571 9 0 8.32843 0 7.5V7.5Z"></path> 
-                                <path d="M17 3C17 1.34315 18.3431 0 20 0H29.3125C30.9694 0 32.3125 1.34315 32.3125 3V3H17V3Z"></path> 
-                                <path d="M2.18565 18.0974C2.08466 15.821 3.903 13.9202 6.18172 13.9202H43.8189C46.0976 13.9202 47.9160 15.8210 47.8150 18.0975L46.1699 55.1775C46.0751 57.3155 44.3140 59.0002 42.1739 59.0002H7.8268C5.68661 59.0002 3.92559 57.3155 3.83073 55.1775L2.18565 18.0974ZM18.0003 49.5402C16.6196 49.5402 15.5003 48.4209 15.5003 47.0402V24.9602C15.5003 23.5795 16.6196 22.4602 18.0003 22.4602C19.3810 22.4602 20.5003 23.5795 20.5003 24.9602V47.0402C20.5003 48.4209 19.3810 49.5402 18.0003 49.5402ZM29.5003 47.0402C29.5003 48.4209 30.6196 49.5402 32.0003 49.5402C33.3810 49.5402 34.5003 48.4209 34.5003 47.0402V24.9602C34.5003 23.5795 33.3810 22.4602 32.0003 22.4602C30.6196 22.4602 29.5003 23.5795 29.5003 24.9602V47.0402Z" clip-rule="evenodd" fill-rule="evenodd"></path> 
-                                <path d="M2 13H48L47.6742 21.28H2.32031L2 13Z"></path> 
+                        <button class="ctai-icon-btn" id="ctai-delete-history-button" title="Borrar conversación" aria-label="Borrar conversación">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M3 6h18"></path>
+                                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                                <path d="M10 11v6"></path>
+                                <path d="M14 11v6"></path>
                             </svg>
-                            <span class="tooltip">Borrar conversación</span> 
                         </button>
-                        <button class="close-button" onclick="window.CTAIChat.toggle()" aria-label="Cerrar chat">×</button>
+                        <button class="ctai-icon-btn" onclick="window.CTAIChat.toggle()" title="Cerrar" aria-label="Cerrar chat">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M18 6 6 18"></path>
+                                <path d="M6 6l12 12"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
                 <div class="chat-box" id="ctai-chat-box">
@@ -60,26 +78,25 @@ class CTAIWidget {
             scriptMarked.onerror = () => {};
             document.head.appendChild(scriptMarked);
         }
-        if (!document.querySelector('link[href="styles.css"]')) {
+        if (!document.getElementById("ctai-styles")) {
              const styleLink = document.createElement("link");
+             styleLink.id = "ctai-styles";
              styleLink.rel = "stylesheet";
-             styleLink.href = "styles.css"; // Para probar en local
-             // styleLink.href = "https://ctdev.ctonline.mx/static2/plugins/chatbot/styles.css"; 
+             styleLink.href = __CTAI_ASSET_BASE + "styles.css";
              document.head.appendChild(styleLink);
         } else {}
         window.CTAI_CONFIG = settings;
         window.CTAIChat = {
             toggle: () => {
                 const chat = document.getElementById("ctai-chat-container");
-                if(chat) {
-                    const isHidden = !chat.style.display || chat.style.display === "none";
-                    chat.style.display = isHidden ? "flex" : "none";
-                    if (isHidden && typeof window.loadHistory === 'function') {
-                         setTimeout(() => window.loadHistory(), 100);
-                    } else if (isHidden && typeof window.loadHistory !== 'function'){
-                         console.warn("CTAI App: loadHistory no está disponible después del toggle.");
-                    }
-                } else {}
+                if (!chat) return;
+                const willOpen = !chat.classList.contains("ctai-open");
+                chat.classList.toggle("ctai-open", willOpen);
+                if (willOpen && typeof window.loadHistory === "function") {
+                    setTimeout(() => window.loadHistory(), 100);
+                } else if (willOpen && typeof window.loadHistory !== "function") {
+                    console.warn("CTAI App: loadHistory no está disponible después del toggle.");
+                }
             },
             sendMessageTrigger: () => {
                 const sendButton = document.getElementById("ctai-send-button");
@@ -90,8 +107,7 @@ class CTAIWidget {
         };
         if (!window.__CTAI_APP_LOADED__) {
             const scriptApp = document.createElement("script");
-            scriptApp.src = "app.js"; // Para probar en local
-            // scriptApp.src = "https://ctdev.ctonline.mx/static2/plugins/chatbot/app.js"; // Para desplegar
+            scriptApp.src = __CTAI_ASSET_BASE + "app.js";
             scriptApp.defer = true;
             scriptApp.onload = () => {
                 window.__CTAI_APP_LOADED__ = true;

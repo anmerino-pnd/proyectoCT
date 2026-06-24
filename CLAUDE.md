@@ -81,6 +81,7 @@ The request flow spans several files and is the key thing to understand:
    `pipeline.py`, builds the FAISS vector stores that `search_information` reads.
 
 Cross-cutting concerns:
+
 - **Token/cost tracking** — pricing per model in `settings/tokens.py`, callback handler in
   `settings/timing_tools.py`; each response records tokens, cost, duration, and model used.
 - **Progressive ban system** — repeated `inapropiado` queries escalate via the

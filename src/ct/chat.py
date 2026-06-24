@@ -26,7 +26,14 @@ async def async_chat_generator(request: QueryRequest) -> AsyncGenerator[str, Non
             yield chunk
 
 async def async_chat_endpoint(request: QueryRequest):
-    return StreamingResponse(async_chat_generator(request), media_type="text/event-stream")
+    # Headers anti-buffering: evitan que proxies (Cloudflare / nginx) acumulen el
+    # stream y lo entreguen de golpe, rompiendo el efecto token-a-token.
+    headers = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    return StreamingResponse(
+        async_chat_generator(request),
+        media_type="text/event-stream",
+        headers=headers,
+    )
 
 async def delete_chat_history_endpoint(user_id: str):
     """

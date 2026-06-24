@@ -41,21 +41,17 @@ La fase de implementación implica el despliegue de los componentes desarrollado
 
 ### 2.1. Arquitectura de despliegue y conexión
 
-La fase de implementación en el entorno de pruebas requiere el despliegue de la API del chatbot (desarrollada en Python con FastAPI) y la integración del widget (desarrollado en JavaScript, HTML y CSS) en la página web de pruebas de CT Online.
+La fase de implementación requiere el despliegue de la API del chatbot (Python + FastAPI) y la integración del widget (JavaScript, HTML y CSS) en la página web de CT Online.
 
-Un desafío técnico crucial identificado durante la planificación del despliegue fue la **política de seguridad de "contenido mixto" (mixed content)** impuesta por los navegadores modernos. Dado que la página de pruebas de la empresa se sirve a través de HTTPS para garantizar una conexión segura, el navegador bloquea las peticiones que el código JavaScript del widget intenta realizar a recursos o servicios que no son seguros, como la API FastAPI que opera con el protocolo HTTP. Realizar llamadas directas desde HTTPS a HTTP resulta en un error de "mixed content", impidiendo la comunicación. 
+**Enfoque anterior (proxy PHP).** Inicialmente no se contaba con un certificado SSL válido para la API (solo autofirmado, que los navegadores modernos no reconocen como confiable). Como la página se sirve por **HTTPS**, llamar directamente a una API en HTTP provocaba errores de **"contenido mixto" (mixed content)**, que el navegador bloquea. La solución fue usar el **backend PHP** del sitio como _proxy_: el widget llamaba a un endpoint del PHP (mismo origen, HTTPS), y el PHP reenviaba la petición a la API y devolvía la respuesta. Esto resolvía el contenido mixto encapsulando el tramo inseguro en la comunicación servidor-a-servidor, pero tenía un costo importante: el PHP **bufferizaba** la respuesta y la re-serializaba a JSON, lo que **impedía el _streaming_ real** (la respuesta llegaba "de golpe").
 
-También se evaluó la posibilidad de servir la API directamente a través de HTTPS. Sin embargo, esta alternativa implicaba mayores retos técnicos y operativos, como la gestión de certificados SSL válidos que autentiquen la comunicación segura entre el servidor y los navegadores. Aunque se intentó utilizar un certificado autofirmado, los navegadores modernos no lo reconocen como confiable, lo que resultaba en el bloqueo automático de las conexiones. Además del reto técnico, esta opción implicaba complicaciones administrativas relacionadas con la obtención, configuración y renovación de certificados válidos, lo que aumentaba la complejidad del despliegue inicial.
+**Enfoque actual (dominio certificado + llamadas directas).** Al disponer de un **certificado válido y un dominio gestionado con Cloudflare**, se elimina el salto intermedio: el frontend de la página llama **directamente** a la API por HTTPS. Además de simplificar la arquitectura, esto **habilita el _streaming_ token a token** (ya no hay un proxy que acumule la respuesta). En concreto:
 
-Para superar este obstáculo y permitir la comunicación segura entre el frontend en HTTPS y la API, se ha adoptado la siguiente arquitectura de despliegue utilizando un **backend proxy**:
+* El **SDK del widget se sirve desde el propio servidor FastAPI**, montado en la ruta `/sdk` con `StaticFiles`. El equipo de la página solo incrusta un `<script>` que apunta al dominio del chatbot; el `sdk.js` deriva por sí mismo la URL base de la API a partir del origen de su propio script.
+* Las peticiones del widget (`/chat`, `/history/{id}`) viajan **directo** al servidor certificado.
+* Cloudflare termina TLS en el borde y reenvía al origen. Se recomienda el modo **"Full (strict)"** con un _Origin Certificate_ de Cloudflare instalado en el servidor, reemplazando el autofirmado.
 
-* La aplicación principal de la empresa, que opera en un entorno seguro con **HTTPS**, actuará como intermediaria. Dado que esta aplicación utiliza **PHP**, el proxy se implementará en este lenguaje.
-* El widget, integrado en la página de pruebas (servida en HTTPS), no realizará llamadas directas a la API FastAPI. En su lugar, el JavaScript del widget será configurado para enviar todas sus peticiones a un **nuevo endpoint específico en el backend PHP**.
-* El backend PHP recibirá estas peticiones entrantes del frontend (en HTTPS).
-* El código PHP, realizará entonces la **solicitud real a la API**. La comunicación entre el backend PHP y la API no está sujeta a las restricciones de contenido mixto del navegador, o sea, sin importar si la API se sirve en HTTP o HTTPS, el PHP siempre se puede comunicar con el servicio sin problema.
-* El backend PHP recibirá la respuesta de la API y la reenviará de vuelta al frontend del widget (en HTTPS), en otras palabras, se apunta así mismo.
-
-Este enfoque de proxy en el backend PHP resuelve el problema del contenido mixto al asegurar que la comunicación entre el navegador (frontend) y la infraestructura del backend de la empresa siempre se realice a través de HTTPS. El desafío de integrar una fuente HTTP en un entorno HTTPS queda encapsulado en la comunicación de servidor a servidor.
+> El corte al dominio certificado se realiza al aprovisionar el dominio/Cloudflare. El resto de los cambios que lo acompañan (SDK servido desde el servidor, _streaming_, y el endurecimiento de seguridad descrito más adelante) ya están integrados y listos para ese corte.
 
 ### 2.2. Gestión de persistencia de datos con MongoDB
 
@@ -73,7 +69,16 @@ Esta estrategia de persistencia de datos en MongoDB ha permitido superar las lim
 
 ### 2.3. Desarrollo del widget frontend
 
-Se desarrolló un widget de chat personalizado e integrable mediante un simple script (`sdk.js`). Este widget se encarga de inyectar la interfaz de usuario (`html`) y cargar la lógica de la aplicación (`app.js`) y los estilos (`styles.css`) de forma dinámica en cualquier página web.
+Se desarrolló un widget de chat personalizado e integrable mediante un solo script (`sdk.js`). El widget inyecta la interfaz de usuario y carga dinámicamente la lógica (`app.js`) y los estilos (`styles.css`); todos estos recursos se sirven desde el propio servidor (`/sdk`), por lo que la integración en la página se reduce a un único `<script>`.
+
+Características principales de la interfaz actual:
+
+* **Panel lateral (sidebar):** el chat se abre como una barra lateral fija y amplia (en lugar de una burbuja pequeña), con animación de entrada y diseño responsivo (pantalla completa en móvil).
+* **Respuesta en _streaming_:** el texto se renderiza token a token (efecto "escribiendo"), con _throttling_ del parseo de Markdown para evitar parpadeos.
+* **Tarjetas de producto:** a partir del bloque `ct-products`, cada producto se muestra como una tarjeta con imagen, **clave CT** como título, marca/modelo, precio, _badge_ de promoción y existencias ("N en tu sucursal / N en otras sucursales"). Las tarjetas aparecen **de forma incremental** (una a una conforme se completan).
+* **Sugerencias accionables:** a partir del bloque `ct-suggestions`, se muestran _chips_ que el usuario puede pulsar para continuar; al abrir el chat sin historial se ofrecen sugerencias iniciales basadas en las capacidades del bot.
+* **Botón de detener:** mientras el bot responde, el botón de enviar cambia a "detener", permitiendo abortar la respuesta en curso (`AbortController`) conservando lo ya recibido.
+* **Seguridad de render:** los datos de las tarjetas se escapan y las URLs (imagen/enlace) se validan como `http(s)` para evitar inyección.
 
 ### 2.4. Plan de monitoreo
 
@@ -108,7 +113,7 @@ El proceso de despliegue consistió en los siguientes pasos:
 * **Integración del widget en la página de pruebas:** Se inyectó el script del widget directamente en la página, asegurando que se pudieran cargar dinámicamente los recursos necesarios (`JS`, `HTML` y `CSS`) desde un servidor de archivos estáticos. La integración se validó en distintos navegadores modernos para asegurar la compatibilidad y el correcto funcionamiento.
 * **Gestión de versiones y control de cambios:** Se utilizó Git para gestionar versiones del código tanto del sistema del Chatbot, la API y del widget. Esto permitió llevar un registro detallado de los cambios realizados y facilitó el proceso de despliegue incremental, en caso de futuras modificaciones o ajustes.
 * **Verificación funcional:** Tras el despliegue inicial, se realizaron pruebas manuales y automatizadas para verificar el correcto funcionamiento del flujo de conversación, el tiempo de respuesta de la API y el comportamiento del widget en diferentes escenarios (errores, entradas no reconocidas, ausencia de resultados, etc.).
-* **Consideraciones de seguridad:** Aunque se trata de un entorno de pruebas, se aseguraron medidas básicas como la validación de origen en CORS, limitación de rutas expuestas en la API, y uso de HTTPS para todas las comunicaciones entre cliente y servidor.
+* **Consideraciones de seguridad:** Al pasar a llamadas directas, el servidor queda expuesto públicamente, por lo que se añadió un endurecimiento ligero y configurable por entorno (módulo `settings/security.py`): **allowlist de orígenes CORS** (variable `CHATBOT_ALLOWED_ORIGINS`, resolviendo el conflicto previo de `allow_origins=["*"]` con credenciales), **validación de Origin/Referer** en el endpoint `/chat`, y **rate limiting** por IP + `user_id` (ventana deslizante en memoria). Estas protecciones son _opt-in_: si no se define la allowlist se mantiene el comportamiento abierto (desarrollo), y se activan al fijar el dominio en el corte a producción.
 
 La imagen a continuación muestra el chatbot funcionando en su entorno de desarrollo, con el widget incrustado en la página de pruebas de CT Online:
 

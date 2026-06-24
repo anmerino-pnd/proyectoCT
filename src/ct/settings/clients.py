@@ -2,6 +2,8 @@ import os
 from functools import lru_cache
 
 import openai as openai_api
+import mysql.connector
+from mysql.connector import pooling
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from pymongo import MongoClient
@@ -73,3 +75,37 @@ def get_mongo_client() -> MongoClient:
 
 def get_db():
     return get_mongo_client().get_default_database()
+
+
+# --- Pool de conexiones MySQL (evita el handshake completo en cada llamada a herramientas) ---
+_mysql_pool = None
+
+def _get_mysql_pool():
+    global _mysql_pool
+    if _mysql_pool is None:
+        _mysql_pool = pooling.MySQLConnectionPool(
+            pool_name="ct_mysql_pool",
+            pool_size=int(os.getenv("MYSQL_POOL_SIZE", "5")),  # por worker; ajusta a tu max_connections
+            pool_reset_session=True,
+            host=ip, port=port, user=user, password=pwd, database=database,
+        )
+    return _mysql_pool
+
+def get_mysql_connection():
+    """Devuelve una conexión MySQL reutilizable desde el pool.
+
+    Reusar conexiones evita el TCP+auth de cada llamada. Hace ping con reconexión por si
+    la conexión quedó inactiva, y cae a una conexión directa si el pool se agota.
+    """
+    try:
+        cnx = _get_mysql_pool().get_connection()
+    except Exception:
+        return mysql.connector.connect(
+            host=ip, port=port, user=user, password=pwd, database=database,
+            read_timeout=60, write_timeout=15,
+        )
+    try:
+        cnx.ping(reconnect=True, attempts=2, delay=0)
+    except Exception:
+        pass
+    return cnx

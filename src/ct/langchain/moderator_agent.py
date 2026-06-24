@@ -3,20 +3,19 @@ from toon import encode
 from typing import Optional, Any, cast
 from langchain_openai import ChatOpenAI
 from ct.langchain.tool_agent import ToolAgent
-from ct.settings.clients import openai_api_key
 from datetime import datetime, timedelta, timezone
 
 class QueryModerator:
     def __init__(self, assistant: ToolAgent):
         self.assistant = assistant
-        # self.llm = ChatOpenAI(
-        #     openai_api_key=openai_api_key,
-        #     model="gpt-4.1",
-        #     temperature=0,
-        #     cache=True  
-        # )
-        
-    def classify_query(self, query: str, session_id: str) -> str:
+        # Modelo dedicado pequeño y rápido SOLO para clasificar (no el gpt-5 del agente):
+        # una sola palabra de salida, sin reasoning, mucho más barato y veloz.
+        self.llm = ChatOpenAI(
+            model="gpt-4.1-mini",
+            temperature=0,
+        )
+
+    async def classify_query(self, query: str, session_id: str) -> str:
         history = self._get_formatted_history(session_id)
 
         full_prompt = (
@@ -26,7 +25,7 @@ class QueryModerator:
             f"{query}"
         )
 
-        response = self.assistant.llm.invoke([
+        response = await self.llm.ainvoke([
             {"role": "system", "content": self._classification_prompt()},
             {"role": "user", "content": full_prompt},
         ])

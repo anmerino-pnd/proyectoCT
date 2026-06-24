@@ -321,7 +321,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="configuraciones-importantes" class="level3">
 <h3 class="anchored" data-anchor-id="configuraciones-importantes">1.1. Configuraciones importantes</h3>
 <ul>
-<li>El proyecto está diseñado para ser desplegado en entornos <strong>Linux o Windows</strong> con <strong>Python 3.12.9</strong>. Requiere acceso a <strong>Ollama</strong> (para la ejecución de modelos <em>open-source</em> como <code>gemma3:12b</code>), así como conectividad a una instancia de <strong>MongoDB</strong> y bases de datos <strong>MySQL</strong>.</li>
+<li>El proyecto está diseñado para ser desplegado en entornos <strong>Linux o Windows</strong> con <strong>Python 3.12.9</strong>. Usa modelos de <strong>OpenAI</strong> por defecto (GPT-5 como agente principal y GPT-4.1-mini para la moderación), por lo que requiere una <code>OPENAI_API_KEY</code> válida; <strong>opcionalmente</strong> puede usar modelos <em>open-source</em> vía <strong>Ollama</strong> (p.&nbsp;ej. <code>gemma3:12b</code>). Requiere además conectividad a una instancia de <strong>MongoDB</strong> y a las bases de datos <strong>MySQL</strong>.</li>
 <li>La aplicación <em>backend</em> se expone a través de <strong>FastAPI</strong> en el puerto <code>8000</code>. Es crucial asegurar que este puerto esté abierto y accesible en el entorno de despliegue.</li>
 <li>Archivo <code>.env</code> con variables cargadas.</li>
 <li>Todas las credenciales y configuraciones sensibles se gestionan mediante un archivo de variables de entorno (<code>.env</code>), garantizando la seguridad y facilidad de configuración.</li>
@@ -333,7 +333,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Python</strong>: Versión 3.12.9.</li>
 <li><strong>Pip</strong>: Última versión.</li>
 <li><strong>UV</strong>: Última versión (gestor de paquetes y entornos).</li>
-<li><strong>Ollama</strong>: Instalado y en ejecución en el servidor para el <em>hosting</em> de modelos <em>open-source</em>.</li>
+<li><strong>Ollama</strong> (opcional): Instalado y en ejecución solo si se desean usar modelos <em>open-source</em> locales; no es necesario con la configuración por defecto (OpenAI).</li>
 <li><strong>MySQL</strong>: Acceso remoto configurado para la extracción de datos de productos y precios.</li>
 <li><strong>Podman</strong>: Gestión y ejecución de los contenedores de los cuales depende la aplicación (MongoDB y Redis).</li>
 <li><strong>MongoDB</strong>: Acceso remoto configurado para las colecciones de historial, productos, ofertas y fichas técnicas.</li>
@@ -374,7 +374,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="asegurarse-de-estar-corriendo-los-programas-necesarios-en-el-ambiente" class="level4">
 <h4 class="anchored" data-anchor-id="asegurarse-de-estar-corriendo-los-programas-necesarios-en-el-ambiente">1.4.3. Asegurarse de estar corriendo los programas necesarios en el ambiente</h4>
-<p>Verifica que el servicio de Ollama esté instalado y activo, y que el modelo <code>gemma3:12b</code> esté disponible.</p>
+<p><strong>(Opcional, solo si se usan modelos locales)</strong> Verifica que el servicio de Ollama esté instalado y activo, y que el modelo <code>gemma3:12b</code> esté disponible. Con la configuración por defecto (OpenAI) este paso no es necesario.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> https://ollama.com/install.sh <span class="kw">|</span> <span class="fu">sh</span> <span class="co"># Para instalar Ollama</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ollama</span> serve</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">ollama</span> list <span class="co"># Para verificar que el modelo gemma3:12b esté descargado y listo</span></span>
@@ -919,10 +919,8 @@ enabled</code></pre>
 </section>
 <section id="instalación-del-frontend-widget" class="level3">
 <h3 class="anchored" data-anchor-id="instalación-del-frontend-widget">1.5. Instalación del frontend (Widget)</h3>
-<ol type="1">
-<li><p><strong>Cargar archivos del widget</strong>: Los archivos del <em>frontend</em> (principalmente <code>sdk.js</code> y cualquier recurso gráfico como <code>chat.png</code>) deben ser cargados en el servidor donde reside el <em>frontend</em> de la página.</p></li>
-<li><p><strong>Incrustar el widget en el HTML</strong>: Ejemplo de cómo se puede añadir el widget en la página web donde se desea que aparezca el chatbot.</p></li>
-</ol>
+<p>El SDK del widget (<code>sdk.js</code>, <code>app.js</code>, <code>styles.css</code>, <code>chat.png</code>) se <strong>sirve desde el propio servidor FastAPI</strong> en la ruta <code>/sdk</code> (montada con <code>StaticFiles</code>). Por lo tanto, la página solo necesita incrustar <strong>un único <code>&lt;script&gt;</code></strong> que apunte al dominio del chatbot; no hay que copiar archivos al servidor del sitio.</p>
+<p><strong>Incrustar el widget en el HTML:</strong></p>
 <div class="sourceCode" id="cb42"><pre class="sourceCode html code-with-copy"><code class="sourceCode html"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;!DOCTYPE</span> html<span class="dt">&gt;</span></span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">html</span><span class="ot"> lang</span><span class="op">=</span><span class="st">"es"</span><span class="dt">&gt;</span></span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">head</span><span class="dt">&gt;</span></span>
@@ -930,20 +928,19 @@ enabled</code></pre>
 <span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">title</span><span class="dt">&gt;</span>Prueba del Widget<span class="dt">&lt;/</span><span class="kw">title</span><span class="dt">&gt;</span></span>
 <span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">head</span><span class="dt">&gt;</span></span>
 <span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;</span><span class="kw">body</span><span class="dt">&gt;</span></span>
-<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">script</span><span class="ot"> </span></span>
-<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a><span class="ot">    src</span><span class="op">=</span><span class="st">"sdk.js"</span><span class="ot"> </span></span>
-<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a><span class="ot">    data-user-id</span><span class="op">=</span><span class="st">"test"</span><span class="ot"> </span></span>
-<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a><span class="ot">    data-user-key</span><span class="op">=</span><span class="st">"2"</span><span class="ot"> </span></span>
-<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a><span class="ot">    data-api-base</span><span class="op">=</span><span class="st">"https://ctdev.ctonline.mx/chatbot"</span><span class="ot"> </span></span>
-<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a><span class="ot">    data-chat-icon-url</span><span class="op">=</span><span class="st">"chat.png"</span><span class="ot"> </span></span>
-<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a><span class="ot">    type=</span><span class="st">"text/javascript"</span><span class="dt">&gt;</span></span>
-<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;/</span><span class="kw">script</span><span class="dt">&gt;</span></span>
-<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">body</span><span class="dt">&gt;</span></span>
-<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">html</span><span class="dt">&gt;</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<p><strong>Notas importantes para el <code>data-api-base</code>:</strong></p>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;</span><span class="kw">script</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a><span class="ot">    src</span><span class="op">=</span><span class="st">"https://</span><span class="er">&lt;</span><span class="st">dominio-del-chatbot&gt;/sdk/sdk.js"</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a><span class="ot">    data-user-id</span><span class="op">=</span><span class="st">"test"</span></span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a><span class="ot">    data-user-key</span><span class="op">=</span><span class="st">"2"</span></span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a><span class="ot">    type=</span><span class="st">"text/javascript"</span><span class="dt">&gt;</span></span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&lt;/</span><span class="kw">script</span><span class="dt">&gt;</span></span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">body</span><span class="dt">&gt;</span></span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a><span class="dt">&lt;/</span><span class="kw">html</span><span class="dt">&gt;</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><strong>Notas:</strong></p>
 <ul>
-<li>Si la API corre en HTTP y el <em>frontend</em> en HTTPS, se enfrentarán problemas de “contenido mixto”. La solución propuesta fue usar un archivo PHP (<em>backend</em> del sitio web) como intermediario, el cual es crucial aquí. La API debe apuntar a este PHP y el PHP a su <em>frontend</em> donde se encuentra el widget.</li>
-<li>La <code>data-api-base</code> es el dominio donde es accesible la API mediante PHP.</li>
+<li>El <code>sdk.js</code> <strong>deriva automáticamente</strong> la URL base de la API y la ruta de los recursos (<code>app.js</code>, <code>styles.css</code>, <code>chat.png</code>) a partir del origen de su propio <code>&lt;script&gt;</code> (<code>document.currentScript.src</code>). Por eso ya <strong>no se requiere <code>data-api-base</code></strong>: basta con que el <code>src</code> apunte al dominio certificado del chatbot.</li>
+<li>Solo son obligatorios <code>data-user-id</code> y <code>data-user-key</code> (la lista de precios del usuario).</li>
+<li>Este esquema reemplaza al <em>proxy</em> PHP que se usaba antes para sortear el “contenido mixto”: al servir la API bajo un dominio certificado (HTTPS, vía Cloudflare), el frontend llama directo y se habilita el <em>streaming</em> (ver “Despliegue”, sección 2.1).</li>
 </ul>
 </section>
 <section id="actualización-de-la-base-de-conocimientos-etl" class="level3">
@@ -1102,9 +1099,9 @@ enabled</code></pre>
 <li><strong>Propósito</strong>: Inicializa el agente, configurando el modelo LLM, conectando a MongoDB para la persistencia de sesiones e historial, cargando el <em>prompt</em> principal del sistema y registrando las herramientas disponibles.</li>
 <li><strong>Comportamiento</strong>:
 <ul>
-<li>Establece <code>self.model</code> a “gpt-4.1” (O cualquier modelo disponible en <a href="https://reference.langchain.com/python/langchain/models/">https://reference.langchain.com/python/langchain/models/</a>).</li>
+<li>Establece <code>self.model</code> a <code>"gpt-5"</code> y crea un <code>ChatOpenAI</code> con <code>reasoning_effort="low"</code> (respuestas más rápidas), <code>stream_usage=True</code> (para registrar el consumo de tokens al transmitir en <em>streaming</em>) y un <code>InMemoryRateLimiter</code> que acota las peticiones por segundo al proveedor.</li>
 <li>Inicializa las conexiones a las colecciones de MongoDB (<code>sessions</code>, <code>message_backup</code>).</li>
-<li>Define <code>self.tools</code> como una lista de objetos <code>Tool</code>, que el agente puede invocar. Estas herramientas incluyen <code>search_information_tool</code>, <code>inventory_tool</code> y <code>sales_rules_tool</code>, entre otras. Cada una con su descripción y esquema de argumentos (<code>args_schema</code>) cuando aplica.</li>
+<li>Define <code>self.tools</code> como la lista de herramientas registradas con el decorador <code>@tool</code>: <code>algolia_search_tool</code>, <code>sales_rules_tool</code>, <code>dolar_convertion_tool</code>, <code>status_tool</code>, <code>get_support_info</code>, <code>who_are_we</code> y <code>get_sucursales_info</code>.</li>
 <li><code>self.graph</code> se inicializa a <code>None</code> y se construye bajo demanda.</li>
 </ul></li>
 </ul></li>
@@ -1134,9 +1131,8 @@ enabled</code></pre>
 <li><strong>Parámetros</strong>: Ninguno (usa atributos de la clase).</li>
 <li><strong>Comportamiento</strong>:
 <ul>
-<li>Crea un <code>ChatOpenAI</code> LLM con el modelo y la configuración de <em>streaming</em>.</li>
-<li>Crea un agente de funciones de OpenAI (<code>create_openai_functions_agent</code>) vinculando el LLM, las herramientas y el <em>prompt</em>.</li>
-<li>Inicializa <code>self.executor</code> como una instancia de <code>AgentExecutor</code>, configurándolo para ser <code>verbose=False</code> y con un <code>max_iterations</code> para controlar la profundidad de la ejecución del agente.</li>
+<li>Construye el agente con <code>create_agent</code> (LangGraph), vinculando el LLM, las herramientas, el <em>prompt</em> del sistema (<code>system_prompt</code>), el <code>context_schema</code> (<code>UserContext</code>, que aporta <code>session_id</code> y <code>lista_precio</code>) y una caché en memoria (<code>InMemoryCache</code>).</li>
+<li>El grafo resultante se guarda en <code>self.graph</code> y orquesta el ciclo de razonamiento → invocación de herramientas → respuesta final.</li>
 </ul></li>
 </ul></li>
 <li><code>run()</code>:
@@ -1148,15 +1144,15 @@ enabled</code></pre>
 <li><code>session_id (str)</code>: ID de la sesión del usuario.</li>
 <li><code>lista_precio (str)</code>: El nivel de lista de precios asociado al usuario, usado en el <em>prompt</em> del LLM.</li>
 </ul></li>
-<li><strong>Retorna</strong>: La respuesta generada por el modelo en invocación asíncrona.</li>
+<li><strong>Retorna</strong>: Un generador asíncrono que produce los fragmentos (tokens) de la respuesta conforme se generan.</li>
 <li><strong>Comportamiento</strong>:
 <ul>
 <li>Recupera el historial completo de la sesión (<code>get_session_history</code>).</li>
 <li>Trunca el historial (<code>trim_messages</code>) para ajustarse a la ventana de contexto del LLM, priorizando los mensajes más recientes.</li>
 <li>Si el <code>graph</code> no está construido, llama a <code>build_graph()</code>.</li>
-<li>Define los <code>inputs</code> para el <code>graph</code>, incluyendo la <code>query</code>, <code>chat_history</code>, <code>listaPrecio</code> y <code>session_id</code>.</li>
-<li>Utiliza <code>self.graph.ainvoke()</code> para obtener la respuesta final en modo asíncrono y mandarla al usuario.</li>
-<li>En el bloque <code>finally</code>, calcula la duración y los metadatos de la interacción.</li>
+<li>Arma los <code>inputs</code> (<code>messages</code>) y el <code>UserContext</code> (con <code>session_id</code> y <code>lista_precio</code>).</li>
+<li>Ejecuta <code>self.graph.astream(..., stream_mode=["messages", "values"])</code>: emite al cliente los tokens del modo <code>messages</code> conforme se generan (<em>streaming</em>), a la vez que acumula el texto completo y conserva el último estado de <code>values</code>.</li>
+<li>En el bloque <code>finally</code>, a partir de ese último estado obtiene el <code>usage_metadata</code> para calcular la duración, los tokens y el costo de la interacción.</li>
 <li>Persiste los mensajes del usuario y del asistente en las colecciones <code>sessions</code> y <code>message_backup</code> de MongoDB.</li>
 </ul></li>
 </ul></li>
@@ -1369,6 +1365,9 @@ enabled</code></pre>
 <p>Este módulo contiene las herramientas especializadas que el agente puede invocar. Se han ampliado para incluir búsquedas híbridas, análisis de datos en tiempo real y conexión con APIs externas como Algolia.</p>
 <section id="toolssearch_information.py" class="level5">
 <h5 class="anchored" data-anchor-id="toolssearch_information.py"><strong>tools/search_information.py</strong></h5>
+<blockquote class="blockquote">
+<p><strong>Nota:</strong> este módulo (RAG sobre FAISS) sigue presente en el código, pero actualmente <strong>no está registrado</strong> en el conjunto de herramientas activas del agente; la búsqueda de productos se atiende con <code>algolia_search_tool</code>. Se documenta por completitud y por si se reincorpora a futuro.</p>
+</blockquote>
 <p>Este módulo ha evolucionado para utilizar una estrategia de recuperación híbrida (<em>Ensemble Retrieval</em>), mejorando la precisión al combinar documentos de productos y promociones.</p>
 <ul>
 <li><strong>Clases y funciones clave</strong>:
@@ -1397,6 +1396,9 @@ enabled</code></pre>
 </section>
 <section id="toolsinventory.py" class="level5">
 <h5 class="anchored" data-anchor-id="toolsinventory.py"><strong>tools/inventory.py</strong></h5>
+<blockquote class="blockquote">
+<p><strong>Nota:</strong> este módulo sigue presente en el código, pero actualmente <strong>no está registrado</strong> en el conjunto de herramientas activas del agente; las existencias y precios se obtienen a través de <code>algolia_search_tool</code>. Se documenta por completitud.</p>
+</blockquote>
 <p>Este módulo define la herramienta <code>inventory_tool</code>, que permite al chatbot consultar la disponibilidad, precio y moneda de un producto específico en la base de datos MySQL.</p>
 <ul>
 <li><strong>Clases y funciones clave</strong>:
@@ -1442,12 +1444,10 @@ enabled</code></pre>
 </ul></li>
 <li><code>class SalesInput()</code>:
 <ul>
-<li><strong>Propósito</strong>: Define el esquema de entrada (parámetros) para la herramienta <code>sales_rule_tool</code> utilizando Pydantic.</li>
+<li><strong>Propósito</strong>: Define el esquema de entrada para la herramienta usando Pydantic.</li>
 <li><strong>Atributos</strong>:
 <ul>
-<li><code>clave (str)</code>: La clave única del producto en promoción.</li>
-<li><code>listaPrecio (int)</code>: El ID de la lista de precios a considerar.</li>
-<li><code>session_id (str)</code>: El ID de la sesión del usuario, utilizado para inferir la sucursal.</li>
+<li><code>claves (list[str])</code>: Lista de claves de productos en promoción a verificar <strong>en una sola llamada</strong> (p.&nbsp;ej. <code>['CPULEN9780','IMPMTB980']</code>). La lista de precios y la sucursal se toman del <code>UserContext</code> (<code>lista_precio</code>, <code>session_id</code>), no como parámetros de la herramienta.</li>
 </ul></li>
 </ul></li>
 <li><code>get_id_sucursal() -&gt; str</code>:
@@ -1467,23 +1467,24 @@ enabled</code></pre>
 <li><strong>Retorna</strong>: <code>str</code>: La cadena de la consulta SQL.</li>
 <li><strong>Comportamiento</strong>: La consulta filtra por promociones activas, producto, lista de precios y sucursal, ordenando por fecha de inicio para obtener la promoción más reciente.</li>
 </ul></li>
+<li><code>_format_promo(clave, result) -&gt; str</code>:
+<ul>
+<li><strong>Propósito</strong>: Construye el mensaje de promoción de <strong>una</strong> clave a partir de la fila devuelta por la BD (o <code>None</code>). Evalúa los tipos de promoción (precio de oferta, descuento porcentual, “en compra de X recibe Y”), calcula el <code>precio_final</code>, agrega límites/vigencia, o indica que no hay promoción vigente.</li>
+</ul></li>
 <li><code>sales_rules_tool() -&gt; str</code>:
 <ul>
-<li><strong>Propósito</strong>: Aplica las reglas de promoción para un producto dado, calculando el precio final y generando un mensaje descriptivo para el usuario.</li>
+<li><strong>Propósito</strong>: Aplica las reglas de promoción para <strong>una o varias</strong> claves en una sola invocación, devolviendo el resultado de cada una.</li>
 <li><strong>Parámetros</strong>:
 <ul>
-<li><code>clave (str)</code>: La clave del producto.</li>
-<li><code>listaPrecio (int)</code>: El ID de la lista de precios.</li>
-<li><code>session_id (str)</code>: El ID de la sesión del usuario.</li>
+<li><code>claves (list[str])</code>: Las claves de los productos a verificar.</li>
+<li><code>runtime (ToolRuntime[UserContext])</code>: Contexto con <code>session_id</code> y <code>lista_precio</code>.</li>
 </ul></li>
-<li><strong>Retorna</strong>: <code>str</code>: Una cadena de texto formateada que describe la promoción aplicada (precio, final, descuento, condiciones, vigencia) o un mensaje si el producto no está en promoción.</li>
+<li><strong>Retorna</strong>: <code>str</code>: El resultado por clave (una línea por producto), o un mensaje de error.</li>
 <li><strong>Comportamiento</strong>:
 <ul>
-<li>Obtiene el <code>id_sucursal</code> usando <code>obtener_id_sucursal()</code>.</li>
-<li>Se conecta a MySQL y ejecuta <code>query_sales()</code> para obtener los detalles de la promoción.</li>
-<li>Evalúa diferentes tipos de promociones (precio de oferta, descuento porcentual, “en compra de X recibe Y”).</li>
-<li>Calcula el <code>precio_final</code> y construye un mensaje descriptivo.</li>
-<li>Maneja casos donde la promoción no está vigente o el producto no se encuentra en promoción.</li>
+<li>Obtiene el <code>id_sucursal</code> una sola vez con <code>get_id_sucursal()</code>.</li>
+<li>Toma <strong>una</strong> conexión del <strong>pool</strong> (<code>get_mysql_connection</code>) y recorre todas las claves reutilizándola (un único <em>handshake</em> para todas, en lugar de uno por clave).</li>
+<li>Para cada clave ejecuta <code>query_sales()</code> y formatea el resultado con <code>_format_promo</code>.</li>
 <li>Incluye manejo de errores para problemas de base de datos o errores inesperados.</li>
 </ul></li>
 </ul></li>
@@ -1503,10 +1504,10 @@ enabled</code></pre>
 <li><p><strong>Lógica de Negocio</strong>:</p>
 <ul>
 <li><p>Identifica al usuario (Cliente CT o Vendedor) para aplicar filtros de seguridad.</p></li>
-<li><p><strong>Filtros HP</strong>: Ejecuta una consulta SQL especial para verificar si el cliente tiene restricciones o permisos especiales para ver productos de la marca HP (especial_hp).</p></li>
+<li><p><strong>Filtros HP</strong>: Ejecuta una consulta SQL especial (vía <code>query_exec</code>, que usa el <strong>pool de conexiones MySQL</strong>) para verificar si el cliente tiene restricciones o permisos especiales para ver productos de la marca HP (especial_hp).</p></li>
 <li><p><strong>Consulta</strong>: Envía la petición a Algolia aplicando filtros de existencia_sucursal y reglas de contexto.</p></li>
 </ul></li>
-<li><p><strong>Retorna</strong>: Un JSON codificado con los hits encontrados, incluyendo precio (validado por lista de precios), moneda, existencias en sucursal local vs global y estado de promoción.</p></li>
+<li><p><strong>Retorna</strong>: Un JSON codificado con los productos encontrados, incluyendo la <strong>clave CT</strong>, marca, modelo, precio (validado por lista de precios), moneda, existencias en la sucursal del usuario y en otras sucursales, estado de promoción, la URL del producto y su <strong>URL de imagen</strong> (<code>imagen_url</code>, que la interfaz usa para construir las tarjetas).</p></li>
 </ul></li>
 </ul></li>
 </ul>
@@ -1642,7 +1643,7 @@ enabled</code></pre>
 <li><strong>Comportamiento</strong>:
 <ol type="1">
 <li>Verifica si el usuario está actualmente baneado (usando <code>QueryModerator.check_if_banned</code>). Si es así, retorna un mensaje de baneo.</li>
-<li>Clasifica la <code>query</code> (usando <code>QueryModerator.classify_query</code>) en una de las categorías: <code>relevante</code>, <code>irrelevante</code>, o <code>inapropiado</code>.</li>
+<li>Clasifica la <code>query</code> (usando <code>QueryModerator.classify_query</code>, que invoca un modelo dedicado <strong>GPT-4.1-mini</strong> de forma <strong>asíncrona</strong> para no bloquear el <em>event loop</em>) en una de las categorías: <code>relevante</code>, <code>irrelevante</code> o <code>inapropiado</code>.</li>
 <li>Basado en la clasificación:</li>
 </ol>
 <ul>
@@ -1668,9 +1669,9 @@ enabled</code></pre>
 <ol type="1">
 <li>Asegura la existencia de la sesión en MongoDB (<code>ensure_session</code>).</li>
 <li>Recupera el historial de la sesión (<code>get_session_history</code>) y lo trunca para ajustarse a la ventana de contexto del LLM (<code>trim_messages</code>).</li>
-<li>Inicializa el <code>AgentExecutor</code> si no ha sido construido.</li>
-<li>Ejecuta la <code>query</code> a través del <code>AgentExecutor</code> de LangChain, que orquesta el uso del LLM y las herramientas (<code>search_information_tool</code>, <code>inventory_tool</code>, <code>sales_rules_tool</code>) según la necesidad de la consulta.</li>
-<li>Transmite la respuesta en fragmentos (<code>astream()</code>).</li>
+<li>Construye el grafo del agente con <code>create_agent</code> (LangGraph) si aún no existe.</li>
+<li>Ejecuta la <code>query</code> a través del grafo, que orquesta el uso del LLM y las herramientas (<code>algolia_search_tool</code>, <code>sales_rules_tool</code>, <code>status_tool</code>, etc.) según la necesidad de la consulta.</li>
+<li>Transmite la respuesta token a token con <code>astream(..., stream_mode=["messages", "values"])</code>: emite los tokens del modo <code>messages</code> y conserva el último estado de <code>values</code> para la metadata.</li>
 <li>Registra la interacción completa (pregunta, respuesta, métricas como tokens y costo) en las colecciones <code>sessions</code> y <code>message_backup</code> de MongoDB.</li>
 </ol></li>
 </ul></li>
@@ -1716,7 +1717,7 @@ enabled</code></pre>
 <li><code>request (QueryRequest)</code>: Objeto de solicitud Pydantic con la consulta del usuario, ID de usuario y lista de precios.</li>
 </ul></li>
 <li><strong>Retorna</strong>: <code>StreamingResponse</code>: Una respuesta HTTP que permite al cliente recibir los fragmentos de la respuesta en tiempo real a medida que se generan.</li>
-<li><strong>Comportamiento</strong>: Envuelve el <code>async_chat_generator</code> en una <code>StreamingResponse</code> con <code>media_type="text/event-stream"</code>.</li>
+<li><strong>Comportamiento</strong>: Envuelve el <code>async_chat_generator</code> en una <code>StreamingResponse</code> con <code>media_type="text/event-stream"</code> y cabeceras anti-<em>buffering</em> (<code>Cache-Control: no-cache</code>, <code>X-Accel-Buffering: no</code>) para que los proxies/Cloudflare no acumulen el stream y se conserve el efecto token a token.</li>
 </ul></li>
 <li><code>delete_chat_history_endpoint(user_id: str) -&gt; str</code>:
 <ul>
@@ -1733,16 +1734,17 @@ enabled</code></pre>
 </section>
 <section id="ctmain.py" class="level5">
 <h5 class="anchored" data-anchor-id="ctmain.py"><strong>ct/main.py</strong></h5>
-<p>Es el archivo principal de la aplicación FastAPI. Configura la aplicación, habilita CORS y registra los <em>endpoints</em> definidos en <code>ct.chat</code>.</p>
+<p>Es el archivo principal de la aplicación FastAPI. Configura la aplicación, el CORS, sirve el SDK del widget, aplica el endurecimiento de seguridad y registra los <em>endpoints</em> definidos en <code>ct.chat</code>.</p>
 <ul>
 <li><strong>Funciones clave</strong>:
 <ul>
-<li><code>app = FastAPI</code>: Inicializa la aplicación FastAPI.</li>
-<li><code>app.add_middleware(CORSMiddleware, ...)</code>: Configura el middleware de CORS para permitir solicitudes desde cualquier origen, métodos y cabeceras, lo cual es crucial para la integración del <em>widget</em> en diferentes dominios.</li>
-<li><code>@app.get("/history/{user_id}")</code>: Decorador que mapea la ruta GET <code>/history/{user_id}</code> a la función <code>handle_history</code>.</li>
+<li><code>app = FastAPI(lifespan=...)</code>: Inicializa la aplicación FastAPI; el <code>lifespan</code> carga el vector store FAISS al arrancar el servidor.</li>
+<li><code>app.add_middleware(CORSMiddleware, ...)</code>: Configura CORS a partir de <code>cors_origins()</code> (allowlist por la variable <code>CHATBOT_ALLOWED_ORIGINS</code>; <code>*</code> si no se define) con <code>allow_credentials=False</code>.</li>
+<li><code>app.mount("/sdk", StaticFiles(directory="ui"))</code>: Sirve los archivos del widget (<code>sdk.js</code>, <code>app.js</code>, <code>styles.css</code>, <code>chat.png</code>) desde el propio servidor.</li>
+<li><code>@app.get("/history/{user_id}", dependencies=[Depends(verify_origin)])</code>: Mapea la ruta GET <code>/history/{user_id}</code> a <code>handle_history</code>.</li>
 <li><code>handle_history(user_id: str)</code>: Llama a <code>get_chat_history</code> de <code>ct.chat</code> para obtener y retornar el historial.</li>
-<li><code>@app.post("/chat")</code>: Decorador que mapea la ruta POST <code>/chat</code> a la función <code>handle_chat</code>.</li>
-<li><code>handle_chat(request: QueryRequest)</code>: Llama a <code>async_chat_endpoint</code> de <code>ct.chat</code> para manejar la solicitud de chat y el <em>streaming</em> de la respuesta.</li>
+<li><code>@app.post("/chat", dependencies=[Depends(verify_origin), Depends(rate_limit)])</code>: Mapea la ruta POST <code>/chat</code> a <code>handle_chat</code>, aplicando la validación de Origin/Referer y el <em>rate limiting</em> (módulo <code>settings/security.py</code>).</li>
+<li><code>handle_chat(request: QueryRequest)</code>: Llama a <code>async_chat_endpoint</code> de <code>ct.chat</code> para manejar la solicitud y el <em>streaming</em> de la respuesta.</li>
 <li><code>@app.delete("/history/{user_id}")</code>: Decorador que mapea la ruta DELETE <code>/history/{user_id}</code> a la función <code>handle_delete_history</code>.</li>
 <li><code>handle_delete_history(user_id: str)</code>: Llama a <code>delete_chat_history_endpoint</code> de <code>ct.chat</code> para borrar el historial de un usuario.</li>
 <li><code>if __name__ == "__main__":</code>: Bloque de ejecución principal para correr la aplicación con Uvicorn en desarrollo. En producción con Gunicorn.</li>
@@ -2127,7 +2129,7 @@ enabled</code></pre>
 <h3 class="anchored" data-anchor-id="componentes-clave">4.1. Componentes clave</h3>
 <ul>
 <li><strong>Interfaz de usuario (widget del chatbot)</strong>: El componente frontal incrustado en la página web de CT Internacional, permitiendo la interacción directa del usuario.</li>
-<li><strong>Servicio intermediario PHP</strong>: Actúa como un puente seguro entre el <em>frontend</em> (HTTPS) y la API del chatbot (HTTPS pero con certificado autofirmado, o sea, no seguro) para resolver problemas de <em>contenido mixto</em>. Si el <em>backend</em> ya está en en HTTPS con un certificado SSL seguro, este componente puede ser obviado.</li>
+<li><strong>Servicio intermediario PHP (enfoque anterior, en desuso)</strong>: Se usó como puente entre el <em>frontend</em> (HTTPS) y la API con certificado autofirmado para resolver el <em>contenido mixto</em>. Con el <strong>dominio certificado</strong> (HTTPS válido vía Cloudflare) este componente se <strong>obvia</strong>: el frontend llama directo a la API y el SDK se sirve desde el propio servidor (<code>/sdk</code>).</li>
 <li><strong>API del chatbot (FastAPI)</strong>: El servicio <em>backend</em> principal que procesa las consultas de los usuarios, orquesta la recuperación de información y se comunica con los modelos de lenguaje.</li>
 <li><strong>Base de datos de productos y promociones (MySQL)</strong>: Almacena la información transaccional y de precios de los productos y promociones de CT Internacional. Es la fuente original de los datos.</li>
 <li><strong>Servicio de fichas técnicas</strong>: Fuente de datos para la información detallada y semi-estructurada (XML) de los productos.</li>
@@ -2144,7 +2146,7 @@ enabled</code></pre>
 </ul></li>
 <li><strong>Modelo de embeddings</strong>: Componente encargado de transformar tanto las consultas de los usuarios como la información de los productos en representaciones vectoriales numéricas (usando OpenAI Embeddings).</li>
 <li><strong>Base de datos vectorial (FAISS)</strong>: Almacena las representaciones vectoriales de la información de productos y ofertas, permitiendo búsquedas de similitud eficientes. Se actualiza con datos del ETL.</li>
-<li><strong>Clasificador de consultas (Ollama - <code>gemma3:4b</code>)</strong>: Componente central que, para consultas relevantes, coordina la búsqueda de información en la base de datos vectorial y contextualiza esta información con la consulta del usuario.</li>
+<li><strong>Clasificador de consultas (GPT-4.1-mini)</strong>: Modelo ligero y rápido que, de forma asíncrona, clasifica cada consulta como <code>relevante</code>, <code>irrelevante</code> o <code>inapropiado</code> antes de pasar al agente principal, evitando gastar el modelo grande en moderación.</li>
 <li><strong>LLM</strong>: El motor principal del chatbot para consultas relevantes, responsable de generar respuestas coherentes y detalladas en base a la consulta contextualizada por el RAG.</li>
 <li><strong>Sistema de reportes automatizados</strong>: Procesa los datos del <code>message_backup</code> en MongoDB para generar <em>insights</em> sobre el uso del chatbot, intereses de los clientes, costos y rendimiento.</li>
 </ul>
@@ -2153,15 +2155,15 @@ enabled</code></pre>
 <h3 class="anchored" data-anchor-id="flujo-de-interacción-principal">4.2. Flujo de interacción principal</h3>
 <ol type="1">
 <li>El <strong>usuario</strong> interactúa con el <strong>widget del chatbot</strong> en la página web.</li>
-<li>La consulta se envía a la <strong>API del chatbot</strong> (<strong>potencialmente vía el servicio intermediario PHP</strong>)</li>
+<li>La consulta se envía <strong>directamente</strong> a la <strong>API del chatbot</strong> (servida bajo un dominio certificado vía Cloudflare; ya no se requiere el intermediario PHP).</li>
 <li>La API crea o continúa una <strong>sesión de conversación</strong>, y la consulta es pasada al asistente conversacional.</li>
-<li>Si la consulta es <em>relevante</em>:</li>
+<li>Si la consulta es <em>relevante</em>, el <strong>agente (GPT-5)</strong> decide qué herramientas usar, por ejemplo:</li>
 </ol>
 <ul>
-<li><code>search_information_tool</code>: busca productos relevantes.</li>
-<li><code>inventory_tool</code>: obtiene precios, existencias y moneda por clave de producto.</li>
-<li><code>sales_rules_tool</code>: calcula el precio final considerando promociones o reglas de negocio.</li>
-<li>La información recuperada se contextualiza y se envía al <strong>LLM</strong> para generar la <strong>respuesta al usuario</strong>.</li>
+<li><code>algolia_search_tool</code>: busca productos relevantes (con clave, precio, existencias, promoción e imagen).</li>
+<li><code>sales_rules_tool</code>: verifica las promociones de varias claves en una sola llamada.</li>
+<li><code>status_tool</code>, <code>get_support_info</code>, <code>get_sucursales_info</code>, etc., según la necesidad.</li>
+<li>La información recuperada se contextualiza y el <strong>LLM</strong> genera la <strong>respuesta</strong>, que se transmite en <em>streaming</em> token a token e incluye, cuando aplica, tarjetas de producto y sugerencias accionables.</li>
 </ul>
 <ol start="5" type="1">
 <li>Si la consulta es <em>irrelevante</em> o <em>inapropiada</em>, el <strong>clasificador</strong> genera una respuesta adecuada (cortés o de advertencia) directamente al <strong>usuario</strong>.</li>
@@ -2176,11 +2178,56 @@ enabled</code></pre>
 <li>Los datos se transforman y las fichas técnicas se cargan en <strong>MongoDB</strong> (colección <code>specifications</code>).</li>
 <li>Los datos transformados de <code>products</code> y <code>sales</code> (incluyendo las fichas técnicas obtenidas de MongoDB) son utilizados por el <strong>módulo ETL</strong> para construir y actualizar la <strong>base de datos vectorial</strong>.</li>
 </ol>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="./images/arquitectura.jpg" class="img-fluid figure-img" style="width:120.0%"></p>
-<figcaption>Arquitectura del sistema</figcaption>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div id="fig-arquitectura" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-arquitectura-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div>
+<pre class="mermaid mermaid-js" data-label="fig-arquitectura">flowchart TB
+    U["Usuario"] --&gt; W["Widget SDK&lt;br/&gt;barra lateral · streaming&lt;br/&gt;tarjetas y sugerencias"]
+    W --&gt;|"HTTPS directo"| CF["Cloudflare&lt;br/&gt;dominio certificado"]
+    CF --&gt; API
+
+    subgraph SRV["Servidor — FastAPI + Gunicorn / Uvicorn"]
+        API["API FastAPI&lt;br/&gt;/chat (SSE) · /history · /sdk&lt;br/&gt;CORS allowlist · Origin · rate limit"]
+        MOD["ModeratedToolAgent"]
+        CLS{"QueryModerator&lt;br/&gt;GPT-4.1-mini"}
+        AG["ToolAgent · GPT-5&lt;br/&gt;create_agent (LangGraph)&lt;br/&gt;astream token a token"]
+        RESP["Respuesta predefinida&lt;br/&gt;+ ban progresivo"]
+        TOOLS["Herramientas&lt;br/&gt;algolia · sales_rules (batch) · status&lt;br/&gt;dólar · soporte · sucursales · who_are_we"]
+        API --&gt; MOD --&gt; CLS
+        CLS --&gt;|"relevante"| AG
+        CLS --&gt;|"irrelevante / inapropiado"| RESP
+        AG --&gt; TOOLS
+    end
+
+    AG -.-&gt;|"respuesta en streaming"| W
+    TOOLS --&gt; ALG["Algolia&lt;br/&gt;búsqueda de productos"]
+    TOOLS --&gt; MYSQL[("MySQL · pool&lt;br/&gt;precios · existencias · promos")]
+    TOOLS --&gt; FAISS[("FAISS&lt;br/&gt;soporte · políticas · garantías")]
+    AG --&gt; MONGO[("MongoDB&lt;br/&gt;sessions · message_backup&lt;br/&gt;specifications · pedidos")]
+    TOOLS --&gt; MONGO
+
+    subgraph KB["Conocimiento y ETL"]
+        ETL["ETL&lt;br/&gt;extraction → transform → load"]
+        FICHAS["Servicio de fichas técnicas"]
+    end
+    MYSQL --&gt; ETL
+    FICHAS --&gt; ETL
+    ETL --&gt; FAISS
+    ETL --&gt; MONGO
+
+    MONGO --&gt; REP["Reportes (Streamlit)&lt;br/&gt;análisis · RAGAS"]
+</pre>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-arquitectura-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figura&nbsp;1: Arquitectura actual del sistema
+</figcaption>
 </figure>
+</div>
+</div>
 </div>
 </section>
 </section>

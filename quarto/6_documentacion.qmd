@@ -13,7 +13,7 @@ toc-depth: 5
 
 ### 1.1. Configuraciones importantes
 
-* El proyecto está diseñado para ser desplegado en entornos **Linux o Windows** con **Python 3.12.9**. Requiere acceso a **Ollama** (para la ejecución de modelos *open-source* como `gemma3:12b`), así como conectividad a una instancia de **MongoDB** y bases de datos **MySQL**.
+* El proyecto está diseñado para ser desplegado en entornos **Linux o Windows** con **Python 3.12.9**. Usa modelos de **OpenAI** por defecto (GPT-5 como agente principal y GPT-4.1-mini para la moderación), por lo que requiere una `OPENAI_API_KEY` válida; **opcionalmente** puede usar modelos *open-source* vía **Ollama** (p. ej. `gemma3:12b`). Requiere además conectividad a una instancia de **MongoDB** y a las bases de datos **MySQL**.
 * La aplicación *backend* se expone a través de **FastAPI** en el puerto `8000`. Es crucial asegurar que este puerto esté abierto y accesible en el entorno de despliegue.
 * Archivo `.env` con variables cargadas.
 * Todas las credenciales y configuraciones sensibles se gestionan mediante un archivo de variables de entorno (`.env`), garantizando la seguridad y facilidad de configuración.
@@ -23,7 +23,7 @@ toc-depth: 5
 * **Python**: Versión 3.12.9.
 * **Pip**: Última versión.
 * **UV**: Última versión (gestor de paquetes y entornos).
-* **Ollama**: Instalado y en ejecución en el servidor para el *hosting* de modelos *open-source*.
+* **Ollama** (opcional): Instalado y en ejecución solo si se desean usar modelos *open-source* locales; no es necesario con la configuración por defecto (OpenAI).
 * **MySQL**: Acceso remoto configurado para la extracción de datos de productos y precios. 
 * **Podman**: Gestión y ejecución de los contenedores de los cuales depende la aplicación (MongoDB y Redis).
 * **MongoDB**: Acceso remoto configurado para las colecciones de historial, productos, ofertas y fichas técnicas.
@@ -66,7 +66,7 @@ uv pip install -e .
 
 #### 1.4.3. Asegurarse de estar corriendo los programas necesarios en el ambiente
 
-   Verifica que el servicio de Ollama esté instalado y activo, y que el modelo `gemma3:12b` esté disponible.
+   **(Opcional, solo si se usan modelos locales)** Verifica que el servicio de Ollama esté instalado y activo, y que el modelo `gemma3:12b` esté disponible. Con la configuración por defecto (OpenAI) este paso no es necesario.
 
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh # Para instalar Ollama
@@ -676,9 +676,9 @@ Con esto se valida que:
 
 ### 1.5. Instalación del frontend (Widget)
 
-1. **Cargar archivos del widget**: Los archivos del *frontend* (principalmente `sdk.js` y cualquier recurso gráfico como `chat.png`) deben ser cargados en el servidor donde reside el *frontend* de la página.
+El SDK del widget (`sdk.js`, `app.js`, `styles.css`, `chat.png`) se **sirve desde el propio servidor FastAPI** en la ruta `/sdk` (montada con `StaticFiles`). Por lo tanto, la página solo necesita incrustar **un único `<script>`** que apunte al dominio del chatbot; no hay que copiar archivos al servidor del sitio.
 
-2. **Incrustar el widget en el HTML**: Ejemplo de cómo se puede añadir el widget en la página web donde se desea que aparezca el chatbot.
+**Incrustar el widget en el HTML:**
 
 ```html
 <!DOCTYPE html>
@@ -688,22 +688,21 @@ Con esto se valida que:
   <title>Prueba del Widget</title>
 </head>
 <body>
-  <script 
-    src="sdk.js" 
-    data-user-id="test" 
-    data-user-key="2" 
-    data-api-base="https://ctdev.ctonline.mx/chatbot" 
-    data-chat-icon-url="chat.png" 
+  <script
+    src="https://<dominio-del-chatbot>/sdk/sdk.js"
+    data-user-id="test"
+    data-user-key="2"
     type="text/javascript">
   </script>
 </body>
 </html>
 ```
 
-**Notas importantes para el `data-api-base`:**
+**Notas:**
 
-* Si la API corre en HTTP y el *frontend* en HTTPS, se enfrentarán problemas de "contenido mixto". La solución propuesta fue usar un archivo PHP (*backend* del sitio web) como intermediario, el cual es crucial aquí. La API debe apuntar a este PHP y el PHP a su *frontend* donde se encuentra el widget.
-* La `data-api-base` es el dominio donde es accesible la API mediante PHP.
+* El `sdk.js` **deriva automáticamente** la URL base de la API y la ruta de los recursos (`app.js`, `styles.css`, `chat.png`) a partir del origen de su propio `<script>` (`document.currentScript.src`). Por eso ya **no se requiere `data-api-base`**: basta con que el `src` apunte al dominio certificado del chatbot.
+* Solo son obligatorios `data-user-id` y `data-user-key` (la lista de precios del usuario).
+* Este esquema reemplaza al _proxy_ PHP que se usaba antes para sortear el "contenido mixto": al servir la API bajo un dominio certificado (HTTPS, vía Cloudflare), el frontend llama directo y se habilita el _streaming_ (ver "Despliegue", sección 2.1).
 
 ### 1.6. Actualización de la base de conocimientos (ETL)
 
@@ -871,9 +870,9 @@ Este archivo contiene la lógica principal del agente conversacional, incluyendo
     * `__init__`: 
       * **Propósito**: Inicializa el agente, configurando el modelo LLM, conectando a MongoDB para la persistencia de sesiones e historial, cargando el _prompt_ principal del sistema y registrando las herramientas disponibles.
       * **Comportamiento**:
-        * Establece `self.model` a "gpt-4.1" (O cualquier modelo disponible en [https://reference.langchain.com/python/langchain/models/](https://reference.langchain.com/python/langchain/models/)).
+        * Establece `self.model` a `"gpt-5"` y crea un `ChatOpenAI` con `reasoning_effort="low"` (respuestas más rápidas), `stream_usage=True` (para registrar el consumo de tokens al transmitir en _streaming_) y un `InMemoryRateLimiter` que acota las peticiones por segundo al proveedor.
         * Inicializa las conexiones a las colecciones de MongoDB (`sessions`, `message_backup`).
-        * Define `self.tools` como una lista de objetos `Tool`, que el agente puede invocar. Estas herramientas incluyen `search_information_tool`, `inventory_tool` y `sales_rules_tool`, entre otras. Cada una con su descripción y esquema de argumentos (`args_schema`) cuando aplica.
+        * Define `self.tools` como la lista de herramientas registradas con el decorador `@tool`: `algolia_search_tool`, `sales_rules_tool`, `dolar_convertion_tool`, `status_tool`, `get_support_info`, `who_are_we` y `get_sucursales_info`.
         * `self.graph` se inicializa a `None` y se construye bajo demanda.
 
     * `clear_session_history() -> bool`:  
@@ -894,9 +893,8 @@ Este archivo contiene la lógica principal del agente conversacional, incluyendo
       * **Propósito**: Construye el `agente` de LangGraph, que es el componente principal que orquesta la interacción entre el LLM, las herramientas y el _prompt_.
       * **Parámetros**: Ninguno (usa atributos de la clase).
       * **Comportamiento**:
-        * Crea un `ChatOpenAI` LLM con el modelo y la configuración de _streaming_.
-        * Crea un agente de funciones de OpenAI (`create_openai_functions_agent`) vinculando el LLM, las herramientas y el _prompt_.
-        * Inicializa `self.executor` como una instancia de `AgentExecutor`, configurándolo para ser `verbose=False` y con un `max_iterations` para controlar la profundidad de la ejecución del agente.
+        * Construye el agente con `create_agent` (LangGraph), vinculando el LLM, las herramientas, el _prompt_ del sistema (`system_prompt`), el `context_schema` (`UserContext`, que aporta `session_id` y `lista_precio`) y una caché en memoria (`InMemoryCache`).
+        * El grafo resultante se guarda en `self.graph` y orquesta el ciclo de razonamiento → invocación de herramientas → respuesta final.
 
     * `run()`:
       * **Propósito**: Ejecuta una consulta del usuario a través del agente, gestiona el historial de chat, recopila métricas y transmite la respuesta en tiempo real.
@@ -904,14 +902,14 @@ Este archivo contiene la lógica principal del agente conversacional, incluyendo
         * `query (str)`: La pregunta del usuario.
         * `session_id (str)`: ID de la sesión del usuario.
         * `lista_precio (str)`: El nivel de lista de precios asociado al usuario, usado en el *prompt* del LLM.
-      * **Retorna**: La respuesta generada por el modelo en invocación asíncrona.
-      * **Comportamiento**: 
+      * **Retorna**: Un generador asíncrono que produce los fragmentos (tokens) de la respuesta conforme se generan.
+      * **Comportamiento**:
         * Recupera el historial completo de la sesión (`get_session_history`).
         * Trunca el historial (`trim_messages`) para ajustarse a la ventana de contexto del LLM, priorizando los mensajes más recientes.
         * Si el `graph` no está construido, llama a `build_graph()`.
-        * Define los `inputs` para el `graph`, incluyendo la `query`, `chat_history`, `listaPrecio` y `session_id`.
-        * Utiliza `self.graph.ainvoke()` para obtener la respuesta final en modo asíncrono y mandarla al usuario.
-        * En el bloque `finally`, calcula la duración y los metadatos de la interacción.
+        * Arma los `inputs` (`messages`) y el `UserContext` (con `session_id` y `lista_precio`).
+        * Ejecuta `self.graph.astream(..., stream_mode=["messages", "values"])`: emite al cliente los tokens del modo `messages` conforme se generan (_streaming_), a la vez que acumula el texto completo y conserva el último estado de `values`.
+        * En el bloque `finally`, a partir de ese último estado obtiene el `usage_metadata` para calcular la duración, los tokens y el costo de la interacción.
         * Persiste los mensajes del usuario y del asistente en las colecciones `sessions` y `message_backup` de MongoDB.
 
     * `get_session_history() -> list[BaseMessage]`:
@@ -1060,6 +1058,8 @@ Este módulo contiene las herramientas especializadas que el agente puede invoca
 
 ##### **tools/search_information.py**
 
+> **Nota:** este módulo (RAG sobre FAISS) sigue presente en el código, pero actualmente **no está registrado** en el conjunto de herramientas activas del agente; la búsqueda de productos se atiende con `algolia_search_tool`. Se documenta por completitud y por si se reincorpora a futuro.
+
 Este módulo ha evolucionado para utilizar una estrategia de recuperación híbrida (*Ensemble Retrieval*), mejorando la precisión al combinar documentos de productos y promociones.
 
   * **Clases y funciones clave**:
@@ -1078,6 +1078,8 @@ Este módulo ha evolucionado para utilizar una estrategia de recuperación híbr
       * **Propósito**: Permite una búsqueda directa y exacta por clave de producto (SKU) utilizando un índice en memoria (index_por_clave). Útil cuando el usuario menciona explícitamente un código.
 
 ##### **tools/inventory.py**
+
+> **Nota:** este módulo sigue presente en el código, pero actualmente **no está registrado** en el conjunto de herramientas activas del agente; las existencias y precios se obtienen a través de `algolia_search_tool`. Se documenta por completitud.
 
 Este módulo define la herramienta `inventory_tool`, que permite al chatbot consultar la disponibilidad, precio y moneda de un producto específico en la base de datos MySQL.
 
@@ -1109,11 +1111,9 @@ Este módulo define la herramienta `sales_rules_tool`, que permite al chatbot ap
     * **Propósito**: Un diccionario global cargado desde un archivo JSON (`ID_SUCURSAL`) que mapea nemónicos de sucursal a sus IDs.
   
   * `class SalesInput()`:
-    * **Propósito**: Define el esquema de entrada (parámetros) para la herramienta `sales_rule_tool` utilizando Pydantic.
+    * **Propósito**: Define el esquema de entrada para la herramienta usando Pydantic.
     * **Atributos**:
-      * `clave (str)`: La clave única del producto en promoción.
-      * `listaPrecio (int)`: El ID de la lista de precios a considerar.
-      * `session_id (str)`: El ID de la sesión del usuario, utilizado para inferir la sucursal.
+      * `claves (list[str])`: Lista de claves de productos en promoción a verificar **en una sola llamada** (p. ej. `['CPULEN9780','IMPMTB980']`). La lista de precios y la sucursal se toman del `UserContext` (`lista_precio`, `session_id`), no como parámetros de la herramienta.
 
   * `get_id_sucursal() -> str`:
     * **Propósito**: Extrae el ID de la sucursal a partir del `session_id` del usuario, utilizando patrones predefinidos (e.g., "XXCTIN" o nemónicos como "HMO").
@@ -1128,19 +1128,19 @@ Este módulo define la herramienta `sales_rules_tool`, que permite al chatbot ap
     * **Retorna**: `str`: La cadena de la consulta SQL.
     * **Comportamiento**: La consulta filtra por promociones activas, producto, lista de precios y sucursal, ordenando por fecha de inicio para obtener la promoción más reciente.
 
+  * `_format_promo(clave, result) -> str`:
+    * **Propósito**: Construye el mensaje de promoción de **una** clave a partir de la fila devuelta por la BD (o `None`). Evalúa los tipos de promoción (precio de oferta, descuento porcentual, "en compra de X recibe Y"), calcula el `precio_final`, agrega límites/vigencia, o indica que no hay promoción vigente.
+
   * `sales_rules_tool() -> str`:
-    * **Propósito**: Aplica las reglas de promoción para un producto dado, calculando el precio final y generando un mensaje descriptivo para el usuario.
+    * **Propósito**: Aplica las reglas de promoción para **una o varias** claves en una sola invocación, devolviendo el resultado de cada una.
     * **Parámetros**:
-      * `clave (str)`: La clave del producto.
-      * `listaPrecio (int)`: El ID de la lista de precios.
-      * `session_id (str)`: El ID de la sesión del usuario.
-    * **Retorna**: `str`: Una cadena de texto formateada que describe la promoción aplicada (precio, final, descuento, condiciones, vigencia) o un mensaje si el producto no está en promoción.
+      * `claves (list[str])`: Las claves de los productos a verificar.
+      * `runtime (ToolRuntime[UserContext])`: Contexto con `session_id` y `lista_precio`.
+    * **Retorna**: `str`: El resultado por clave (una línea por producto), o un mensaje de error.
     * **Comportamiento**:
-      * Obtiene el `id_sucursal` usando `obtener_id_sucursal()`.
-      * Se conecta a MySQL y ejecuta `query_sales()` para obtener los detalles de la promoción.
-      * Evalúa diferentes tipos de promociones (precio de oferta, descuento porcentual, "en compra de X recibe Y").
-      * Calcula el `precio_final` y construye un mensaje descriptivo.
-      * Maneja casos donde la promoción no está vigente o el producto no se encuentra en promoción.
+      * Obtiene el `id_sucursal` una sola vez con `get_id_sucursal()`.
+      * Toma **una** conexión del **pool** (`get_mysql_connection`) y recorre todas las claves reutilizándola (un único _handshake_ para todas, en lugar de uno por clave).
+      * Para cada clave ejecuta `query_sales()` y formatea el resultado con `_format_promo`.
       * Incluye manejo de errores para problemas de base de datos o errores inesperados.
 
 ##### **tools/algolia.py**
@@ -1157,11 +1157,11 @@ Integra el motor de búsqueda de Algolia para consultas comerciales precisas, fi
 
       * Identifica al usuario (Cliente CT o Vendedor) para aplicar filtros de seguridad.
 
-      * **Filtros HP**: Ejecuta una consulta SQL especial para verificar si el cliente tiene restricciones o permisos especiales para ver productos de la marca HP (especial_hp).
+      * **Filtros HP**: Ejecuta una consulta SQL especial (vía `query_exec`, que usa el **pool de conexiones MySQL**) para verificar si el cliente tiene restricciones o permisos especiales para ver productos de la marca HP (especial_hp).
 
       * **Consulta**: Envía la petición a Algolia aplicando filtros de existencia_sucursal y reglas de contexto.
 
-    * **Retorna**: Un JSON codificado con los hits encontrados, incluyendo precio (validado por lista de precios), moneda, existencias en sucursal local vs global y estado de promoción.
+    * **Retorna**: Un JSON codificado con los productos encontrados, incluyendo la **clave CT**, marca, modelo, precio (validado por lista de precios), moneda, existencias en la sucursal del usuario y en otras sucursales, estado de promoción, la URL del producto y su **URL de imagen** (`imagen_url`, que la interfaz usa para construir las tarjetas).
 
 ##### **tools/support.py**
 
@@ -1258,7 +1258,7 @@ Estos son los principales puntos de inicio para interactuar con las funcionalida
     * `listaPrecio (str)`: El nivel o clave de precio específico del cliente, que se pasa al LLM para asegurar la precisión de los precios en las consultas dinámicas (ej. precios y promociones).
   * **Comportamiento**:
     1. Verifica si el usuario está actualmente baneado (usando `QueryModerator.check_if_banned`). Si es así, retorna un mensaje de baneo.
-    2. Clasifica la `query` (usando `QueryModerator.classify_query`) en una de las categorías: `relevante`, `irrelevante`, o `inapropiado`.
+    2. Clasifica la `query` (usando `QueryModerator.classify_query`, que invoca un modelo dedicado **GPT-4.1-mini** de forma **asíncrona** para no bloquear el _event loop_) en una de las categorías: `relevante`, `irrelevante` o `inapropiado`.
     3. Basado en la clasificación:
       * Si es `relevante`, delega la ejecución al `ToolAgent.run()` para obtener una respuesta detallada con el uso de herramientas y la base de datos vectorial.
 
@@ -1277,9 +1277,9 @@ Estos son los principales puntos de inicio para interactuar con las funcionalida
   * **Comportamiento**:
     1. Asegura la existencia de la sesión en MongoDB (`ensure_session`).
     2. Recupera el historial de la sesión (`get_session_history`) y lo trunca para ajustarse a la ventana de contexto del LLM (`trim_messages`).
-    3. Inicializa el `AgentExecutor` si no ha sido construido.
-    4. Ejecuta la `query` a través del `AgentExecutor` de LangChain, que orquesta el uso del LLM y las herramientas (`search_information_tool`, `inventory_tool`, `sales_rules_tool`) según la necesidad de la consulta.
-    5. Transmite la respuesta en fragmentos (`astream()`).
+    3. Construye el grafo del agente con `create_agent` (LangGraph) si aún no existe.
+    4. Ejecuta la `query` a través del grafo, que orquesta el uso del LLM y las herramientas (`algolia_search_tool`, `sales_rules_tool`, `status_tool`, etc.) según la necesidad de la consulta.
+    5. Transmite la respuesta token a token con `astream(..., stream_mode=["messages", "values"])`: emite los tokens del modo `messages` y conserva el último estado de `values` para la metadata.
     6. Registra la interacción completa (pregunta, respuesta, métricas como tokens y costo) en las colecciones `sessions` y `message_backup` de MongoDB.
   
 #### 2.1.5. Ejecución de la API
@@ -1312,7 +1312,7 @@ Este módulo define los _endpoints_ de la API FastAPI para la interacción del c
     * **Parámetros**
       * `request (QueryRequest)`: Objeto de solicitud Pydantic con la consulta del usuario, ID de usuario y lista de precios.
     * **Retorna**: `StreamingResponse`: Una respuesta HTTP que permite al cliente recibir los fragmentos de la respuesta en tiempo real a medida que se generan.
-    * **Comportamiento**: Envuelve el `async_chat_generator` en una `StreamingResponse` con `media_type="text/event-stream"`.
+    * **Comportamiento**: Envuelve el `async_chat_generator` en una `StreamingResponse` con `media_type="text/event-stream"` y cabeceras anti-_buffering_ (`Cache-Control: no-cache`, `X-Accel-Buffering: no`) para que los proxies/Cloudflare no acumulen el stream y se conserve el efecto token a token.
 
   * `delete_chat_history_endpoint(user_id: str) -> str`: 
     * **Propósito**: _Endpoint_ HTTP DELETE para eliminar el historial de chat de un usuario específico.
@@ -1323,15 +1323,16 @@ Este módulo define los _endpoints_ de la API FastAPI para la interacción del c
 
 ##### **ct/main.py**
 
-Es el archivo principal de la aplicación FastAPI. Configura la aplicación, habilita CORS y registra los *endpoints* definidos en `ct.chat`.
+Es el archivo principal de la aplicación FastAPI. Configura la aplicación, el CORS, sirve el SDK del widget, aplica el endurecimiento de seguridad y registra los *endpoints* definidos en `ct.chat`.
 
 * **Funciones clave**:
-  * `app = FastAPI`: Inicializa la aplicación FastAPI.
-  * `app.add_middleware(CORSMiddleware, ...)`: Configura el middleware de CORS para permitir solicitudes desde cualquier origen, métodos y cabeceras, lo cual es crucial para la integración del *widget* en diferentes dominios.
-  * `@app.get("/history/{user_id}")`: Decorador que mapea la ruta GET `/history/{user_id}` a la función `handle_history`.
+  * `app = FastAPI(lifespan=...)`: Inicializa la aplicación FastAPI; el `lifespan` carga el vector store FAISS al arrancar el servidor.
+  * `app.add_middleware(CORSMiddleware, ...)`: Configura CORS a partir de `cors_origins()` (allowlist por la variable `CHATBOT_ALLOWED_ORIGINS`; `*` si no se define) con `allow_credentials=False`.
+  * `app.mount("/sdk", StaticFiles(directory="ui"))`: Sirve los archivos del widget (`sdk.js`, `app.js`, `styles.css`, `chat.png`) desde el propio servidor.
+  * `@app.get("/history/{user_id}", dependencies=[Depends(verify_origin)])`: Mapea la ruta GET `/history/{user_id}` a `handle_history`.
   * `handle_history(user_id: str)`: Llama a `get_chat_history` de `ct.chat` para obtener y retornar el historial.
-  * `@app.post("/chat")`: Decorador que mapea la ruta POST `/chat` a la función `handle_chat`.
-  * `handle_chat(request: QueryRequest)`: Llama a `async_chat_endpoint` de `ct.chat` para manejar la solicitud de chat y el *streaming* de la respuesta.
+  * `@app.post("/chat", dependencies=[Depends(verify_origin), Depends(rate_limit)])`: Mapea la ruta POST `/chat` a `handle_chat`, aplicando la validación de Origin/Referer y el _rate limiting_ (módulo `settings/security.py`).
+  * `handle_chat(request: QueryRequest)`: Llama a `async_chat_endpoint` de `ct.chat` para manejar la solicitud y el *streaming* de la respuesta.
   * `@app.delete("/history/{user_id}")`: Decorador que mapea la ruta DELETE `/history/{user_id}` a la función `handle_delete_history`.
   * `handle_delete_history(user_id: str)`: Llama a `delete_chat_history_endpoint` de `ct.chat` para borrar 
   el historial de un usuario.
@@ -1621,7 +1622,7 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
 
 ### 4.1. Componentes clave
 * **Interfaz de usuario (widget del chatbot)**: El componente frontal incrustado en la página web de CT Internacional, permitiendo la interacción directa del usuario.
-* **Servicio intermediario PHP**: Actúa como un puente seguro entre el *frontend* (HTTPS) y la API del chatbot (HTTPS pero con certificado autofirmado, o sea, no seguro) para resolver problemas de *contenido mixto*. Si el *backend* ya está en en HTTPS con un certificado SSL seguro, este componente puede ser obviado.
+* **Servicio intermediario PHP (enfoque anterior, en desuso)**: Se usó como puente entre el *frontend* (HTTPS) y la API con certificado autofirmado para resolver el *contenido mixto*. Con el **dominio certificado** (HTTPS válido vía Cloudflare) este componente se **obvia**: el frontend llama directo a la API y el SDK se sirve desde el propio servidor (`/sdk`).
 * **API del chatbot (FastAPI)**: El servicio *backend* principal que procesa las consultas de los usuarios, orquesta la recuperación de información y se comunica con los modelos de lenguaje.
 * **Base de datos de productos y promociones (MySQL)**: Almacena la información transaccional y de precios de los productos y promociones de CT Internacional. Es la fuente original de los datos.
 * **Servicio de fichas técnicas**: Fuente de datos para la información detallada y semi-estructurada (XML) de los productos.
@@ -1634,19 +1635,19 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
   * `message_backup`: Almacena un historial completo de todas las consultas y respuestas con métricas detalladas para fines de análisis y reportes.
 * **Modelo de embeddings**: Componente encargado de transformar tanto las consultas de los usuarios como la información de los productos en representaciones vectoriales numéricas (usando OpenAI Embeddings).
 * **Base de datos vectorial (FAISS)**: Almacena las representaciones vectoriales de la información de productos y ofertas, permitiendo búsquedas de similitud eficientes. Se actualiza con datos del ETL.
-* **Clasificador de consultas (Ollama - `gemma3:4b`)**: Componente central que, para consultas relevantes, coordina la búsqueda de información en la base de datos vectorial y contextualiza esta información con la consulta del usuario.
+* **Clasificador de consultas (GPT-4.1-mini)**: Modelo ligero y rápido que, de forma asíncrona, clasifica cada consulta como `relevante`, `irrelevante` o `inapropiado` antes de pasar al agente principal, evitando gastar el modelo grande en moderación.
 * **LLM**: El motor principal del chatbot para consultas relevantes, responsable de generar respuestas coherentes y detalladas en base a la consulta contextualizada por el RAG.
 * **Sistema de reportes automatizados**: Procesa los datos del `message_backup` en MongoDB para generar *insights* sobre el uso del chatbot, intereses de los clientes, costos y rendimiento.
 
 ### 4.2. Flujo de interacción principal
 1. El **usuario** interactúa con el **widget del chatbot** en la página web.
-2. La consulta se envía a la **API del chatbot** (**potencialmente vía el servicio intermediario PHP**)
+2. La consulta se envía **directamente** a la **API del chatbot** (servida bajo un dominio certificado vía Cloudflare; ya no se requiere el intermediario PHP).
 3. La API crea o continúa una **sesión de conversación**, y la consulta es pasada al asistente conversacional.
-4. Si la consulta es *relevante*:
-  * `search_information_tool`: busca productos relevantes.
-  * `inventory_tool`: obtiene precios, existencias y moneda por clave de producto.
-  * `sales_rules_tool`: calcula el precio final considerando promociones o reglas de negocio.
-  * La información recuperada se contextualiza y se envía al **LLM** para generar la **respuesta al usuario**.
+4. Si la consulta es *relevante*, el **agente (GPT-5)** decide qué herramientas usar, por ejemplo:
+  * `algolia_search_tool`: busca productos relevantes (con clave, precio, existencias, promoción e imagen).
+  * `sales_rules_tool`: verifica las promociones de varias claves en una sola llamada.
+  * `status_tool`, `get_support_info`, `get_sucursales_info`, etc., según la necesidad.
+  * La información recuperada se contextualiza y el **LLM** genera la **respuesta**, que se transmite en _streaming_ token a token e incluye, cuando aplica, tarjetas de producto y sugerencias accionables.
 5. Si la consulta es *irrelevante* o *inapropiada*, el **clasificador** genera una respuesta adecuada (cortés o de advertencia) directamente al **usuario**.
 6. Todas las interacciones (consultas y respuestas) se registran en las colecciones `sessions` y `message_backup` en **MongoDB**.
 7. El **sistema de reportes automatizados** accede a `message_backup` para generar análisis de datos.
@@ -1656,7 +1657,45 @@ El siguiente diagrama ilustra la arquitectura general del ssitema del chatbot, m
 2. Los datos se transforman y las fichas técnicas se cargan en **MongoDB** (colección `specifications`).
 3. Los datos transformados  de `products` y `sales` (incluyendo las fichas técnicas obtenidas de MongoDB) son utilizados por el **módulo ETL** para construir y actualizar la **base de datos vectorial**.
 
-![Arquitectura del sistema](./images/arquitectura.jpg){width=120%}
+```{mermaid}
+%%| label: fig-arquitectura
+%%| fig-cap: "Arquitectura actual del sistema"
+flowchart TB
+    U["Usuario"] --> W["Widget SDK<br/>barra lateral · streaming<br/>tarjetas y sugerencias"]
+    W -->|"HTTPS directo"| CF["Cloudflare<br/>dominio certificado"]
+    CF --> API
+
+    subgraph SRV["Servidor — FastAPI + Gunicorn / Uvicorn"]
+        API["API FastAPI<br/>/chat (SSE) · /history · /sdk<br/>CORS allowlist · Origin · rate limit"]
+        MOD["ModeratedToolAgent"]
+        CLS{"QueryModerator<br/>GPT-4.1-mini"}
+        AG["ToolAgent · GPT-5<br/>create_agent (LangGraph)<br/>astream token a token"]
+        RESP["Respuesta predefinida<br/>+ ban progresivo"]
+        TOOLS["Herramientas<br/>algolia · sales_rules (batch) · status<br/>dólar · soporte · sucursales · who_are_we"]
+        API --> MOD --> CLS
+        CLS -->|"relevante"| AG
+        CLS -->|"irrelevante / inapropiado"| RESP
+        AG --> TOOLS
+    end
+
+    AG -.->|"respuesta en streaming"| W
+    TOOLS --> ALG["Algolia<br/>búsqueda de productos"]
+    TOOLS --> MYSQL[("MySQL · pool<br/>precios · existencias · promos")]
+    TOOLS --> FAISS[("FAISS<br/>soporte · políticas · garantías")]
+    AG --> MONGO[("MongoDB<br/>sessions · message_backup<br/>specifications · pedidos")]
+    TOOLS --> MONGO
+
+    subgraph KB["Conocimiento y ETL"]
+        ETL["ETL<br/>extraction → transform → load"]
+        FICHAS["Servicio de fichas técnicas"]
+    end
+    MYSQL --> ETL
+    FICHAS --> ETL
+    ETL --> FAISS
+    ETL --> MONGO
+
+    MONGO --> REP["Reportes (Streamlit)<br/>análisis · RAGAS"]
+```
 :::
 
 ::: {style="text-align: justify"}

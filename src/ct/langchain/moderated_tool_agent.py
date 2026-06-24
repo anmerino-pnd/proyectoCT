@@ -18,7 +18,7 @@ class ModeratedToolAgent:
             yield ban_message
             return
 
-        label = self.moderator.classify_query(query, session_id=session_id).strip().lower()
+        label = (await self.moderator.classify_query(query, session_id=session_id)).strip().lower()
 
         if label == "relevante":
             async for chunk in self.tool_agent.run(query, session_id, lista_precio=listaPrecio):

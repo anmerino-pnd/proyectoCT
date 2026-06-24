@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from ct.settings.config import ID_SUCURSAL
 from ct.settings.schemas import UserContext
 from langchain.tools import ToolRuntime, tool
-from ct.settings.clients import ip, port, user, pwd, database
+from ct.settings.clients import get_mysql_connection
 import pymysql
 pymysql.install_as_MySQLdb()
 
@@ -24,7 +24,10 @@ def _load_sucursales() -> list:
 
 
 class SalesInput(BaseModel):
-    clave: str = Field(description="Clave del producto")
+    claves: list[str] = Field(
+        description="Lista de claves de productos en promoción a verificar en UNA sola llamada "
+                    "(p.ej. ['CPULEN9780','IMPMTB980'])"
+    )
 
 def get_id_sucursal(session_id: str) -> str:
     match_ctin = re.match(r"^(\d{2})CTIN", session_id)
@@ -76,62 +79,64 @@ ORDER BY
 LIMIT 1;
 """
 
+def _format_promo(clave: str, result) -> str:
+    """Construye el mensaje de promoción de UNA clave a partir de la fila de la BD (o None)."""
+    if not result:
+        return f"{clave}: El producto ya no se encuentra en promoción"
+
+    precio = result[0]          # Precio original
+    precio_oferta = result[1]   # Precio de promoción
+    descuento = result[2]       # Descuento en porcentaje
+    EnCompraDe = result[3]
+    Unidades = result[4]
+    limitadoA = result[5]
+    fecha_inicio = result[7]
+    fecha_fin = result[8]
+    moneda = "MXN" if result[9] == 1 else "USD"
+
+    ahora = datetime.now().date()
+    if fecha_inicio and fecha_inicio > ahora:
+        return f"{clave}: ${precio:.2f} {moneda} (sin promoción vigente)"
+
+    mensaje = []
+    precio_final = precio
+    if precio_oferta > 0:
+        if precio_oferta > precio:
+            return f"{clave}: Cambio de precio base a ${precio_oferta:.2f} {moneda}, no se considera promoción"
+        precio_final = precio_oferta
+        mensaje.append(f"{clave}: ${precio_final:.2f} {moneda}")
+    elif descuento > 0:
+        precio_final = round(precio * (1 - descuento / 100), 2)
+        mensaje.append(f"{clave}: ~${precio:.2f}~ ${precio_final:.2f} {moneda} ({descuento:.0f}% desc)")
+    elif EnCompraDe > 0 and Unidades > 0:
+        mensaje.append(f"{clave}: En compra de {EnCompraDe}, recibe {Unidades} gratis")
+
+    if limitadoA > 0:
+        mensaje.append(f"Limitado a {limitadoA} unidades por cliente")
+    if fecha_fin:
+        mensaje.append(f"Vigente hasta el {fecha_fin.strftime('%d-%b-%Y')}")
+
+    return ", ".join(mensaje)
+
+
 @tool(args_schema=SalesInput)
-def sales_rules_tool(clave: str,
+def sales_rules_tool(claves: list[str],
                      runtime: ToolRuntime[UserContext]) -> str:
-    """Función de las reglas de ofertas y promociones que se deben seguir"""
+    """Reglas de ofertas y promociones. Acepta VARIAS claves en una sola llamada (una conexión)."""
     cnx = None
     cursor = None
     try:
         id_sucursal = get_id_sucursal(runtime.context.session_id)
 
-        cnx = mysql.connector.connect(
-            host=ip, port=port, user=user, password=pwd, database=database,
-            read_timeout=60, write_timeout=15
-        )
+        cnx = get_mysql_connection()
         cursor = cnx.cursor()
-        cursor.execute(query_sales(), (runtime.context.lista_precio, clave, id_sucursal))
-        result = cursor.fetchone()
 
-        if result:
-            precio = result[0]          # Precio original
-            precio_oferta = result[1]   # Precio de promoción
-            descuento = result[2]       # Descuento en porcentaje
-            EnCompraDe = result[3]
-            Unidades = result[4]
-            limitadoA = result[5]
-            fecha_inicio = result[7]
-            fecha_fin = result[8]
-            moneda = "MXN" if result[9] == 1 else "USD"
+        partes = []
+        for clave in claves:
+            cursor.execute(query_sales(), (runtime.context.lista_precio, clave, id_sucursal))
+            partes.append(_format_promo(clave, cursor.fetchone()))
 
-            mensaje = []
-            ahora = datetime.now().date()
-
-            if fecha_inicio and fecha_inicio > ahora:
-                return f"{clave}: ${precio:.2f} {moneda} (sin promoción vigente)"
-
-            precio_final = precio
-
-            if precio_oferta > 0:
-                if precio_oferta > precio:
-                    return f"{clave}: Cambio de precio base a ${precio_oferta:.2f} {moneda}, no se considera promoción"
-                else:
-                    precio_final = precio_oferta
-                    mensaje.append(f"{clave}: ${precio_final:.2f} {moneda}")
-            elif descuento > 0:
-                precio_final = round(precio * (1 - descuento / 100), 2)
-                mensaje.append(f"{clave}: ~${precio:.2f}~ ${precio_final:.2f} {moneda} ({descuento:.0f}% desc)")
-            elif EnCompraDe > 0 and Unidades > 0:
-                mensaje.append(f"{clave}: En compra de {EnCompraDe}, recibe {Unidades} gratis")
-
-            if limitadoA > 0:
-                mensaje.append(f"Limitado a {limitadoA} unidades por cliente")
-            if fecha_fin:
-                mensaje.append(f"Vigente hasta el {fecha_fin.strftime('%d-%b-%Y')}")
-
-            return ", ".join(mensaje)
-
-        return f"{clave}: El producto ya no se encuentra en promoción"
+        return "\n".join(partes)
 
     except mysql.connector.Error as err:
         return f"Error de base de datos: {err}"

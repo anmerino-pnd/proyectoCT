@@ -15,18 +15,18 @@ El objetivo de esta fase es desarrollar la arquitectura del sistema de recuperac
 
 ### 1.1. Modelos
 
-Dado que el enfoque del proyecto se basa en herramientas de OpenAI, los modelos considerados para esta fase son los siguientes:
+El proyecto se apoya principalmente en modelos de OpenAI, y la selección se actualiza conforme salen modelos más rápidos y capaces. Actualmente se usan dos modelos con roles distintos:
 
-- **GPT-4o-mini:**  
-  Una versión ligera de GPT-4o, diseñada para ofrecer un buen balance entre costo, velocidad de respuesta y calidad en tareas de lenguaje natural. Es ideal para pruebas rápidas o implementaciones donde se requiere eficiencia.
+- **GPT-5 (agente principal):**
+  Orquesta el razonamiento, la invocación de herramientas y la generación de la respuesta final. Se ejecuta con `reasoning_effort="low"` para priorizar la velocidad (el caso de uso requiere respuestas rápidas con poco razonamiento) y con `stream_usage=True` para registrar el consumo de tokens al transmitir en _streaming_.
 
-- **GPT-4o:**  
-  Modelo multimodal de última generación de OpenAI, capaz de procesar texto, imágenes y audio. En este proyecto se utiliza solo su capacidad textual, destacando por su mayor comprensión semántica y coherencia en las respuestas.
+- **GPT-4.1-mini (moderador):**
+  Modelo pequeño y rápido **dedicado exclusivamente a clasificar** cada consulta (`relevante` / `irrelevante` / `inapropiado`). Como es una tarea de una sola etiqueta, usar un modelo ligero reduce la latencia previa a la respuesta y el costo, en lugar de gastar el modelo principal en moderar.
 
-- **Modelos open-source integrados mediante Ollama:**  
-  Ollama permite correr modelos de lenguaje open-source de manera local o privada. En este proyecto se contemplan modelos como LLaMA o Mistral, que ofrecen alternativas de código abierto con buen rendimiento en tareas conversacionales.
+- **Modelos open-source vía Ollama (opcional):**
+  El sistema mantiene compatibilidad con modelos locales (LLaMA, Mistral, Gemma, etc.) mediante `ChatOllama`, como alternativa de código abierto; no es el camino por defecto en producción.
 
-Estos modelos son los más recientes por el momento de desarrollo, la idea es actualizar la selección de los modelos de OpenAI conforme vayan saliendo modelos más rápidos, inteligentes, y con mayor potencial.
+El modelo es configurable y los precios por modelo se mantienen sincronizados en `settings/tokens.py`.
 
 ### 1.2. Arquitectura del sistema 
 
@@ -73,72 +73,39 @@ vectorstore.save_local()
 
 #### 1.2.2. Información dinámica
 
-Además de la información estática precargada en la base vectorial, el sistema cuenta con herramientas dinámicas que permiten consultar datos actualizados en tiempo real, como existencias, precios y promociones. Estas herramientas se integran al agente a través del framework LangChain, lo que permite invocarlas solo cuando el modelo detecta que son necesarias para responder con precisión.
+Además de la información estática precargada en la base vectorial, el sistema cuenta con herramientas dinámicas que consultan datos actualizados en tiempo real (existencias, precios, promociones, estatus de pedidos, etc.). Las herramientas se registran con el decorador `@tool` de LangChain y se conectan al agente mediante `create_agent` (LangGraph), que decide cuándo invocarlas.
 
-Las herramientas dinámicas disponibles son:
+Las herramientas activas del agente son:
 
-* `search_information_tool`: realiza búsquedas básicas en los productos embebidos para encontrar coincidencias.
-* `inventory_tool`: consulta las existencias, precio actual y moneda para un producto específico.
-* `sales_rules_tool`: calcula promociones y reglas de venta que aplican a un producto según su lista de precios y sucursal.
+* `algolia_search_tool`: buscador de productos (Algolia). Devuelve, por cada producto, su **clave CT**, marca, modelo, precio según lista, existencias en la sucursal del usuario y en otras sucursales, si está en promoción, la URL y la **URL de imagen** del producto (esta última la usa la interfaz para armar las tarjetas).
+* `sales_rules_tool`: reglas de promoción. **Acepta varias claves en una sola llamada** y reutiliza una única conexión, devolviendo el precio/condición de promoción de cada una.
+* `dolar_convertion_tool`: convierte precios de USD a MXN para cálculos de presupuesto.
+* `status_tool`: consulta el estatus de un pedido a partir de su factura (MongoDB).
+* `get_support_info`: políticas, garantías, devoluciones, términos y condiciones, PartnerCT, directorio de PMs, etc.
+* `who_are_we`: información institucional de CT.
+* `get_sucursales_info`: ubicación, horarios, teléfonos y directorios de sucursales.
 
 ```python
-        self.tools = [
-            Tool(
-                name='search_information_tool',
-                func=search_information_tool,
-                description="Busca productos relacionados con lo que se pide."
-            ),
-            StructuredTool.from_function(
-                func=inventory_tool,
-                name='inventory_tool',
-                description="Esta herramienta sirve como referencia y devuelve precios, moneda y existencias de un producto por su clave y listaPrecio.",
-                args_schema=ExistenciasInput # Explicitly link the Pydantic schema
-            ),
-            StructuredTool.from_function(
-            func=sales_rules_tool,
-            name='sales_rules_tool',
-            description="Aplica reglas de promoción, devuelve el precio final y mensaje para mostrar al usuario.",
-            args_schema=SalesInput
-        ),
-            StructuredTool.from_function(
-                func=dolar_convertion_tool,
-                name='dolar_convertion_tool',
-                description="Solo usa la tool para convertir el precio de un producto de USD a MXN y hacer cuentas",
-                args_schema=DolarInput
-        ),
-            StructuredTool.from_function(
-                func=status_tool,
-                name='status_tool',
-                description="Cuando pregunten por el estatus de algún pedido hecho, pide la factura y busca dicho estatus y no ofrezcas más detalles, solo los regresados por la tool",
-                args_schema=StatusInput
-        ),
-            StructuredTool.from_function(
-                func=search_by_key_tool,
-                name="search_by_key_tool",
-                description="Busca en el docstore un producto o promoción EXACTA usando su clave CT, una sola clave en mayusculas. Búsqueda más específica",
-                args_schema=ClaveInput
-        ),
-            StructuredTool.from_function(
-                func=get_support_info,
-                name="get_support_info",
-                description="Cuando necesites saber sobre cómo hacer compras en líneas, compras y envíos de ESD, políticas, garantías, devoluciones, términos y condiciones, partnerCT (ventas e-commerce), Directorio de Product Managers",
-                args_schema=SupportInput
-        ),
-            StructuredTool.from_function(
-                func=who_are_we,
-                name="who_are_we",
-                description="SIEMPRE que te pregunten por CT y quién es, qué es, valores, etc., usa esta herramienta.",
-        ),
-            StructuredTool.from_function(
-                func=get_sucursales_info,
-                name="get_sucursales_info",
-                description="Código Python para analizar el DataFrame 'df' con información de las sucursales. Debe usar print() para mostrar resultados o asignar el resultado a la variable 'result'.",
-                args_schema=SucursalesInput
-            )
+self.tools = [
+    algolia_search_tool,
+    sales_rules_tool,
+    dolar_convertion_tool,
+    status_tool,
+    get_support_info,
+    who_are_we,
+    get_sucursales_info,
 ]
+
+self.graph = create_agent(
+    model=self.llm,
+    tools=self.tools,
+    system_prompt=encode(prompt_dict),
+    context_schema=UserContext,
+    cache=InMemoryCache(),
+)
 ```
 
-Estas herramientas son invocadas automáticamente por el agente cuando la consulta del usuario requiere información que no está contenida en el contexto estático. Esto permite entregar respuestas más precisas y alineadas con la situación real del negocio (existencias, promociones activas, etc.).
+Estas herramientas son invocadas automáticamente por el agente cuando la consulta requiere información que no está en el contexto estático, lo que permite respuestas alineadas con la situación real del negocio (existencias, promociones activas, etc.). Las consultas a MySQL (existencias y promociones) usan un **pool de conexiones reutilizable** (`get_mysql_connection` en `settings/clients.py`) para evitar el costo de abrir una conexión nueva en cada llamada.
 
 #### 1.2.3. Flujo de datos para el sistema RAG
 
@@ -147,6 +114,17 @@ El sistema se alimenta con información a través de un proceso ETL (Extracción
 **Para una descripción detallada de cada etapa del proceso ETL, incluyendo la extracción de datos, la transformación (y el almacenamiento de fichas técnicas en MongoDB), y la carga directa a la base de datos vectorial, por favor, consultar el documento "Preparación de los datos".**
 
 En resumen, este proceso garantiza que el modelo tenga acceso a una base de datos de conocimiento robusta y actualizada, tanto estática (productos y promociones embedidas) como dinámica (a través de las herramientas que consultan datos en tiempo real).
+
+#### 1.2.4. Entrega de la respuesta: streaming y bloques estructurados
+
+La respuesta se transmite al cliente en **streaming token a token**. El agente usa `graph.astream(..., stream_mode=["messages", "values"])`: el modo `messages` emite los tokens conforme el LLM los genera (efecto "escribiendo"), mientras que el último estado de `values` conserva la metadata final (uso de tokens, costo y _verbose log_) para registrarla en MongoDB sin romper el guardado. Anteriormente la respuesta se calculaba completa con `ainvoke` y se entregaba de golpe; el cambio a `astream` permite mostrarla progresivamente.
+
+Para enriquecer la interfaz sin abandonar el transporte de texto, el modelo emite —dentro del mismo flujo— **bloques estructurados in-band** delimitados con vallas de código:
+
+* ` ```ct-products `: arreglo JSON con los productos a mostrar (clave, marca, modelo, imagen, precio, existencias por sucursal y promoción). La interfaz lo convierte en **tarjetas con imagen**.
+* ` ```ct-suggestions `: arreglo JSON de sugerencias accionables que el usuario puede pulsar para continuar la conversación.
+
+El frontend extrae estos bloques de forma **incremental** (renderiza cada tarjeta/sugerencia en cuanto queda completa, sin esperar a que cierre el bloque) y nunca muestra el JSON crudo.
 
 ### 1.3. Atributos del modelo y contexto de ejecución
 
@@ -171,8 +149,8 @@ El LLM se alimenta con información contextualizada de dos maneras principales, 
 
 * **Información dinámica (a través de herramientas LangChain)**:
 
-  * Se accede a datos en tiempo real mediante herramientas personalizadas integradas con LangChain, como `inventory_tool` y `sales_rules_tool`.
-  * El LLM, basado en la `query` del usuario y su propio razonamiento, decide cuándo invocar estas herramientas. Por ejemplo, si el usuario pregunta por "el precio de la clave X", el LLM activará `inventory_tool` con la clave proporcionada.
+  * Se accede a datos en tiempo real mediante herramientas personalizadas integradas con LangChain, como `algolia_search_tool` y `sales_rules_tool`.
+  * El LLM, basado en la `query` del usuario y su propio razonamiento, decide cuándo invocar estas herramientas. Por ejemplo, si el usuario busca un producto, el LLM activará `algolia_search_tool`, y si hay productos en promoción consultará `sales_rules_tool` (con las claves correspondientes en una sola llamada).
   * El resultado de la ejecución de estas herramientas (e.g., el precio actual, las existencias, el precio final con promoción) se devuelve al LLM y se inyecta también en su _context window_.
   * Esto permite al LLM generar respuestas con datos actualizados y específicos, como la disponibilidad de un producto o el precio final con promociones activas para una `listaPrecio` y `session_id` dados.
 
@@ -180,11 +158,11 @@ El LLM se alimenta con información contextualizada de dos maneras principales, 
 
 Antes de ejecutar cualquier acción, la consulta pasa por una etapa de moderación:
 
-* Se valida si el usuario está baneado (por comportamiento inapropiado).
-* Se clasifica la consulta como `relevante`, `irrelevante` o `inapropiada`.
-* Dependiendo de esta clasificación, se permite o bloquea el paso al modelo principal y las herramientas.
+* Se valida si el usuario está baneado (sistema de _ban_ progresivo por comportamiento inapropiado reincidente).
+* Se clasifica la consulta como `relevante`, `irrelevante` o `inapropiado` usando un **modelo dedicado y ligero (GPT-4.1-mini)**, invocado de forma **asíncrona** (`ainvoke`) para no bloquear el _event loop_ del servidor.
+* Dependiendo de esta clasificación, se permite el paso al agente principal y sus herramientas, o se responde con un mensaje predefinido (sin gastar el modelo principal).
 
-Este flujo asegura robustez, control y trazabilidad en la interacción con el modelo.
+Este flujo asegura robustez, control y trazabilidad, y al separar la moderación en un modelo rápido reduce la latencia previa a la respuesta.
 
 
 ### 1.4. Métricas de evaluación
@@ -205,7 +183,7 @@ Estos criterios serán evaluados por los expertos y personas con conocimiento en
 
 Con base en las respuestas generadas durante la etapa de modelado, se llevó a cabo una evaluación cualitativa para analizar la coherencia, relevancia y precisión de las recomendaciones de cada modelo. Este análisis nos permitió identificar oportunidades de mejora en el sistema, así como validar si el comportamiento del modelo es adecuado para continuar con su implementación o si requiere ajustes adicionales.
 
-A continuación, se presentan las respuestas generadas por el sistema para una serie de consultas simuladas por un usuario. Estas imágenes muestran el resultado del mejor modelo seleccionado (GPT 4o) ante cada solicitud:
+A continuación, se presentan las respuestas generadas por el sistema para una serie de consultas simuladas por un usuario. Estas imágenes muestran el resultado del modelo seleccionado en aquel momento de la evaluación (GPT-4o); la selección de modelos se ha actualizado desde entonces y actualmente el agente principal es **GPT-5** (con GPT-4.1-mini para la moderación):
 
 1. **Consulta:** _"¡Hola! Me interesan computadoras de oficina"_  
    ![Respuesta a consulta 1](./evaluacion/image1.png){width=40%}
