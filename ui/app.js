@@ -4,12 +4,33 @@ let userKey = null;
 let API_BASE = null;
 let ctaiAbort = null; // AbortController de la respuesta en curso (para el botón detener)
 
-// Opciones iniciales que se muestran al abrir el chat (basadas en las capacidades del bot)
+// Opciones iniciales (tiles tipo "Acciones rápidas") que se muestran al abrir el chat.
+// icon = SVG inline (stroke currentColor); tone = clase de color pastel; query = consulta enviada.
 const CTAI_STARTERS = [
-    "¿Qué laptops tienen en promoción?",
-    "Quiero cotizar una impresora",
-    "¿Cómo va el estatus de mi pedido?",
-    "¿Dónde están sus sucursales?"
+    {
+        label: "Laptops en promoción",
+        query: "¿Qué laptops tienen en promoción?",
+        tone: "blue",
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M2 20h20"></path></svg>'
+    },
+    {
+        label: "Cotizar una impresora",
+        query: "Quiero cotizar una impresora",
+        tone: "purple",
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8" rx="1"></rect></svg>'
+    },
+    {
+        label: "Estatus de mi pedido",
+        query: "¿Cómo va el estatus de mi pedido?",
+        tone: "amber",
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>'
+    },
+    {
+        label: "Nuestras sucursales",
+        query: "¿Dónde están sus sucursales?",
+        tone: "green",
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>'
+    }
 ];
 
 // Alterna el botón de enviar entre "enviar" y "detener"
@@ -251,13 +272,16 @@ function ctaiRenderStarters() {
     if (!chatMessages) return;
     const wrap = document.createElement("div");
     wrap.className = "ctai-starters";
-    CTAI_STARTERS.forEach(q => {
-        const chip = document.createElement("button");
-        chip.type = "button";
-        chip.className = "ctai-chip";
-        chip.textContent = q;
-        chip.addEventListener("click", () => sendMessage(q));
-        wrap.appendChild(chip);
+    CTAI_STARTERS.forEach((s, idx) => {
+        const tile = document.createElement("button");
+        tile.type = "button";
+        tile.className = "ctai-starter-tile tone-" + (s.tone || "blue");
+        tile.style.animationDelay = (idx * 0.05) + "s";
+        tile.innerHTML =
+            '<span class="ctai-starter-icon">' + s.icon + '</span>' +
+            '<span class="ctai-starter-label">' + ctaiEscape(s.label) + '</span>';
+        tile.addEventListener("click", () => sendMessage(s.query));
+        wrap.appendChild(tile);
     });
     chatMessages.appendChild(wrap);
     requestAnimationFrame(ctaiScrollDown);

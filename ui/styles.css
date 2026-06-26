@@ -1,19 +1,58 @@
 /* styles.css — Widget CT (barra lateral) */
 
+/* Inter auto-hospedada (servida desde /sdk junto al widget) */
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("Inter-400.woff2") format("woff2");
+}
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("Inter-500.woff2") format("woff2");
+}
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("Inter-600.woff2") format("woff2");
+}
+@font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("Inter-700.woff2") format("woff2");
+}
+
 :root {
-    --ctai-brand: #2f3e89;
-    --ctai-brand-2: #4150b8;
-    --ctai-accent: #1c2aeb;
+    --ctai-brand: #2b50e0;        /* azul royal: enviar, burbuja usuario, foco, links */
+    --ctai-brand-strong: #1e3fd0; /* hover/activo más profundo */
+    --ctai-brand-ink: #1f2d6b;    /* navy para acentos fuertes */
+    --ctai-accent: #2b50e0;       /* alias de compatibilidad (= brand) */
     --ctai-text: #1f2430;
-    --ctai-text-soft: #5b6273;
-    --ctai-bg: #ffffff;
-    --ctai-bg-soft: #f5f6fa;
-    --ctai-border: #e6e8ef;
-    --ctai-radius: 14px;
+    --ctai-text-soft: #6b7280;
+    --ctai-bg: #ffffff;           /* superficies / tarjetas */
+    --ctai-bg-soft: #f5f7fa;      /* (compat) */
+    --ctai-canvas: #f5f7fa;       /* lienzo de mensajes */
+    --ctai-border: #eceef3;       /* borde 1px sutil */
+    --ctai-radius: 16px;          /* tarjetas */
+    --ctai-radius-sm: 12px;       /* inputs, tiles, avatar */
     --ctai-sidebar-w: 420px;
-    --ctai-font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
-        "Inter", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --ctai-shadow: 0 8px 30px rgba(18, 24, 56, 0.12);
+    --ctai-font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui,
+        -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    --ctai-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 6px 20px rgba(16, 24, 40, 0.06);
+    /* Acentos pastel (chip-bg / icon-fg) */
+    --ctai-green-bg: #dcfce7;  --ctai-green: #16a34a;
+    --ctai-amber-bg: #fef3c7;  --ctai-amber: #d97706;
+    --ctai-blue-bg: #dbeafe;   --ctai-blue: #2563eb;
+    --ctai-purple-bg: #ede9fe; --ctai-purple: #7c3aed;
+    --ctai-red-bg: #fee2e2;    --ctai-red: #dc2626;
 }
 
 /* Burbuja flotante */
@@ -38,7 +77,7 @@
 }
 .chat-bubble:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 34px rgba(18, 24, 56, 0.2);
+    box-shadow: 0 12px 28px rgba(16, 24, 40, 0.14);
 }
 .chat-icon {
     width: 38px;
@@ -83,13 +122,13 @@
 /* Encabezado */
 .chat-header {
     padding: 14px 16px;
-    background: linear-gradient(135deg, var(--ctai-brand), var(--ctai-brand-2));
-    color: white;
+    background: var(--ctai-bg);
+    color: var(--ctai-text);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-shrink: 0;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 10px rgba(18, 24, 56, 0.18);
+    border-bottom: 1px solid var(--ctai-border);
 }
 .ctai-header-info {
     display: flex;
@@ -100,14 +139,14 @@
 .ctai-header-avatar {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.18);
+    border-radius: var(--ctai-radius-sm);
+    background: var(--ctai-canvas);
+    border: 1px solid var(--ctai-border);
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     overflow: hidden;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
 }
 .ctai-header-avatar img {
     width: 25px;
@@ -122,13 +161,14 @@
 }
 .ctai-header-title {
     font-size: 16px;
-    font-weight: 650;
-    letter-spacing: 0.2px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+    color: var(--ctai-text);
 }
 .ctai-header-status {
     font-size: 12px;
     font-weight: 400;
-    opacity: 0.9;
+    color: var(--ctai-text-soft);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -138,8 +178,8 @@
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #46e08a;
-    box-shadow: 0 0 0 3px rgba(70, 224, 138, 0.25);
+    background: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
     flex-shrink: 0;
 }
 .chat-header .buttons-container {
@@ -157,10 +197,10 @@
     background: transparent;
     border: none;
     border-radius: 9px;
-    color: #fff;
+    color: var(--ctai-text-soft);
     cursor: pointer;
-    opacity: 0.85;
-    transition: background 0.18s ease, opacity 0.18s ease, transform 0.12s ease;
+    opacity: 0.9;
+    transition: background 0.18s ease, color 0.18s ease, opacity 0.18s ease, transform 0.12s ease;
 }
 .ctai-icon-btn svg {
     width: 19px;
@@ -169,13 +209,15 @@
 }
 .ctai-icon-btn:hover {
     opacity: 1;
-    background: rgba(255, 255, 255, 0.16);
+    background: #f1f3f7;
+    color: var(--ctai-text);
 }
 .ctai-icon-btn:active {
     transform: scale(0.92);
 }
 #ctai-delete-history-button:hover {
-    background: rgba(255, 95, 95, 0.9);
+    background: var(--ctai-red-bg);
+    color: var(--ctai-red);
 }
 
 /* Caja de mensajes */
@@ -195,7 +237,7 @@
     flex-direction: column;
     scroll-behavior: smooth;
     overflow-anchor: none;
-    background: var(--ctai-bg-soft);
+    background: var(--ctai-canvas);
 }
 .chat-messages {
     flex: 1;
@@ -221,13 +263,13 @@
     flex: 1;
     padding: 13px 50px 13px 16px;
     border: 1px solid var(--ctai-border);
-    border-radius: 24px;
+    border-radius: var(--ctai-radius-sm);
     resize: none;
     overflow-y: hidden;
     min-height: 22px;
     max-height: 130px;
     outline: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     font-family: var(--ctai-font);
     font-size: 15px;
@@ -240,8 +282,8 @@
     font-weight: 400;
 }
 .message-input:focus {
-    border-color: var(--ctai-accent);
-    box-shadow: 0 0 0 3px rgba(28, 42, 235, 0.12);
+    border-color: var(--ctai-brand);
+    box-shadow: 0 0 0 3px rgba(43, 80, 224, 0.14);
 }
 .send-button {
     position: absolute;
@@ -260,7 +302,7 @@
     transition: all 0.2s ease;
 }
 .send-button:hover {
-    background: var(--ctai-accent);
+    background: var(--ctai-brand-strong);
     transform: scale(1.06);
 }
 .send-button:active {
@@ -273,10 +315,10 @@
 }
 /* Estado "detener" mientras el bot está respondiendo */
 .send-button.is-stop {
-    background: #d83a3a;
+    background: var(--ctai-red);
 }
 .send-button.is-stop:hover {
-    background: #bd2f2f;
+    background: #b91c1c;
 }
 .send-button.is-stop::after {
     content: "";
@@ -318,6 +360,13 @@
     font-size: 15.5px;
     line-height: 1.62;
     transition: opacity 0.12s ease;
+    background: var(--ctai-bg);
+    border: 1px solid var(--ctai-border);
+    border-radius: 16px 16px 16px 4px;
+    box-shadow: var(--ctai-shadow);
+    padding: 11px 15px;
+    width: fit-content;
+    max-width: 90%;
 }
 .bot-text:empty {
     display: none;
@@ -369,8 +418,8 @@
 }
 .ctai-product-card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--ctai-shadow);
-    border-color: #cfd4e6;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 10px 26px rgba(16, 24, 40, 0.10);
+    border-color: #d7dbe6;
 }
 .ctai-card-img {
     width: 78px;
@@ -443,20 +492,16 @@
     border-radius: 999px;
     line-height: 1.5;
 }
-.ctai-badge.promo { background: #ffe9d6; color: #b4530f; }
-.ctai-badge.stock { background: #def7e6; color: #1e7d43; }
-.ctai-badge.pedido { background: #eceef5; color: #5b6273; }
+.ctai-badge.promo { background: var(--ctai-amber-bg); color: var(--ctai-amber); }
+.ctai-badge.stock { background: var(--ctai-green-bg); color: var(--ctai-green); }
+.ctai-badge.pedido { background: var(--ctai-blue-bg); color: var(--ctai-blue); }
 
-/* Chips de sugerencia / opciones iniciales */
-.ctai-suggestions,
-.ctai-starters {
+/* Chips de sugerencia (pills, generadas por el bot) */
+.ctai-suggestions {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin: 12px 0 4px;
-}
-.ctai-starters {
-    margin-top: 14px;
 }
 .ctai-chip {
     font-family: var(--ctai-font);
@@ -464,7 +509,7 @@
     font-weight: 500;
     color: var(--ctai-brand);
     background: var(--ctai-bg);
-    border: 1px solid #d2d7ea;
+    border: 1px solid var(--ctai-border);
     border-radius: 999px;
     padding: 8px 14px;
     cursor: pointer;
@@ -473,12 +518,69 @@
     text-align: left;
 }
 .ctai-chip:hover {
-    background: #eef0fb;
-    border-color: var(--ctai-brand-2);
+    background: var(--ctai-blue-bg);
+    border-color: #c7d6f7;
 }
 .ctai-chip:active {
     transform: scale(0.97);
 }
+
+/* Tiles de inicio (estilo "Acciones rápidas" del dashboard) */
+.ctai-starters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 14px 0 4px;
+}
+.ctai-starter-tile {
+    font-family: var(--ctai-font);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+    background: var(--ctai-bg);
+    border: 1px solid var(--ctai-border);
+    border-radius: var(--ctai-radius-sm);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.14s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    animation: ctaiFadeIn 0.3s ease;
+}
+.ctai-starter-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 20px rgba(16, 24, 40, 0.09);
+    border-color: #d7dbe6;
+}
+.ctai-starter-tile:active {
+    transform: translateY(0);
+}
+.ctai-starter-icon {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ctai-starter-icon svg {
+    width: 18px;
+    height: 18px;
+    display: block;
+}
+.ctai-starter-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ctai-text);
+    line-height: 1.3;
+}
+/* Tonos pastel por tile */
+.ctai-starter-tile.tone-blue   .ctai-starter-icon { background: var(--ctai-blue-bg);   color: var(--ctai-blue); }
+.ctai-starter-tile.tone-purple .ctai-starter-icon { background: var(--ctai-purple-bg); color: var(--ctai-purple); }
+.ctai-starter-tile.tone-amber  .ctai-starter-icon { background: var(--ctai-amber-bg);  color: var(--ctai-amber); }
+.ctai-starter-tile.tone-green  .ctai-starter-icon { background: var(--ctai-green-bg);  color: var(--ctai-green); }
 
 /* Spinner de carga */
 .typing-indicator {
@@ -559,10 +661,10 @@
     font-family: var(--ctai-font);
     transition: background-color 0.2s ease;
 }
-.modal-buttons .confirm-button { background-color: var(--ctai-brand); color: white; }
-.modal-buttons .confirm-button:hover { background-color: var(--ctai-accent); }
-.modal-buttons .cancel-button { background-color: #e6e8ef; color: #000; }
-.modal-buttons .cancel-button:hover { background-color: #cfd4e6; }
+.modal-buttons .confirm-button { background-color: var(--ctai-red); color: white; }
+.modal-buttons .confirm-button:hover { background-color: #b91c1c; }
+.modal-buttons .cancel-button { background-color: var(--ctai-canvas); color: var(--ctai-text); border: 1px solid var(--ctai-border); }
+.modal-buttons .cancel-button:hover { background-color: #e9edf3; }
 
 /* Responsive: barra lateral a pantalla completa en móvil */
 @media (max-width: 480px) {

@@ -38,7 +38,7 @@ prompt_dict = {
             "uso": "algolia_search_tool(producto='PRODUCTO_A_BUSCAR',lowest_price = 'TRUE | FALSE",
             "notas": [
                 "Los usuarios suelen usar las claves CT de los productos, utiliza esta tool para conocer el contexto del producto del cual se está utilizando",
-                "SIEMPRE que no encuentras un producto, SIMPLIFICA, GENERALIZA, MODIFICA o USA sinónimos en la búsqueda para recomendar productos similares procurando SIEMPRE ofrecer algo (relevante obvio), itera un máximo de 2 veces, y si aún así no hay resultados, aclárale al usuario lo que intentaste para buscar y que no se encontraron productos relevantes",
+                "SIEMPRE que no encuentras un producto, SIMPLIFICA, GENERALIZA, MODIFICA o USA sinónimos en la búsqueda para recomendar productos similares procurando SIEMPRE ofrecer algo (relevante obvio), itera un máximo de 3 veces, y si aún así no hay resultados, aclárale al usuario lo que intentaste para buscar y que no se encontraron productos relevantes",
                 "POR VELOCIDAD: prioriza UNA sola búsqueda bien formulada; reintenta solo si de verdad no hubo resultados útiles."
                       ]
         },

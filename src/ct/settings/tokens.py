@@ -95,11 +95,11 @@ class CostCalcAsyncHandler(AsyncCallbackHandler):
             self.encoding = tiktoken.get_encoding("cl100k_base")
 
 
-    def on_llm_start(self, serialized: Dict[str, Any], prompts: List[str], **kwargs):
-            if self.token_cost_process:
-                for prompt in prompts:
-                    tokens = len(self.encoding.encode(prompt))
-                    self.token_cost_process.sum_input_tokens(tokens)
+    async def on_llm_start(self, serialized: Dict[str, Any], prompts: List[str], **kwargs) -> None:
+        if self.token_cost_process:
+            for prompt in prompts:
+                tokens = len(self.encoding.encode(prompt))
+                self.token_cost_process.sum_input_tokens(tokens)
 
     async def on_llm_new_token(self, token: str, **kwargs):
         if self.token_cost_process:
