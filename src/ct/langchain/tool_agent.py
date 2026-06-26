@@ -362,18 +362,48 @@ class ToolAgent:
         return str(content) if content else ""
 
     def _generate_verbose_log(self, messages: list[BaseMessage]) -> str:
+        # El estado final incluye el historial previo + el turno actual. Aislamos
+        # solo el turno actual (desde el último HumanMessage) para que el log
+        # describa lo que el asistente hizo en ESTA consulta y no mezcle historial.
+        start = 0
+        for i, msg in enumerate(messages):
+            if isinstance(msg, HumanMessage):
+                start = i
+        turn = messages[start:]
+
+        # Herramientas que consultan productos en la base de datos / catálogo.
+        product_search_tools = {"algolia_search_tool", "search_information", "search_by_key"}
+
         log_buffer = []
-        for msg in messages:
+        used_tools: set[str] = set()
+        for msg in turn:
+            if isinstance(msg, HumanMessage):
+                log_buffer.append(f"👤 [Consulta] {self._extract_text(msg.content)}")
+
             # Verifica explícitamente si tiene tool_calls y que no esté vacío
-            if isinstance(msg, AIMessage) and getattr(msg, 'tool_calls', None):
+            elif isinstance(msg, AIMessage) and getattr(msg, 'tool_calls', None):
                 for tool_call in msg.tool_calls:
                     name = tool_call.get('name', 'Unknown Tool')
                     args = tool_call.get('args', {})
+                    used_tools.add(name)
                     log_buffer.append(f"🤖 [Thinking] El asistente decidió usar: {name}")
                     log_buffer.append(f"   Args: {args}")
-            
-            elif isinstance(msg, ToolMessage): 
+
+            elif isinstance(msg, ToolMessage):
                 tool_name = msg.name if msg.name else "Tool"
                 log_buffer.append(f"🛠️ [Tool Output - {tool_name}]: {msg.content}")
-        
+
+        # Notas de auditoría: dejan explícito por qué el log puede parecer "corto".
+        if not used_tools:
+            log_buffer.append(
+                "ℹ️ El asistente respondió usando el contexto previo de la conversación, "
+                "sin nuevas llamadas a herramientas."
+            )
+        elif not (used_tools & product_search_tools):
+            log_buffer.append(
+                "ℹ️ En este turno NO se realizó una búsqueda de productos en la base de datos "
+                "(Algolia). Si la respuesta menciona productos, provienen del contexto previo "
+                "de la conversación."
+            )
+
         return "\n".join(log_buffer)
