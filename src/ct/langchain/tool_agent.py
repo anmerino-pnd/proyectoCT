@@ -38,8 +38,9 @@ from ct.settings.clients import (
     openai_api_key,
     gemini_api_key,
     ollama_api_key,
-    mongo_uri, 
-    mongo_collection_sessions, 
+    mongo_uri,
+    get_db,
+    mongo_collection_sessions,
     mongo_collection_message_backup
 )
 
@@ -62,15 +63,22 @@ class ToolAgent:
         #     thinking_level="medium"
         # )
 
-        self.llm = ChatOpenAI(                    # En caso de volver a OpenAI
-            model = self.model,
-            rate_limiter = self.rate_limiter,
-            stream_usage = True,                  # reporta usage_metadata en streaming (costo != 0)
-            reasoning_effort = "low",             # menos razonamiento => respuestas más rápidas
-        )
+        from ct.settings.fake_llm import fake_llm_enabled, FakeStreamingChatModel
+        if fake_llm_enabled():
+            # Modo prueba de carga: sin OpenAI. Ver ct/settings/fake_llm.py
+            self.llm = FakeStreamingChatModel()
+        else:
+            self.llm = ChatOpenAI(                    # En caso de volver a OpenAI
+                model = self.model,
+                rate_limiter = self.rate_limiter,
+                stream_usage = True,                  # reporta usage_metadata en streaming (costo != 0)
+                reasoning_effort = "low",             # menos razonamiento => respuestas más rápidas
+            )
 
         try:
-            self.client = MongoClient(mongo_uri).get_default_database()
+            # Reusar el MongoClient singleton (get_db) en vez de abrir otro cliente
+            # por instancia: evita pools duplicados por worker.
+            self.client = get_db()
             self.sessions = self.client[mongo_collection_sessions]
             self.message_backup = self.client[mongo_collection_message_backup]
 
@@ -126,6 +134,7 @@ class ToolAgent:
             )
 
     async def run(self, query: str, session_id: str, lista_precio: str):
+        start_time = time.perf_counter()
         full_history = self.get_session_history(session_id)
         chat_history = trim_messages(
             full_history,
@@ -141,7 +150,10 @@ class ToolAgent:
             allow_partial=False,
         )
 
-        start_time = time.perf_counter()
+        t_history_load = round(time.perf_counter() - start_time, 4)
+
+        # Handler de timing por-request (seguro ante tools en paralelo).
+        timing_handler = TimingCallbackHandler()
 
         if self.graph is None:
             self.build_graph()
@@ -159,6 +171,7 @@ class ToolAgent:
 
         full_answer = ""
         result = None
+        t_agent0 = time.perf_counter()
 
         try:
             # stream_mode=["messages", "values"]:
@@ -169,6 +182,7 @@ class ToolAgent:
                 inputs,
                 context=current_context,
                 stream_mode=["messages", "values"],
+                config={"callbacks": [timing_handler]},
             ):
                 if mode == "messages":
                     token = data[0]
@@ -183,8 +197,9 @@ class ToolAgent:
                 elif mode == "values":
                     result = data
         finally:
+            t_agent_stream = round(time.perf_counter() - t_agent0, 4)
             duration = time.perf_counter() - start_time
-            
+
             if result is not None and full_answer:
                 try:
             
@@ -212,14 +227,22 @@ class ToolAgent:
 
                     verbose_log_str = self._generate_verbose_log(messages_for_log)
                     
+                    t_persist0 = time.perf_counter()
                     self.add_message(session_id, "human", query)
                     self.add_message(session_id, "assistant", full_answer)
+                    phase_timings = {
+                        "history_load": t_history_load,
+                        "agent_stream": t_agent_stream,
+                        "persist_messages": round(time.perf_counter() - t_persist0, 4),
+                    }
                     self.add_message_backup(
-                        session_id, 
-                        query, 
-                        full_answer, 
+                        session_id,
+                        query,
+                        full_answer,
                         metadata,
-                        verbose_log=verbose_log_str
+                        verbose_log=verbose_log_str,
+                        tool_timings=timing_handler.tool_timings,
+                        phase_timings=phase_timings,
                     )
                     
                 except Exception as e:
@@ -271,17 +294,19 @@ class ToolAgent:
         except Exception as e:
             logger.error(f"Error crítico guardando en Mongo: {e}", exc_info=True)
 
-    def add_message_backup(self, 
-                           session_id: str, 
-                           question: str, 
-                           full_answer: str, 
+    def add_message_backup(self,
+                           session_id: str,
+                           question: str,
+                           full_answer: str,
                            metadata: dict,
-                           verbose_log: str = ""):
+                           verbose_log: str = "",
+                           tool_timings: list | None = None,
+                           phase_timings: dict | None = None):
         timestamp = datetime.now(timezone.utc)
 
         message_doc = {
             "session_id": session_id,
-            "question": question,  
+            "question": question,
             "answer": full_answer,
             "verbose_log": verbose_log,
             "timestamp": timestamp,
@@ -294,6 +319,9 @@ class ToolAgent:
             "duration_seconds": metadata["duration"]["seconds"],
             "tokens_per_second": metadata["duration"]["tokens_per_second"],
             "model_used": metadata["cost_model"],
+            # Instrumentación de rendimiento (F1): latencia por tool y por fase.
+            "tool_timings": tool_timings or [],
+            "phase_timings": phase_timings or {},
             "label": True
         }
 

@@ -23,7 +23,7 @@ from pymongo import ASCENDING
 class TestDescargasEnviadas:
     """Tests for descargas_enviadas function."""
     
-    @patch("ct.tools.status.mysql.connector.connect")
+    @patch("ct.tools.status.get_mysql_connection")
     def test_descargas_enviadas_returns_count(self, mock_connect):
         """Test successful query returns download count."""
         from ct.tools.status import descargas_enviadas
@@ -46,7 +46,7 @@ class TestDescargasEnviadas:
         assert "esd_licencias_usuarios" in call_args[0][0]
         assert call_args[0][1] == ("FAC-001",)
     
-    @patch("ct.tools.status.mysql.connector.connect")
+    @patch("ct.tools.status.get_mysql_connection")
     def test_descargas_enviadas_returns_none_if_no_result(self, mock_connect):
         """Test when no download records found."""
         from ct.tools.status import descargas_enviadas
@@ -65,7 +65,7 @@ class TestDescargasEnviadas:
         # Assert - function doesn't return anything when no result
         assert result is None
     
-    @patch("ct.tools.status.mysql.connector.connect")
+    @patch("ct.tools.status.get_mysql_connection")
     def test_descargas_enviadas_handles_database_error(self, mock_connect):
         """Test handling of database errors."""
         from ct.tools.status import descargas_enviadas
@@ -76,7 +76,7 @@ class TestDescargasEnviadas:
         
         assert "Error de base de datos" in result
     
-    @patch("ct.tools.status.mysql.connector.connect")
+    @patch("ct.tools.status.get_mysql_connection")
     def test_descargas_enviadas_handles_unexpected_error(self, mock_connect):
         """Test handling of unexpected errors."""
         from ct.tools.status import descargas_enviadas

@@ -1,3 +1,7 @@
+import os
+import json
+import logging
+from pathlib import Path
 from bson import ObjectId
 from typing import Optional
 from contextlib import asynccontextmanager
@@ -19,6 +23,7 @@ from ct.settings.clients import (
     get_db,
     mongo_collection_message_backup
 )
+from pydantic import BaseModel, Field
 from ct.tools.search_information import reload_vector_store
 from ct.settings.security import cors_origins, verify_origin, rate_limit
 
@@ -54,6 +59,58 @@ async def handle_chat(request: QueryRequest):
 @app.delete("/history/{user_id}", dependencies=[Depends(verify_origin)])
 async def handle_delete_history(user_id: str):
     return await delete_chat_history_endpoint(user_id)
+
+
+logger = logging.getLogger(__name__)
+_ui_event_warned = False
+_ALLOWED_UI_EVENTS = {"open", "close", "expand", "collapse", "product_click"}
+
+# Telemetría de UI a ARCHIVO (JSONL), no a MongoDB: el usuario de Mongo no puede
+# crear colecciones nuevas. Un append por evento es atómico entre workers en POSIX.
+# Configurable con CHATBOT_UI_EVENTS_LOG; rotación vía logrotate del sistema.
+_UI_EVENTS_LOG = Path(os.getenv("CHATBOT_UI_EVENTS_LOG", "logs/ui_events.jsonl"))
+
+
+def _write_ui_event(record: dict) -> None:
+    _UI_EVENTS_LOG.parent.mkdir(parents=True, exist_ok=True)
+    with _UI_EVENTS_LOG.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+class UIEventRequest(BaseModel):
+    event: str
+    user_id: str = ""
+    meta: dict = Field(default_factory=dict)
+
+
+@app.post("/ui-event", dependencies=[Depends(verify_origin)], status_code=204)
+async def handle_ui_event(payload: UIEventRequest, request: Request):
+    """Telemetría ligera del widget (open/expand/collapse/close/product_click).
+    Fire-and-forget a archivo: nunca debe romper la UX."""
+    if payload.event not in _ALLOWED_UI_EVENTS:
+        return
+    try:
+        ip = None
+        for header in ("cf-connecting-ip", "x-forwarded-for"):
+            value = request.headers.get(header)
+            if value:
+                ip = value.split(",")[0].strip()
+                break
+        if ip is None:
+            ip = request.client.host if request.client else "unknown"
+        _write_ui_event({
+            "event": payload.event,
+            "user_id": payload.user_id,
+            "meta": payload.meta,
+            "ip": ip,
+            "timestamp": datetime.now(ZoneInfo("UTC")).isoformat(),
+        })
+    except Exception as e:
+        # Nunca rompemos la UX por telemetría. Logueamos UNA vez si el archivo falla.
+        global _ui_event_warned
+        if not _ui_event_warned:
+            _ui_event_warned = True
+            logger.warning("ui-event no escrito (%s): %s", _UI_EVENTS_LOG, e)
 
 @app.post("/internal/reload_vectorstores")
 async def reload_vectors():

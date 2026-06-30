@@ -41,6 +41,14 @@ class CTAIWidget {
                         </div>
                     </div>
                     <div class="buttons-container">
+                        <button class="ctai-icon-btn" id="ctai-expand-button" title="Expandir" aria-label="Expandir panel">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M15 3h6v6"></path>
+                                <path d="M9 21H3v-6"></path>
+                                <path d="M21 3l-7 7"></path>
+                                <path d="M3 21l7-7"></path>
+                            </svg>
+                        </button>
                         <button class="ctai-icon-btn" id="ctai-delete-history-button" title="Borrar conversación" aria-label="Borrar conversación">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M3 6h18"></path>
@@ -63,6 +71,12 @@ class CTAIWidget {
                         <div class="chat-messages" id="ctai-chat-messages"></div>
                     </div>
                     <div class="chat-input" id="ctai-chat-input">
+                        <button class="ctai-scroll-bottom" id="ctai-scroll-bottom" type="button" title="Ir a los mensajes recientes" aria-label="Ir a los mensajes recientes">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M12 5v14"></path>
+                                <path d="m19 12-7 7-7-7"></path>
+                            </svg>
+                        </button>
                         <textarea class="message-input" id="ctai-user-input" placeholder="Escribe tu mensaje" rows="1"></textarea>
                         <button class="send-button" id="ctai-send-button" aria-label="Enviar mensaje"></button>
                     </div>
@@ -92,6 +106,9 @@ class CTAIWidget {
                 if (!chat) return;
                 const willOpen = !chat.classList.contains("ctai-open");
                 chat.classList.toggle("ctai-open", willOpen);
+                if (typeof window.ctaiTrack === "function") {
+                    window.ctaiTrack(willOpen ? "open" : "close");
+                }
                 if (willOpen && typeof window.loadHistory === "function") {
                     setTimeout(() => window.loadHistory(), 100);
                 } else if (willOpen && typeof window.loadHistory !== "function") {

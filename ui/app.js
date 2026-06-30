@@ -49,6 +49,26 @@ function stopGeneration() {
     }
 }
 
+// Íconos del botón expandir/contraer
+const CTAI_ICON_EXPAND =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"></path><path d="M9 21H3v-6"></path><path d="M21 3l-7 7"></path><path d="M3 21l7-7"></path></svg>';
+const CTAI_ICON_COLLAPSE =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14h6v6"></path><path d="M20 10h-6V4"></path><path d="M14 10l7-7"></path><path d="M3 21l7-7"></path></svg>';
+
+// Telemetría de UI (fire-and-forget). Nunca debe romper la UX.
+function ctaiTrack(event, meta) {
+    try {
+        if (!API_BASE || !userId) return;
+        fetch(`${API_BASE}/ui-event`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ event: event, user_id: userId, meta: meta || {} }),
+            keepalive: true
+        }).catch(() => {});
+    } catch (e) {}
+}
+window.ctaiTrack = ctaiTrack;
+
 function setupAutoResizeTextarea() {
     const textarea = document.getElementById('ctai-user-input');
     if (!textarea) return;
@@ -60,9 +80,43 @@ function setupAutoResizeTextarea() {
 }
 
 // ---------- Utilidades de render ----------
+// "Pegado al fondo": solo auto-desplazamos si el usuario está cerca del final.
+// Si subió a leer, no lo regresamos a la fuerza y mostramos el botón de bajar.
+let ctaiStick = true;
+let ctaiAdjusting = false; // true mientras re-anclamos por expandir/contraer
+const CTAI_STICK_THRESHOLD = 120;
+
+function ctaiNearBottom(c) {
+    return (c.scrollHeight - c.scrollTop - c.clientHeight) <= CTAI_STICK_THRESHOLD;
+}
+
+function ctaiUpdateScrollBtn() {
+    const c = document.getElementById("ctai-messages-container");
+    const btn = document.getElementById("ctai-scroll-bottom");
+    if (!c || !btn) return;
+    btn.classList.toggle("is-visible", !ctaiNearBottom(c));
+}
+
 function ctaiScrollDown() {
     const c = document.getElementById("ctai-messages-container");
-    if (c) c.scrollTop = c.scrollHeight;
+    if (!c) return;
+    if (ctaiStick) c.scrollTop = c.scrollHeight;  // respeta si el usuario subió
+    ctaiUpdateScrollBtn();
+}
+
+// Fuerza el scroll al final (p. ej. al abrir el chat). Doble rAF para esperar a que
+// el layout del markdown/historial termine de asentar antes de medir scrollHeight.
+function ctaiForceBottom() {
+    const c = document.getElementById("ctai-messages-container");
+    if (!c) return;
+    ctaiStick = true;
+    requestAnimationFrame(() => {
+        c.scrollTop = c.scrollHeight;
+        requestAnimationFrame(() => {
+            c.scrollTop = c.scrollHeight;
+            ctaiUpdateScrollBtn();
+        });
+    });
 }
 
 function ctaiEscape(s) {
@@ -193,6 +247,10 @@ function ctaiBuildProductCard(p) {
             '</div>' +
             '<div class="ctai-card-avail">' + avail + '</div>' +
         '</div>';
+    // Telemetría: clic en tarjeta de producto (proxy de completitud de tarea).
+    card.addEventListener("click", function() {
+        ctaiTrack("product_click", { clave: p.clave || p.modelo || "", url: url || "" });
+    });
     return card;
 }
 
@@ -323,6 +381,7 @@ function initializeChatbotData() {
 }
 
 async function loadHistory() {
+    ctaiStick = true; // al (re)cargar historial, mostramos el final
     const chatMessages = document.getElementById("ctai-chat-messages");
     if (chatMessages) {
         chatMessages.innerHTML = "";
@@ -348,6 +407,7 @@ async function loadHistory() {
         if (!Array.isArray(history) || history.length === 0) {
             appendMessage("bot", "¡Hola! Soy tu asistente de CT. ¿En qué puedo ayudarte hoy?");
             ctaiRenderStarters();
+            ctaiForceBottom();
             return;
         }
 
@@ -357,6 +417,8 @@ async function loadHistory() {
             } else {
             }
         });
+        // Al abrir, siempre mostramos el final de la conversación.
+        ctaiForceBottom();
     } catch (error) {
         const chatMessages = document.getElementById("ctai-chat-messages");
          if (chatMessages && chatMessages.innerHTML === "") {
@@ -403,6 +465,8 @@ async function sendMessage(presetText) {
     }
     if (!message) return;
     if (ctaiAbort) return; // ya hay una respuesta en curso
+
+    ctaiStick = true; // al enviar, seguimos el flujo hacia el final
 
     // Quitar las opciones iniciales una vez que el usuario interactúa
     const starters = document.querySelector(".ctai-starters");
@@ -579,9 +643,99 @@ window.initCTAIChatApp = function() {
         deleteButton.addEventListener("click", function() {
             showConfirmModal(
                 "¿Estás seguro de que quieres eliminar todo el historial de conversación? Esta acción no se puede deshacer.",
-                deleteConversation 
+                deleteConversation
             );
         });
     } else {}
+
+    // Botón "ir a los mensajes recientes": visible al subir; al hacer clic baja.
+    const scrollContainer = document.getElementById("ctai-messages-container");
+    const scrollBtn = document.getElementById("ctai-scroll-bottom");
+    if (scrollContainer && scrollBtn) {
+        scrollContainer.addEventListener("scroll", function() {
+            if (ctaiAdjusting) return; // no recalcular mientras re-anclamos por expand
+            ctaiStick = ctaiNearBottom(scrollContainer);
+            ctaiUpdateScrollBtn();
+        });
+        scrollBtn.addEventListener("click", function() {
+            ctaiStick = true;
+            scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: "smooth" });
+            scrollBtn.classList.remove("is-visible");
+        });
+    }
+
+    // Botón expandir/contraer: alterna el ancho del panel y recuerda el estado.
+    const expandButton = document.getElementById("ctai-expand-button");
+    const container = document.getElementById("ctai-chat-container");
+    if (expandButton && container) {
+        const applyExpanded = (on) => {
+            container.classList.toggle("ctai-expanded", on);
+            expandButton.setAttribute("aria-label", on ? "Contraer panel" : "Expandir panel");
+            expandButton.setAttribute("title", on ? "Contraer" : "Expandir");
+            expandButton.innerHTML = on ? CTAI_ICON_COLLAPSE : CTAI_ICON_EXPAND;
+        };
+        let expanded = false;
+        try { expanded = sessionStorage.getItem("ctai-expanded") === "1"; } catch (e) {}
+        applyExpanded(expanded);
+        expandButton.addEventListener("click", function() {
+            const on = !container.classList.contains("ctai-expanded");
+            // Cambiar el ancho re-acomoda el texto (cambian las alturas). Para respetar
+            // dónde estaba el usuario usamos el ancla correcta para cada caso:
+            //  - al final  -> anclar al fondo (se queda al final),
+            //  - subido    -> anclar el primer mensaje visible arriba (queda en el mismo
+            //                 punto del viewport, sin importar cómo cambien las alturas).
+            const scroller = document.getElementById("ctai-messages-container");
+            const list = document.getElementById("ctai-chat-messages");
+            const stuck = scroller ? ctaiNearBottom(scroller) : true;
+
+            let anchorEl = null;
+            let anchorDelta = 0;
+            if (scroller && list && !stuck) {
+                const cTop = scroller.getBoundingClientRect().top;
+                for (let i = 0; i < list.children.length; i++) {
+                    const r = list.children[i].getBoundingClientRect();
+                    if (r.bottom > cTop + 1) {        // primer hijo que cruza el borde superior
+                        anchorEl = list.children[i];
+                        anchorDelta = r.top - cTop;   // su offset respecto al tope del viewport
+                        break;
+                    }
+                }
+            }
+
+            applyExpanded(on);
+            try { sessionStorage.setItem("ctai-expanded", on ? "1" : "0"); } catch (e) {}
+            ctaiTrack(on ? "expand" : "collapse");
+
+            if (scroller) {
+                // El ancho se anima (~250ms) => las alturas cambian frame a frame.
+                // Re-anclamos en CADA frame durante la animación (sin depender de
+                // transitionend, que puede no dispararse).
+                ctaiAdjusting = true;
+                const startT = (typeof performance !== "undefined" ? performance.now() : Date.now());
+                const DURATION = 360;
+                const reanchor = () => {
+                    if (stuck || !anchorEl) {
+                        scroller.scrollTop = scroller.scrollHeight;             // al fondo
+                    } else {
+                        const cur = anchorEl.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+                        scroller.scrollTop += (cur - anchorDelta);             // devuelve el ancla a su sitio
+                    }
+                };
+                const glue = (now) => {
+                    reanchor();
+                    if (now - startT < DURATION) {
+                        requestAnimationFrame(glue);
+                    } else {
+                        reanchor();
+                        ctaiAdjusting = false;
+                        ctaiStick = ctaiNearBottom(scroller);
+                        ctaiUpdateScrollBtn();
+                    }
+                };
+                requestAnimationFrame(glue);
+            }
+        });
+    }
+
     loadHistory();
 };

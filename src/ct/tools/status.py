@@ -9,11 +9,7 @@ from langchain.tools import ToolRuntime, tool
 from ct.settings.clients import (
     mongo_collection_pedidos_prod,
     mongo_uri_prod,
-    ip,
-    port,
-    user,
-    pwd,
-    database)
+    get_mysql_connection)
 from pymongo import ASCENDING
 import pymysql
 pymysql.install_as_MySQLdb()
@@ -52,10 +48,7 @@ def descargas_enviadas(factura: str) -> Optional[int] | str:
     cnx = None
     cursor = None
     try:
-        cnx = mysql.connector.connect(
-            host=ip, port=port, user=user, password=pwd, database=database,
-            read_timeout=60, write_timeout=15
-        )
+        cnx = get_mysql_connection()
         cursor = cnx.cursor()
         cursor.execute(query, (factura,))
         result = cast(Optional[Tuple[int, ...]], cursor.fetchone())

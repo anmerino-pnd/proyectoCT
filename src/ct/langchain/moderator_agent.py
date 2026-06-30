@@ -18,6 +18,12 @@ class QueryModerator:
     async def classify_query(self, query: str, session_id: str) -> str:
         history = self._get_formatted_history(session_id)
 
+        # Modo prueba de carga (CT_FAKE_LLM): no llamamos a OpenAI; tratamos todo
+        # como 'relevante' tras leer el historial real (mide la carga de Mongo).
+        import os
+        if os.getenv("CT_FAKE_LLM") == "1":
+            return "relevante"
+
         full_prompt = (
             "HISTORIAL DE LA CONVERSACIÓN:\n"
             f"{history}\n"

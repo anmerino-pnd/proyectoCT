@@ -1,7 +1,7 @@
 import mysql.connector
 from typing import cast
 from pydantic import BaseModel, Field
-from ct.settings.clients import ip, port, user, pwd, database
+from ct.settings.clients import get_mysql_connection
 import pymysql
 pymysql.install_as_MySQLdb()
 
@@ -33,10 +33,7 @@ def inventory_tool(clave: str, listaPrecio: int) -> str:
     cnx = None
     cursor = None
     try:
-        cnx = mysql.connector.connect(
-            host=ip, port=port, user=user, password=pwd, database=database,
-            read_timeout=60, write_timeout=15
-        )
+        cnx = get_mysql_connection()
         cursor = cnx.cursor()
         cursor.execute(query, (lista_precio, clave))
         result = cursor.fetchone()

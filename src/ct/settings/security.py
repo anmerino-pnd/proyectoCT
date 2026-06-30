@@ -60,6 +60,22 @@ async def verify_origin(request: Request) -> None:
 _RATE_MAX = int(os.getenv("CHATBOT_RATE_MAX", "20"))
 _RATE_WINDOW = int(os.getenv("CHATBOT_RATE_WINDOW", "60"))
 _hits: dict[str, deque] = defaultdict(deque)
+_last_prune: float = 0.0
+
+
+def _prune(now: float) -> None:
+    """Sweep amortizado: descarta buckets vencidos para que `_hits` no crezca sin
+    límite (las llaves IP:user nunca se borraban). Corre ~1 vez por ventana."""
+    global _last_prune
+    if now - _last_prune < _RATE_WINDOW:
+        return
+    _last_prune = now
+    for k in list(_hits.keys()):
+        bucket = _hits[k]
+        while bucket and now - bucket[0] > _RATE_WINDOW:
+            bucket.popleft()
+        if not bucket:
+            del _hits[k]
 
 
 def _client_ip(request: Request) -> str:
@@ -83,6 +99,7 @@ async def rate_limit(request: Request) -> None:
 
     key = f"{ip}:{user_id}"
     now = time.monotonic()
+    _prune(now)
     bucket = _hits[key]
     while bucket and now - bucket[0] > _RATE_WINDOW:
         bucket.popleft()
