@@ -1,4 +1,4 @@
-/* styles.css — Widget CT (barra lateral) */
+/* styles.css — Widget "CT Ayuda" (copiloto de compras) */
 
 /* Inter auto-hospedada (servida desde /sdk junto al widget) */
 @font-face {
@@ -31,28 +31,42 @@
 }
 
 :root {
-    --ctai-brand: #2b50e0;        /* azul royal: enviar, burbuja usuario, foco, links */
-    --ctai-brand-strong: #1e3fd0; /* hover/activo más profundo */
-    --ctai-brand-ink: #1f2d6b;    /* navy para acentos fuertes */
-    --ctai-accent: #2b50e0;       /* alias de compatibilidad (= brand) */
+    /* Azul lidera: confianza y calma para una herramienta de trabajo. */
+    --ctai-blue-strong: #185FA5;  /* precios, acción principal, foco, borde recomendado */
+    --ctai-blue-mid: #378ADD;     /* azul medio (hover suave, acentos) */
+    --ctai-blue-050: #E6F1FB;     /* fondo azul claro */
+    --ctai-brand: #185FA5;        /* alias: color de marca líder */
+    --ctai-brand-strong: #124B84; /* hover/activo más profundo */
+    --ctai-accent: #185FA5;       /* alias de compatibilidad */
+
+    /* Rojo: SOLO logo/marca y acción destructiva (borrar historial). Nada más. */
+    --ctai-red: #dc2626;
+    --ctai-red-strong: #b91c1c;
+    --ctai-red-bg: #fee2e2;
+
     --ctai-text: #1f2430;
-    --ctai-text-soft: #6b7280;
+    --ctai-text-soft: #5b6472;
+    --ctai-text-faint: #8a93a3;
     --ctai-bg: #ffffff;           /* superficies / tarjetas */
-    --ctai-bg-soft: #f5f7fa;      /* (compat) */
-    --ctai-canvas: #f5f7fa;       /* lienzo de mensajes */
-    --ctai-border: #eceef3;       /* borde 1px sutil */
-    --ctai-radius: 16px;          /* tarjetas */
-    --ctai-radius-sm: 12px;       /* inputs, tiles, avatar */
-    --ctai-sidebar-w: 420px;
+    --ctai-bg-soft: #f2f5f9;      /* miniaturas / superficies tenues */
+    --ctai-canvas: #f5f8fc;       /* lienzo de mensajes */
+    --ctai-border: #e3e8ef;       /* borde fino */
+    --ctai-border-hair: rgba(24, 95, 165, 0.14); /* hairline azulado */
+
+    --ctai-radius: 12px;          /* tarjetas */
+    --ctai-radius-sm: 8px;        /* controles / pills interactivas */
+    --ctai-radius-pill: 999px;    /* pills de estado */
+
+    --ctai-sidebar-w: 380px;      /* panel angosto por defecto */
     --ctai-font: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui,
         -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
-    --ctai-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 6px 20px rgba(16, 24, 40, 0.06);
-    /* Acentos pastel (chip-bg / icon-fg) */
-    --ctai-green-bg: #dcfce7;  --ctai-green: #16a34a;
-    --ctai-amber-bg: #fef3c7;  --ctai-amber: #d97706;
-    --ctai-blue-bg: #dbeafe;   --ctai-blue: #2563eb;
-    --ctai-purple-bg: #ede9fe; --ctai-purple: #7c3aed;
-    --ctai-red-bg: #fee2e2;    --ctai-red: #dc2626;
+    --ctai-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 14px rgba(16, 24, 40, 0.05);
+
+    /* Paleta de estados (existencias / promoción) */
+    --ctai-st-sucursal-bg: #EAF3DE;  --ctai-st-sucursal-fg: #27500A;
+    --ctai-st-otras-bg:    #E6F1FB;  --ctai-st-otras-fg:    #0C447C;
+    --ctai-st-pedido-bg:   #FAEEDA;  --ctai-st-pedido-fg:   #633806;
+    --ctai-st-promo-bg:    #FAECE7;  --ctai-st-promo-fg:    #712B13; /* coral, NO rojo de marca */
 }
 
 /* Burbuja flotante */
@@ -77,7 +91,7 @@
 }
 .chat-bubble:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 28px rgba(16, 24, 40, 0.14);
+    box-shadow: 0 10px 24px rgba(16, 24, 40, 0.14);
 }
 .chat-icon {
     width: 38px;
@@ -100,7 +114,7 @@
     height: 100dvh;
     background: var(--ctai-bg);
     border-left: 1px solid var(--ctai-border);
-    box-shadow: -6px 0 30px rgba(18, 24, 56, 0.14);
+    box-shadow: -6px 0 30px rgba(18, 24, 56, 0.12);
     display: flex;
     flex-direction: column;
     z-index: 2147483000;
@@ -119,9 +133,9 @@
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease,
         width 0.25s ease;
 }
-/* Estado expandido: panel más ancho para respuestas ricas (tarjetas/comparaciones). */
+/* Modo trabajo: panel ancho para tarjetas en grid y comparación en 2–3 columnas. */
 .chat-container.ctai-expanded {
-    --ctai-sidebar-w: min(680px, 96vw);
+    --ctai-sidebar-w: min(760px, 96vw);
 }
 
 /* Encabezado */
@@ -145,7 +159,7 @@
     width: 40px;
     height: 40px;
     border-radius: var(--ctai-radius-sm);
-    background: var(--ctai-canvas);
+    background: var(--ctai-blue-050);
     border: 1px solid var(--ctai-border);
     display: flex;
     align-items: center;
@@ -192,7 +206,7 @@
     align-items: center;
     gap: 2px;
 }
-/* Botones de icono del encabezado (limpiar / cerrar) */
+/* Botones de icono del encabezado */
 .ctai-icon-btn {
     width: 36px;
     height: 36px;
@@ -201,7 +215,7 @@
     justify-content: center;
     background: transparent;
     border: none;
-    border-radius: 9px;
+    border-radius: var(--ctai-radius-sm);
     color: var(--ctai-text-soft);
     cursor: pointer;
     opacity: 0.9;
@@ -214,12 +228,13 @@
 }
 .ctai-icon-btn:hover {
     opacity: 1;
-    background: #f1f3f7;
-    color: var(--ctai-text);
+    background: var(--ctai-blue-050);
+    color: var(--ctai-blue-strong);
 }
 .ctai-icon-btn:active {
     transform: scale(0.92);
 }
+/* Borrar historial: acción destructiva → único botón donde el rojo es correcto. */
 #ctai-delete-history-button:hover {
     background: var(--ctai-red-bg);
     color: var(--ctai-red);
@@ -227,6 +242,7 @@
 
 /* Caja de mensajes */
 .chat-box {
+    position: relative;
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -287,8 +303,8 @@
     font-weight: 400;
 }
 .message-input:focus {
-    border-color: var(--ctai-brand);
-    box-shadow: 0 0 0 3px rgba(43, 80, 224, 0.14);
+    border-color: var(--ctai-blue-strong);
+    box-shadow: 0 0 0 3px rgba(24, 95, 165, 0.14);
 }
 .send-button {
     position: absolute;
@@ -296,7 +312,7 @@
     bottom: 21px;
     width: 36px;
     height: 36px;
-    background: var(--ctai-brand);
+    background: var(--ctai-blue-strong);
     color: white;
     border: none;
     border-radius: 50%;
@@ -318,12 +334,12 @@
     font-size: 18px;
     font-weight: bold;
 }
-/* Estado "detener" mientras el bot está respondiendo */
+/* Estado "detener" mientras el bot responde (gris neutro; el rojo se reserva). */
 .send-button.is-stop {
-    background: var(--ctai-red);
+    background: var(--ctai-text-soft);
 }
 .send-button.is-stop:hover {
-    background: #b91c1c;
+    background: var(--ctai-text);
 }
 .send-button.is-stop::after {
     content: "";
@@ -333,7 +349,7 @@
     border-radius: 3px;
 }
 
-/* Botón "ir a los mensajes recientes" (aparece al desplazarse hacia arriba) */
+/* Botón "ir a los mensajes recientes" */
 .ctai-scroll-bottom {
     position: absolute;
     right: 14px;
@@ -363,8 +379,8 @@
     transition: opacity 0.2s ease, transform 0.2s ease, color 0.18s ease, border-color 0.18s ease;
 }
 .ctai-scroll-bottom:hover {
-    color: var(--ctai-text);
-    border-color: #d7dbe6;
+    color: var(--ctai-blue-strong);
+    border-color: var(--ctai-blue-mid);
 }
 .ctai-scroll-bottom:active {
     transform: scale(0.94);
@@ -377,7 +393,7 @@
 
 /* Mensajes */
 .user-message {
-    background: var(--ctai-brand);
+    background: var(--ctai-blue-strong);
     color: white;
     padding: 11px 15px;
     border-radius: 18px 18px 4px 18px;
@@ -409,11 +425,11 @@
     transition: opacity 0.12s ease;
     background: var(--ctai-bg);
     border: 1px solid var(--ctai-border);
-    border-radius: 16px 16px 16px 4px;
+    border-radius: 12px 12px 12px 4px;
     box-shadow: var(--ctai-shadow);
     padding: 11px 15px;
     width: fit-content;
-    max-width: 90%;
+    max-width: 92%;
 }
 .bot-text:empty {
     display: none;
@@ -430,12 +446,12 @@
     margin: 14px 0 8px;
     line-height: 1.35;
 }
-.bot-text a { color: var(--ctai-accent); text-decoration: none; }
+.bot-text a { color: var(--ctai-blue-strong); text-decoration: none; }
 .bot-text a:hover { text-decoration: underline; }
 .bot-text ul, .bot-text ol { margin: 6px 0 10px; padding-left: 20px; }
 .bot-text li { margin-bottom: 4px; }
 .bot-text code {
-    background: #eef0f6;
+    background: var(--ctai-blue-050);
     padding: 2px 5px;
     border-radius: 4px;
     font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
@@ -443,36 +459,53 @@
 }
 .bot-text img { max-width: 100%; border-radius: 8px; }
 
-/* Tarjetas de producto */
+/* ---------- Grupo de resultados de productos ---------- */
 .ctai-products {
     display: flex;
     flex-direction: column;
     gap: 10px;
     margin: 10px 0 4px;
 }
+/* En modo expandido las tarjetas se acomodan en grid. */
+.ctai-expanded .ctai-products.ctai-products--cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+/* ---------- Tarjeta de producto ---------- */
 .ctai-product-card {
     display: flex;
-    gap: 12px;
+    flex-direction: column;
     padding: 12px;
     background: var(--ctai-bg);
     border: 1px solid var(--ctai-border);
     border-radius: var(--ctai-radius);
     text-decoration: none;
     color: inherit;
-    box-shadow: 0 1px 2px rgba(18, 24, 56, 0.05);
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(18, 24, 56, 0.04);
     transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
     animation: ctaiFadeIn 0.3s ease;
 }
 .ctai-product-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 10px 26px rgba(16, 24, 40, 0.10);
-    border-color: #d7dbe6;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 22px rgba(16, 24, 40, 0.10);
+    border-color: var(--ctai-blue-mid);
+}
+.ctai-product-card.is-selected {
+    border-color: var(--ctai-blue-strong);
+    box-shadow: 0 0 0 1px var(--ctai-blue-strong);
+}
+.ctai-card-top {
+    display: flex;
+    gap: 12px;
 }
 .ctai-card-img {
-    width: 78px;
-    height: 78px;
+    width: 72px;
+    height: 72px;
     flex-shrink: 0;
-    border-radius: 10px;
+    border-radius: var(--ctai-radius-sm);
     background: var(--ctai-bg-soft);
     display: flex;
     align-items: center;
@@ -485,23 +518,31 @@
     object-fit: contain;
 }
 .ctai-card-img.is-empty::after {
-    content: "🖼️";
-    font-size: 24px;
-    opacity: 0.4;
+    content: "";
+    width: 26px;
+    height: 26px;
+    background: currentColor;
+    color: #c2cad6;
+    -webkit-mask: no-repeat center / contain url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.6-3.6a2 2 0 0 0-2.8 0L6 20"/></svg>');
+            mask: no-repeat center / contain url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.6-3.6a2 2 0 0 0-2.8 0L6 20"/></svg>');
 }
 .ctai-card-body {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: 3px;
+    gap: 4px;
+}
+.ctai-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 .ctai-card-title {
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1.25;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
     color: var(--ctai-text);
     white-space: nowrap;
     overflow: hidden;
@@ -516,34 +557,237 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
-.ctai-card-priceline {
+.ctai-card-priceblock {
+    margin-top: 4px;
     display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 2px;
+    flex-direction: column;
+    line-height: 1.2;
 }
 .ctai-card-price {
-    font-size: 16px;
+    font-size: 19px;
     font-weight: 700;
-    color: var(--ctai-brand);
+    color: var(--ctai-blue-strong);
 }
-.ctai-card-avail {
+.ctai-card-mxn {
     font-size: 12px;
+    color: var(--ctai-text-faint);
+    margin-top: 1px;
+}
+
+/* Pill de estado (existencias / promoción) */
+.ctai-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: var(--ctai-radius-pill);
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.ctai-pill svg { width: 12px; height: 12px; }
+.ctai-pill.sucursal { background: var(--ctai-st-sucursal-bg); color: var(--ctai-st-sucursal-fg); }
+.ctai-pill.otras    { background: var(--ctai-st-otras-bg);    color: var(--ctai-st-otras-fg); }
+.ctai-pill.pedido   { background: var(--ctai-st-pedido-bg);   color: var(--ctai-st-pedido-fg); }
+.ctai-pill.promo    { background: var(--ctai-st-promo-bg);    color: var(--ctai-st-promo-fg); }
+
+.ctai-card-stock { margin-top: 2px; }
+
+/* Acciones de la tarjeta */
+.ctai-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--ctai-border);
+}
+.ctai-card-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: var(--ctai-radius-sm);
+    font-family: var(--ctai-font);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.12s ease;
+}
+.ctai-card-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.ctai-card-btn:active { transform: scale(0.97); }
+.ctai-card-btn.compare {
+    background: var(--ctai-bg);
+    border: 1px solid var(--ctai-blue-mid);
+    color: var(--ctai-blue-strong);
+}
+.ctai-card-btn.compare:hover { background: var(--ctai-blue-050); }
+.ctai-card-btn.compare.is-on {
+    background: var(--ctai-blue-strong);
+    border-color: var(--ctai-blue-strong);
+    color: #fff;
+}
+.ctai-card-btn.open {
+    background: var(--ctai-blue-strong);
+    border: 1px solid var(--ctai-blue-strong);
+    color: #fff;
+}
+.ctai-card-btn.open:hover { background: var(--ctai-brand-strong); border-color: var(--ctai-brand-strong); }
+
+/* ---------- Barra flotante de comparación ---------- */
+.ctai-compare-bar {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--ctai-bg);
+    border: 1px solid var(--ctai-blue-mid);
+    border-radius: var(--ctai-radius);
+    box-shadow: 0 8px 24px rgba(16, 24, 40, 0.16);
+    z-index: 12;
+    animation: ctaiSlideUp 0.2s ease;
+}
+.ctai-compare-bar.is-visible { display: flex; }
+.ctai-compare-bar-label {
+    font-size: 13px;
+    font-weight: 500;
     color: var(--ctai-text-soft);
 }
-.ctai-badge {
+.ctai-compare-bar-actions { display: flex; align-items: center; gap: 8px; }
+.ctai-compare-clear {
+    background: transparent;
+    border: none;
+    color: var(--ctai-text-soft);
+    font-family: var(--ctai-font);
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 8px 10px;
+    border-radius: var(--ctai-radius-sm);
+}
+.ctai-compare-clear:hover { background: var(--ctai-canvas); color: var(--ctai-text); }
+.ctai-compare-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--ctai-blue-strong);
+    color: #fff;
+    border: none;
+    border-radius: var(--ctai-radius-sm);
+    font-family: var(--ctai-font);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 14px;
+    cursor: pointer;
+    transition: background 0.16s ease, transform 0.12s ease;
+}
+.ctai-compare-open svg { width: 16px; height: 16px; }
+.ctai-compare-open:hover { background: var(--ctai-brand-strong); }
+.ctai-compare-open:active { transform: scale(0.97); }
+.ctai-compare-open:disabled { opacity: 0.5; cursor: default; }
+
+/* ---------- Vista de comparación (overlay dentro del panel) ---------- */
+.ctai-compare-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--ctai-canvas);
+    display: none;
+    flex-direction: column;
+    z-index: 15;
+    animation: ctaiFadeIn 0.2s ease;
+}
+.ctai-compare-overlay.is-open { display: flex; }
+.ctai-compare-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--ctai-bg);
+    border-bottom: 1px solid var(--ctai-border);
+    flex-shrink: 0;
+}
+.ctai-compare-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ctai-text);
+}
+.ctai-compare-body {
+    flex: 1;
+    overflow: auto;
+    padding: 16px;
+}
+.ctai-compare-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+.ctai-compare-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 12px;
+    background: var(--ctai-bg);
+    border: 1px solid var(--ctai-border);
+    border-radius: var(--ctai-radius);
+    position: relative;
+}
+.ctai-compare-col.is-recommended {
+    border: 2px solid var(--ctai-blue-strong);
+    padding: 13px 11px;
+}
+.ctai-compare-reco {
+    align-self: flex-start;
+    background: var(--ctai-blue-strong);
+    color: #fff;
     font-size: 11px;
     font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 999px;
-    line-height: 1.5;
+    padding: 3px 10px;
+    border-radius: var(--ctai-radius-pill);
 }
-.ctai-badge.promo { background: var(--ctai-amber-bg); color: var(--ctai-amber); }
-.ctai-badge.stock { background: var(--ctai-green-bg); color: var(--ctai-green); }
-.ctai-badge.pedido { background: var(--ctai-blue-bg); color: var(--ctai-blue); }
+.ctai-compare-col-img {
+    width: 100%;
+    height: 96px;
+    border-radius: var(--ctai-radius-sm);
+    background: var(--ctai-bg-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.ctai-compare-col-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.ctai-compare-col-clave {
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: var(--ctai-text);
+}
+.ctai-compare-col-sub { font-size: 12px; color: var(--ctai-text-soft); }
+.ctai-compare-col-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ctai-blue-strong);
+}
+.ctai-compare-col-mxn { font-size: 11.5px; color: var(--ctai-text-faint); }
+.ctai-compare-col-promo-off { font-size: 11.5px; color: var(--ctai-text-faint); }
+.ctai-compare-followups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px 16px;
+    border-top: 1px solid var(--ctai-border);
+    background: var(--ctai-bg);
+    flex-shrink: 0;
+}
 
-/* Chips de sugerencia (pills, generadas por el bot) */
+/* Chips de sugerencia (botones de primera clase) */
 .ctai-suggestions {
     display: flex;
     flex-wrap: wrap;
@@ -554,10 +798,10 @@
     font-family: var(--ctai-font);
     font-size: 13.5px;
     font-weight: 500;
-    color: var(--ctai-brand);
+    color: var(--ctai-blue-strong);
     background: var(--ctai-bg);
-    border: 1px solid var(--ctai-border);
-    border-radius: 999px;
+    border: 1px solid var(--ctai-blue-mid);
+    border-radius: var(--ctai-radius-pill);
     padding: 8px 14px;
     cursor: pointer;
     transition: background 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
@@ -565,14 +809,30 @@
     text-align: left;
 }
 .ctai-chip:hover {
-    background: var(--ctai-blue-bg);
-    border-color: #c7d6f7;
+    background: var(--ctai-blue-050);
+    border-color: var(--ctai-blue-strong);
 }
 .ctai-chip:active {
     transform: scale(0.97);
 }
 
-/* Tiles de inicio (estilo "Acciones rápidas" del dashboard) */
+/* Estado de bienvenida */
+.ctai-welcome {
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--ctai-text);
+    background: var(--ctai-bg);
+    border: 1px solid var(--ctai-border);
+    border-radius: 12px 12px 12px 4px;
+    box-shadow: var(--ctai-shadow);
+    padding: 14px 16px;
+    margin-bottom: 4px;
+    max-width: 92%;
+    align-self: flex-start;
+    animation: ctaiFadeIn 0.25s ease;
+}
+
+/* Tiles de inicio (starters) */
 .ctai-starters {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -588,7 +848,7 @@
     padding: 12px;
     background: var(--ctai-bg);
     border: 1px solid var(--ctai-border);
-    border-radius: var(--ctai-radius-sm);
+    border-radius: var(--ctai-radius);
     box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
     cursor: pointer;
     text-align: left;
@@ -598,7 +858,7 @@
 .ctai-starter-tile:hover {
     transform: translateY(-2px);
     box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 20px rgba(16, 24, 40, 0.09);
-    border-color: #d7dbe6;
+    border-color: var(--ctai-blue-mid);
 }
 .ctai-starter-tile:active {
     transform: translateY(0);
@@ -607,10 +867,12 @@
     width: 34px;
     height: 34px;
     flex-shrink: 0;
-    border-radius: 9px;
+    border-radius: var(--ctai-radius-sm);
     display: flex;
     align-items: center;
     justify-content: center;
+    background: var(--ctai-blue-050);
+    color: var(--ctai-blue-strong);
 }
 .ctai-starter-icon svg {
     width: 18px;
@@ -623,13 +885,8 @@
     color: var(--ctai-text);
     line-height: 1.3;
 }
-/* Tonos pastel por tile */
-.ctai-starter-tile.tone-blue   .ctai-starter-icon { background: var(--ctai-blue-bg);   color: var(--ctai-blue); }
-.ctai-starter-tile.tone-purple .ctai-starter-icon { background: var(--ctai-purple-bg); color: var(--ctai-purple); }
-.ctai-starter-tile.tone-amber  .ctai-starter-icon { background: var(--ctai-amber-bg);  color: var(--ctai-amber); }
-.ctai-starter-tile.tone-green  .ctai-starter-icon { background: var(--ctai-green-bg);  color: var(--ctai-green); }
 
-/* Spinner de carga */
+/* Indicador de carga: solo los puntos animados (sin texto). */
 .typing-indicator {
     display: flex;
     align-items: center;
@@ -641,7 +898,7 @@
     width: 7px;
     height: 7px;
     margin: 0 2px;
-    background-color: var(--ctai-brand);
+    background-color: var(--ctai-blue-mid);
     border-radius: 50%;
     opacity: 0;
     animation: loading-dots 1.2s infinite ease-in-out;
@@ -650,10 +907,11 @@
 .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
 .typing-indicator span:nth-child(3) { animation-delay: 0s; }
 
-/* Aviso inferior */
+/* Aviso inferior (footer legal) */
 .chat-warning {
     padding: 6px 10px;
     font-size: 11px;
+    line-height: 1.4;
     text-align: center;
     color: var(--ctai-text-soft);
     background: var(--ctai-bg);
@@ -665,12 +923,16 @@
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }
 }
+@keyframes ctaiSlideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
 @keyframes loading-dots {
     0%, 80%, 100% { opacity: 0; }
     40% { opacity: 1; }
 }
 
-/* Modal de confirmación */
+/* Modal de confirmación (borrar historial) — único lugar, con el logo, donde el rojo es correcto. */
 .modal-overlay {
     position: fixed;
     inset: 0;
@@ -709,7 +971,7 @@
     transition: background-color 0.2s ease;
 }
 .modal-buttons .confirm-button { background-color: var(--ctai-red); color: white; }
-.modal-buttons .confirm-button:hover { background-color: #b91c1c; }
+.modal-buttons .confirm-button:hover { background-color: var(--ctai-red-strong); }
 .modal-buttons .cancel-button { background-color: var(--ctai-canvas); color: var(--ctai-text); border: 1px solid var(--ctai-border); }
 .modal-buttons .cancel-button:hover { background-color: #e9edf3; }
 
@@ -719,4 +981,5 @@
     .chat-container { border-left: none; }
     /* En móvil el panel ya es full-screen: el botón de expandir no aplica. */
     #ctai-expand-button { display: none; }
+    .ctai-starters { grid-template-columns: 1fr 1fr; }
 }

@@ -7,12 +7,17 @@ const __CTAI_ORIGIN = __ctaiSdkScript ? new URL(__ctaiSdkScript.src).origin : ""
 
 class CTAIWidget {
     static init(config = {}) {
+        const fx = parseFloat(config.tipoCambio);
         const settings = {
             apiBase: config.apiBase || __CTAI_ORIGIN,
             userId: config.userId,
             userKey: config.userKey,
             containerId: config.containerId || "ctai-widget-root",
-            chatIconUrl: config.chatIconUrl || (__CTAI_ASSET_BASE + "chat.png")
+            chatIconUrl: config.chatIconUrl || (__CTAI_ASSET_BASE + "chat.png"),
+            // Tipo de cambio USD→MXN que el portal ya conoce (mismo dato del portal).
+            // Opcional: si no viene, las tarjetas simplemente omiten la línea "≈ MXN".
+            // No dispara ninguna llamada de datos ni añade latencia.
+            tipoCambio: (isFinite(fx) && fx > 0) ? fx : null
         };
         if (!settings.userId || !settings.userKey) {
             const errorDiv = document.createElement("div");
@@ -79,6 +84,31 @@ class CTAIWidget {
                         </button>
                         <textarea class="message-input" id="ctai-user-input" placeholder="Escribe tu mensaje" rows="1"></textarea>
                         <button class="send-button" id="ctai-send-button" aria-label="Enviar mensaje"></button>
+                    </div>
+                    <div class="ctai-compare-bar" id="ctai-compare-bar">
+                        <span class="ctai-compare-bar-label" id="ctai-compare-bar-label">0 seleccionados</span>
+                        <div class="ctai-compare-bar-actions">
+                            <button class="ctai-compare-clear" id="ctai-compare-clear" type="button">Limpiar</button>
+                            <button class="ctai-compare-open" id="ctai-compare-open" type="button">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M3 6h4"></path><path d="M3 12h9"></path><path d="M3 18h14"></path>
+                                    <path d="M18 4v6"></path><path d="m15 7 3-3 3 3"></path>
+                                </svg>
+                                <span id="ctai-compare-open-label">Comparar</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="ctai-compare-overlay" id="ctai-compare-overlay">
+                        <div class="ctai-compare-head">
+                            <span class="ctai-compare-title">Comparar productos</span>
+                            <button class="ctai-icon-btn" id="ctai-compare-close" type="button" title="Cerrar comparación" aria-label="Cerrar comparación">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M18 6 6 18"></path><path d="M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="ctai-compare-body"><div class="ctai-compare-grid" id="ctai-compare-grid"></div></div>
+                        <div class="ctai-compare-followups" id="ctai-compare-followups"></div>
                     </div>
                 </div>
                 <div class="chat-warning" style="padding: 1px 4px; font-size: 11px; text-align: center;">
@@ -166,7 +196,8 @@ if (currentSdkScript && currentSdkScript.dataset.autoInit !== "false") {
         userKey: currentSdkScript.dataset.userKey,
         apiBase: currentSdkScript.dataset.apiBase,
         chatIconUrl: currentSdkScript.dataset.chatIconUrl,
-        containerId: currentSdkScript.dataset.containerId
+        containerId: currentSdkScript.dataset.containerId,
+        tipoCambio: currentSdkScript.dataset.tipoCambio
     };
     if (!autoInitConfig.userId || !autoInitConfig.userKey) {
        console.error("CTAIChat: (Pre-init) Faltan data-user-id o data-user-key en el tag <script>. La auto-inicialización será omitida.");

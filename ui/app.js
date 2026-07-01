@@ -3,6 +3,17 @@ let userId = null;
 let userKey = null;
 let API_BASE = null;
 let ctaiAbort = null; // AbortController de la respuesta en curso (para el botón detener)
+let CTAI_FX = null;   // tipo de cambio USD→MXN (del portal); null si no se conoce
+let ctaiLastUserMsg = ""; // último mensaje del usuario (heurística "compara…")
+
+// Mensaje de bienvenida general y cálido (sin personalización, cero llamadas extra).
+const CTAI_WELCOME =
+    "¡Hola! 👋 Soy tu asistente de CT. Puedo buscar productos con precio y existencias, " +
+    "comparar opciones, revisar el estatus de tu pedido y más. ¿Con qué te ayudo hoy?";
+
+const CTAI_MAX_COMPARE = 4; // tope de productos comparables
+// Selección de comparación: clave -> objeto producto.
+const ctaiCompare = new Map();
 
 // Opciones iniciales (tiles tipo "Acciones rápidas") que se muestran al abrir el chat.
 // icon = SVG inline (stroke currentColor); tone = clase de color pastel; query = consulta enviada.
@@ -130,11 +141,45 @@ function ctaiSafeUrl(u) {
     return /^https?:\/\//i.test(s) ? s : "";
 }
 
+function ctaiMoneyStr(n) {
+    return "$" + Number(n).toLocaleString("es-MX", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function ctaiFormatPrice(precio, moneda) {
     const n = Number(precio);
     if (!isFinite(n) || n <= 0) return "";
     const cur = (moneda || "MXN").toString().toUpperCase();
-    return "$" + n.toLocaleString("es-MX", { maximumFractionDigits: 2 }) + " " + cur;
+    return ctaiMoneyStr(n) + " " + cur;
+}
+
+// Devuelve { main, mxn } para el precio de un producto.
+//  - main: "$X.XX {moneda}"
+//  - mxn : "≈ $Y.YY MXN" cuando la moneda es USD y conocemos el tipo de cambio; "" si no aplica.
+function ctaiPriceParts(precio, moneda) {
+    const n = Number(precio);
+    if (!isFinite(n) || n <= 0) return { main: "", mxn: "" };
+    const cur = (moneda || "MXN").toString().toUpperCase();
+    const main = ctaiMoneyStr(n) + " " + cur;
+    let mxn = "";
+    if (cur === "USD" && CTAI_FX) mxn = "≈ " + ctaiMoneyStr(n * CTAI_FX) + " MXN";
+    return { main, mxn };
+}
+
+function ctaiNum(v) {
+    const n = Number(v);
+    return isFinite(n) ? n : 0;
+}
+
+function ctaiIsPromo(p) {
+    return p && (p.en_promocion === true || p.en_promocion === "Sí" || p.en_promocion === "si" || p.en_promocion === "Si");
+}
+
+// Precio normalizado a MXN para comparar de forma justa (usa FX si la moneda es USD).
+function ctaiPriceMXN(p) {
+    const n = Number(p && p.precio);
+    if (!isFinite(n) || n <= 0) return Infinity;
+    const cur = (p.moneda || "MXN").toString().toUpperCase();
+    return (cur === "USD" && CTAI_FX) ? n * CTAI_FX : n;
 }
 
 // ---------- Parser in-band INCREMENTAL ----------
@@ -213,44 +258,105 @@ function ctaiParseStructured(raw) {
     };
 }
 
-// Construye el elemento DOM de una tarjeta de producto.
+// ---------- Íconos SVG (stroke currentColor) ----------
+const CTAI_SVG_PIN =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>';
+const CTAI_SVG_BOX =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>';
+const CTAI_SVG_CLOCK =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>';
+const CTAI_SVG_TAG =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 2H20a2 2 0 0 1 2 2v7.5a2 2 0 0 1-.6 1.4l-8.5 8.5a2 2 0 0 1-2.8 0l-6.5-6.5a2 2 0 0 1 0-2.8l8.5-8.5A2 2 0 0 1 12.5 2Z"></path><circle cx="17" cy="7" r="1.2"></circle></svg>';
+const CTAI_SVG_COMPARE =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h4"></path><path d="M3 12h9"></path><path d="M3 18h14"></path><path d="M18 4v6"></path><path d="m15 7 3-3 3 3"></path></svg>';
+const CTAI_SVG_EXTERNAL =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>';
+
+// Devuelve la mejor disponibilidad como { cls, icon, text } para una sola pill.
+function ctaiStockPill(p) {
+    if (ctaiNum(p.en_su_sucursal) > 0)
+        return { cls: "sucursal", icon: CTAI_SVG_PIN, text: ctaiNum(p.en_su_sucursal) + " en tu sucursal" };
+    if (ctaiNum(p.en_otras_sucursales) > 0)
+        return { cls: "otras", icon: CTAI_SVG_BOX, text: ctaiNum(p.en_otras_sucursales) + " en otras sucursales" };
+    return { cls: "pedido", icon: CTAI_SVG_CLOCK, text: "Sobre pedido" };
+}
+
+function ctaiPillHTML(pill) {
+    return '<span class="ctai-pill ' + pill.cls + '">' + pill.icon + ctaiEscape(pill.text) + '</span>';
+}
+
+// Construye el elemento DOM de una tarjeta de producto (herramienta de decisión).
 function ctaiBuildProductCard(p) {
     const url = ctaiSafeUrl(p.url);
     const img = ctaiSafeUrl(p.imagen_url);
-    const card = document.createElement(url ? "a" : "div");
+    const clave = p.clave || p.modelo || "Producto";
+
+    const card = document.createElement("div");
     card.className = "ctai-product-card";
-    if (url) { card.href = url; card.target = "_blank"; card.rel = "noopener noreferrer"; }
+    if (clave) card.dataset.clave = clave;
+    if (url) card.dataset.url = url;
+    if (ctaiCompare.has(clave)) card.classList.add("is-selected");
 
-    const title = ctaiEscape(p.clave || p.modelo || "Producto");           // título = Clave CT
-    const subtitle = ctaiEscape([p.marca, p.modelo].filter(Boolean).join(" ").trim());
-    const price = ctaiFormatPrice(p.precio, p.moneda);
-
-    const availParts = [];
-    if (typeof p.en_su_sucursal === "number" && p.en_su_sucursal > 0)
-        availParts.push(p.en_su_sucursal + " en tu sucursal");
-    if (typeof p.en_otras_sucursales === "number" && p.en_otras_sucursales > 0)
-        availParts.push(p.en_otras_sucursales + " en otras sucursales");
-    const avail = availParts.length ? availParts.join(" / ") : "Sobre pedido";
-
-    const promo = (p.en_promocion === true || p.en_promocion === "Sí" || p.en_promocion === "si")
-        ? '<span class="ctai-badge promo">En promoción</span>' : '';
+    const title = ctaiEscape(clave);                                        // título = Clave CT
+    const subtitle = ctaiEscape([p.marca, p.modelo].filter(Boolean).join(" · ").trim());
+    const price = ctaiPriceParts(p.precio, p.moneda);
+    const pill = ctaiStockPill(p);
+    const promo = ctaiIsPromo(p)
+        ? '<span class="ctai-pill promo">' + CTAI_SVG_TAG + 'Promoción</span>' : '';
+    const compareOn = ctaiCompare.has(clave);
 
     card.innerHTML =
-        '<div class="ctai-card-img' + (img ? '' : ' is-empty') + '">' +
-            (img ? '<img src="' + ctaiEscape(img) + '" alt="' + title + '" loading="lazy">' : '') +
-        '</div>' +
-        '<div class="ctai-card-body">' +
-            '<div class="ctai-card-title">' + title + '</div>' +
-            (subtitle ? '<div class="ctai-card-sub">' + subtitle + '</div>' : '') +
-            '<div class="ctai-card-priceline">' +
-                (price ? '<span class="ctai-card-price">' + price + '</span>' : '') + promo +
+        '<div class="ctai-card-top">' +
+            '<div class="ctai-card-img' + (img ? '' : ' is-empty') + '">' +
+                (img ? '<img src="' + ctaiEscape(img) + '" alt="' + title + '" loading="lazy">' : '') +
             '</div>' +
-            '<div class="ctai-card-avail">' + avail + '</div>' +
+            '<div class="ctai-card-body">' +
+                (promo ? '<div class="ctai-card-badges">' + promo + '</div>' : '') +
+                '<div class="ctai-card-title">' + title + '</div>' +
+                (subtitle ? '<div class="ctai-card-sub">' + subtitle + '</div>' : '') +
+                '<div class="ctai-card-stock">' + ctaiPillHTML(pill) + '</div>' +
+                (price.main
+                    ? '<div class="ctai-card-priceblock">' +
+                        '<span class="ctai-card-price">' + ctaiEscape(price.main) + '</span>' +
+                        (price.mxn ? '<span class="ctai-card-mxn">' + ctaiEscape(price.mxn) + '</span>' : '') +
+                      '</div>'
+                    : '') +
+            '</div>' +
+        '</div>' +
+        '<div class="ctai-card-actions">' +
+            '<button type="button" class="ctai-card-btn compare' + (compareOn ? ' is-on' : '') + '">' +
+                CTAI_SVG_COMPARE + '<span>' + (compareOn ? 'Quitar' : 'Comparar') + '</span>' +
+            '</button>' +
+            (url
+                ? '<a class="ctai-card-btn open" href="' + ctaiEscape(url) + '" target="_blank" rel="noopener noreferrer">' +
+                    CTAI_SVG_EXTERNAL + '<span>Abrir</span></a>'
+                : '') +
         '</div>';
-    // Telemetría: clic en tarjeta de producto (proxy de completitud de tarea).
-    card.addEventListener("click", function() {
-        ctaiTrack("product_click", { clave: p.clave || p.modelo || "", url: url || "" });
-    });
+
+    // "Comparar" tiene prioridad de clic: no abre la url.
+    const compareBtn = card.querySelector(".ctai-card-btn.compare");
+    if (compareBtn) {
+        compareBtn.addEventListener("click", function(ev) {
+            ev.stopPropagation();
+            ev.preventDefault();
+            ctaiToggleCompare(p);
+        });
+    }
+    // "Abrir" (los botones tienen prioridad; no propagamos al click de la tarjeta).
+    const openBtn = card.querySelector(".ctai-card-btn.open");
+    if (openBtn) {
+        openBtn.addEventListener("click", function(ev) {
+            ev.stopPropagation();
+            ctaiTrack("product_click", { clave: clave, url: url || "" });
+        });
+    }
+    // Toda la tarjeta es clickeable hacia la url (los botones tienen prioridad).
+    if (url) {
+        card.addEventListener("click", function() {
+            ctaiTrack("product_click", { clave: clave, url: url });
+            window.open(url, "_blank", "noopener,noreferrer");
+        });
+    }
     return card;
 }
 
@@ -260,13 +366,14 @@ function ctaiRenderProducts(el, products) {
     products = products || [];
     const rendered = parseInt(el.dataset.count || "0", 10);
     if (products.length <= rendered) return;               // nada nuevo
-    if (products.length > 0) el.className = "bot-products ctai-products";
+    if (products.length > 0) el.className = "bot-products ctai-products ctai-products--cards";
     for (let idx = rendered; idx < products.length; idx++) {
         const card = ctaiBuildProductCard(products[idx]);
         card.style.animationDelay = ((idx - rendered) * 0.07) + "s";   // cascada suave
         el.appendChild(card);
     }
     el.dataset.count = String(products.length);
+    ctaiUpdateCompareBar();
 }
 
 // Render INCREMENTAL de chips de sugerencia (también 1 a 1).
@@ -286,6 +393,167 @@ function ctaiRenderChips(el, list) {
         el.appendChild(chip);
     }
     el.dataset.count = String(arr.length);
+}
+
+// ---------- Comparación de productos ----------
+
+// Refleja el estado de selección en TODAS las tarjetas que compartan la misma clave.
+function ctaiSyncCardsForClave(clave) {
+    const on = ctaiCompare.has(clave);
+    const cards = document.querySelectorAll('.ctai-product-card[data-clave="' + (window.CSS && CSS.escape ? CSS.escape(clave) : clave) + '"]');
+    cards.forEach(card => {
+        card.classList.toggle("is-selected", on);
+        const btn = card.querySelector(".ctai-card-btn.compare");
+        if (btn) {
+            btn.classList.toggle("is-on", on);
+            const label = btn.querySelector("span");
+            if (label) label.textContent = on ? "Quitar" : "Comparar";
+        }
+    });
+}
+
+// Agrega/quita un producto de la selección de comparación.
+function ctaiToggleCompare(p) {
+    const clave = p.clave || p.modelo || "";
+    if (!clave) return;
+    if (ctaiCompare.has(clave)) {
+        ctaiCompare.delete(clave);
+    } else {
+        if (ctaiCompare.size >= CTAI_MAX_COMPARE) {
+            // Tope alcanzado: no agregamos más (se comparan hasta 4).
+            ctaiUpdateCompareBar();
+            return;
+        }
+        ctaiCompare.set(clave, p);
+        ctaiTrack("compare_add", { clave: clave });
+    }
+    ctaiSyncCardsForClave(clave);
+    ctaiUpdateCompareBar();
+}
+
+// Muestra/oculta y actualiza la barra flotante "Comparar (N)".
+function ctaiUpdateCompareBar() {
+    const bar = document.getElementById("ctai-compare-bar");
+    if (!bar) return;
+    const n = ctaiCompare.size;
+    const label = document.getElementById("ctai-compare-bar-label");
+    const openLabel = document.getElementById("ctai-compare-open-label");
+    const openBtn = document.getElementById("ctai-compare-open");
+    if (label) label.textContent = n === 1 ? "1 seleccionado" : n + " seleccionados";
+    if (openLabel) openLabel.textContent = "Comparar (" + n + ")";
+    if (openBtn) openBtn.disabled = n < 2;
+    // La barra aparece con ≥2 seleccionados (con 1 aún no hay qué comparar).
+    bar.classList.toggle("is-visible", n >= 2);
+}
+
+function ctaiClearCompare() {
+    const claves = Array.from(ctaiCompare.keys());
+    ctaiCompare.clear();
+    claves.forEach(ctaiSyncCardsForClave);
+    ctaiUpdateCompareBar();
+}
+
+// Índice del producto recomendado: el más barato que esté en existencia; empate → el que esté en promoción.
+function ctaiRecommendIndex(products) {
+    let best = -1, bestPrice = Infinity, bestPromo = false;
+    products.forEach((p, i) => {
+        const inStock = ctaiNum(p.en_su_sucursal) > 0 || ctaiNum(p.en_otras_sucursales) > 0;
+        if (!inStock) return;
+        const price = ctaiPriceMXN(p);
+        if (!isFinite(price)) return;
+        const promo = ctaiIsPromo(p);
+        if (price < bestPrice - 0.001 || (Math.abs(price - bestPrice) < 0.001 && promo && !bestPromo)) {
+            best = i; bestPrice = price; bestPromo = promo;
+        }
+    });
+    // Si ninguno está en existencia, favorecemos el más barato disponible por pedido.
+    if (best === -1) {
+        products.forEach((p, i) => {
+            const price = ctaiPriceMXN(p);
+            if (isFinite(price) && price < bestPrice - 0.001) { best = i; bestPrice = price; }
+        });
+    }
+    return best;
+}
+
+// Construye una columna de la vista de comparación.
+function ctaiBuildCompareColumn(p, recommended) {
+    const col = document.createElement("div");
+    col.className = "ctai-compare-col" + (recommended ? " is-recommended" : "");
+    const img = ctaiSafeUrl(p.imagen_url);
+    const clave = ctaiEscape(p.clave || p.modelo || "Producto");
+    const sub = ctaiEscape([p.marca, p.modelo].filter(Boolean).join(" · ").trim());
+    const price = ctaiPriceParts(p.precio, p.moneda);
+    const pill = ctaiStockPill(p);
+    const promo = ctaiIsPromo(p)
+        ? '<span class="ctai-pill promo">' + CTAI_SVG_TAG + 'En promoción</span>'
+        : '<span class="ctai-compare-col-promo-off">Sin promoción</span>';
+
+    col.innerHTML =
+        (recommended ? '<span class="ctai-compare-reco">Recomendado</span>' : '') +
+        '<div class="ctai-compare-col-img' + (img ? '' : ' is-empty') + '">' +
+            (img ? '<img src="' + ctaiEscape(img) + '" alt="' + clave + '" loading="lazy">' : '') +
+        '</div>' +
+        '<div class="ctai-compare-col-clave">' + clave + '</div>' +
+        (sub ? '<div class="ctai-compare-col-sub">' + sub + '</div>' : '') +
+        (price.main
+            ? '<div class="ctai-compare-col-price">' + ctaiEscape(price.main) + '</div>' +
+              (price.mxn ? '<div class="ctai-compare-col-mxn">' + ctaiEscape(price.mxn) + '</div>' : '')
+            : '') +
+        '<div>' + ctaiPillHTML(pill) + '</div>' +
+        '<div>' + promo + '</div>';
+    return col;
+}
+
+// Chips de seguimiento bajo la comparación (mapean a algo que el agente sí responde).
+const CTAI_COMPARE_FOLLOWUPS = [
+    "¿Cuál es la más barata en existencia?",
+    "Muéstrame el precio total en MXN",
+    "¿Cuál me conviene?"
+];
+
+// Abre la vista de comparación con una lista de productos (o con la selección actual).
+function ctaiOpenCompare(products) {
+    const list = (products && products.length)
+        ? products.slice(0, CTAI_MAX_COMPARE)
+        : Array.from(ctaiCompare.values()).slice(0, CTAI_MAX_COMPARE);
+    if (list.length < 2) return;
+
+    const overlay = document.getElementById("ctai-compare-overlay");
+    const grid = document.getElementById("ctai-compare-grid");
+    const followWrap = document.getElementById("ctai-compare-followups");
+    if (!overlay || !grid) return;
+
+    // La comparación vive mejor en modo expandido (ancho para 3 columnas).
+    const container = document.getElementById("ctai-chat-container");
+    if (container && !container.classList.contains("ctai-expanded") && list.length >= 3) {
+        const expandBtn = document.getElementById("ctai-expand-button");
+        if (expandBtn) expandBtn.click();
+    }
+
+    grid.innerHTML = "";
+    const reco = ctaiRecommendIndex(list);
+    list.forEach((p, i) => grid.appendChild(ctaiBuildCompareColumn(p, i === reco)));
+
+    if (followWrap) {
+        followWrap.innerHTML = "";
+        CTAI_COMPARE_FOLLOWUPS.forEach(text => {
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "ctai-chip";
+            chip.textContent = text;
+            chip.addEventListener("click", () => { ctaiCloseCompare(); sendMessage(text); });
+            followWrap.appendChild(chip);
+        });
+    }
+
+    overlay.classList.add("is-open");
+    ctaiTrack("compare_open", { count: list.length });
+}
+
+function ctaiCloseCompare() {
+    const overlay = document.getElementById("ctai-compare-overlay");
+    if (overlay) overlay.classList.remove("is-open");
 }
 
 function ctaiCreateBotBubble() {
@@ -323,6 +591,21 @@ function appendBotMessage(raw) {
     ctaiRenderBot(wrap, raw);
     requestAnimationFrame(ctaiScrollDown);
     return wrap;
+}
+
+// Estado de bienvenida: mensaje general y cálido + los 4 starters. Sin llamadas extra.
+function ctaiShowWelcome() {
+    ctaiCloseCompare();
+    ctaiClearCompare();
+    const chatMessages = document.getElementById("ctai-chat-messages");
+    if (!chatMessages) return;
+    chatMessages.innerHTML = "";
+    const welcome = document.createElement("div");
+    welcome.className = "ctai-welcome";
+    welcome.textContent = CTAI_WELCOME;
+    chatMessages.appendChild(welcome);
+    ctaiRenderStarters();
+    ctaiForceBottom();
 }
 
 function ctaiRenderStarters() {
@@ -370,6 +653,8 @@ function initializeChatbotData() {
     userId = window.CTAI_CONFIG.userId;
     userKey = window.CTAI_CONFIG.userKey;
     API_BASE = window.CTAI_CONFIG.apiBase;
+    CTAI_FX = (typeof window.CTAI_CONFIG.tipoCambio === "number" && window.CTAI_CONFIG.tipoCambio > 0)
+        ? window.CTAI_CONFIG.tipoCambio : null;
     if (!userId || !userKey) {
         const chatMessages = document.getElementById("ctai-chat-messages");
         if (chatMessages) {
@@ -405,9 +690,7 @@ async function loadHistory() {
         // El servidor devuelve un array plano: [{role, content}]
         const history = await response.json();
         if (!Array.isArray(history) || history.length === 0) {
-            appendMessage("bot", "¡Hola! Soy tu asistente de CT. ¿En qué puedo ayudarte hoy?");
-            ctaiRenderStarters();
-            ctaiForceBottom();
+            ctaiShowWelcome();
             return;
         }
 
@@ -472,6 +755,7 @@ async function sendMessage(presetText) {
     const starters = document.querySelector(".ctai-starters");
     if (starters) starters.remove();
 
+    ctaiLastUserMsg = message;
     appendMessage('user', message);
     if (userInput) { userInput.value = ''; userInput.style.height = 'auto'; }
     showSpinner();
@@ -530,6 +814,15 @@ async function sendMessage(presetText) {
         ctaiRenderBot(wrap, botResponse); // render final (captura lo último que faltara)
         requestAnimationFrame(ctaiScrollDown);
 
+        // Ruta secundaria (escribir): si el usuario pidió comparar y llegaron 2–4 productos,
+        // abrimos directamente la vista de comparación con esos productos.
+        if (/\bcompar/i.test(ctaiLastUserMsg)) {
+            const prods = ctaiParseStructured(botResponse).products;
+            if (prods.length >= 2 && prods.length <= CTAI_MAX_COMPARE) {
+                requestAnimationFrame(() => ctaiOpenCompare(prods));
+            }
+        }
+
     } catch (error) {
         if (spinnerVisible) hideSpinner();
         // Si el usuario detuvo la respuesta, no mostramos error; la respuesta parcial se conserva.
@@ -547,12 +840,7 @@ async function deleteConversation() {
     try {
         const response = await fetch(`${API_BASE}/history/${encodeURIComponent(userId)}`, { method: 'DELETE' });
         if (response.status === 204 || response.status === 200 || response.estatus === 'success') {
-            const chatMessages = document.getElementById("ctai-chat-messages");
-            if (chatMessages) {
-                chatMessages.innerHTML = "";
-                appendMessage("bot", "¡Hola! Soy tu asistente de CT. ¿En qué puedo ayudarte hoy?");
-                ctaiRenderStarters();
-            } else {}
+            ctaiShowWelcome();
         } else if (response.status >= 400) {
              const errorDetail = await response.text();
              appendMessage("bot", `Error al intentar eliminar la conversación: ${errorDetail || 'Error desconocido'}`);
@@ -647,6 +935,14 @@ window.initCTAIChatApp = function() {
             );
         });
     } else {}
+
+    // Barra flotante de comparación + vista de comparación.
+    const compareOpenBtn = document.getElementById("ctai-compare-open");
+    const compareClearBtn = document.getElementById("ctai-compare-clear");
+    const compareCloseBtn = document.getElementById("ctai-compare-close");
+    if (compareOpenBtn) compareOpenBtn.addEventListener("click", () => ctaiOpenCompare());
+    if (compareClearBtn) compareClearBtn.addEventListener("click", ctaiClearCompare);
+    if (compareCloseBtn) compareCloseBtn.addEventListener("click", ctaiCloseCompare);
 
     // Botón "ir a los mensajes recientes": visible al subir; al hacer clic baja.
     const scrollContainer = document.getElementById("ctai-messages-container");

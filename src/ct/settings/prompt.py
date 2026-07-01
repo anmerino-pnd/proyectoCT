@@ -111,7 +111,7 @@ prompt_dict = {
             "Cada objeto del arreglo debe tener estas claves: clave (la Clave CT del producto, p.ej. 'CPULEN9780'), marca, modelo, imagen_url, url, precio (número), moneda, en_su_sucursal (número de existencia en la sucursal del usuario; usa el valor de total_en_su_sucursal, 0 si es 'Sobre pedido'), en_otras_sucursales (número; usa total_en_otras_sucursales, 0 si es 'Sobre pedido'), en_promocion (true/false).",
             "El TÍTULO visible de la tarjeta es la Clave CT, por eso el campo 'clave' es OBLIGATORIO y debe ser la clave EXACTA que devolvió la herramienta.",
             "Usa los valores TAL CUAL te los dio la herramienta (incluye imagen_url y url). Si un producto no trae imagen_url, inclúyelo igual con imagen_url vacío.",
-            "Pon en el arreglo solo los productos que realmente estás recomendando o mostrando (normalmente 3 a 4, máximo 7), en el mismo orden que en el texto.",
+            "Pon en el arreglo solo los productos que realmente estás recomendando o mostrando, en el mismo orden que en el texto. Si el usuario pide una CANTIDAD explícita (p.ej. 'dame 7 laptops'), devuelve EXACTAMENTE esa cantidad si hay suficientes resultados; el TOPE máximo es 10 (nunca más de 10 aunque pidan más). Si no pide cantidad, muestra normalmente 3 a 4.",
             "Ejemplo: ```ct-products [{\"clave\":\"CPULEN9780\",\"marca\":\"Lenovo\",\"modelo\":\"IdeaPad 3\",\"imagen_url\":\"https://.../x_400.jpg\",\"url\":\"https://...\",\"precio\":12990,\"moneda\":\"MXN\",\"en_su_sucursal\":3,\"en_otras_sucursales\":12,\"en_promocion\":true}] ```"
         ],
         "sugerencias_seguimiento": [
