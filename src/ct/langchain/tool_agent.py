@@ -400,7 +400,10 @@ class ToolAgent:
         turn = messages[start:]
 
         # Herramientas que consultan productos en la base de datos / catálogo.
-        product_search_tools = {"algolia_search_tool", "search_information", "search_by_key"}
+        # Solo las que están registradas en self.tools; algolia es la única
+        # búsqueda de productos activa (search_information/search_by_key no
+        # están registradas en el agente).
+        product_search_tools = {"algolia_search_tool"}
 
         log_buffer = []
         used_tools: set[str] = set()

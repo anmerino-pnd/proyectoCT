@@ -16,6 +16,7 @@ from ct.evaluation.metrics.faithfulness import evaluate_faithfulness
 from ct.evaluation.metrics.context_recall import evaluate_context_recall
 from ct.evaluation.metrics.answer_relevancy import evaluate_answer_relevancy
 from ct.evaluation.metrics.context_precision import evaluate_context_precision
+from ct.evaluation.utils import split_answer_blocks, format_product_cards
 from ct.evaluation.schemas import (
     EvaluationInput,
     EvaluationResult,
@@ -385,11 +386,18 @@ class RAGASEvaluator:
     async def evaluate_single(self, inp: EvaluationInput) -> EvaluationResult:
         logger.info(f"📊 Evaluando doc_id={inp.doc_id} | Q: {inp.question[:60]}...")
 
+        # El chatbot emite la data factual (precio, existencias, promoción) en
+        # bloques ```ct-products``` y las sugerencias en ```ct-suggestions```.
+        # Separamos una sola vez: la prosa alimenta relevancy/precision/recall,
+        # y las tarjetas se contrastan contra las tools en faithfulness.
+        prose, cards, _suggestions = split_answer_blocks(inp.answer)
+        product_cards = format_product_cards(cards)
+
         faithfulness, answer_relevancy, context_precision, context_recall = await asyncio.gather(
-            evaluate_faithfulness(inp.question, inp.answer, inp.verbose_log, self.llm, inp.previous_messages),
-            evaluate_answer_relevancy(inp.question, inp.answer, inp.verbose_log, self.llm, inp.previous_messages),
-            evaluate_context_precision(inp.question, inp.answer, inp.verbose_log, self.llm, inp.previous_messages),
-            evaluate_context_recall(inp.question, inp.answer, inp.verbose_log, self.llm, inp.previous_messages),
+            evaluate_faithfulness(inp.question, prose, inp.verbose_log, self.llm, inp.previous_messages, product_cards),
+            evaluate_answer_relevancy(inp.question, prose, inp.verbose_log, self.llm, inp.previous_messages),
+            evaluate_context_precision(inp.question, prose, inp.verbose_log, self.llm, inp.previous_messages),
+            evaluate_context_recall(inp.question, prose, inp.verbose_log, self.llm, inp.previous_messages),
             return_exceptions=True,
         )
 

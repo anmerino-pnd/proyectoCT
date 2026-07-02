@@ -14,37 +14,55 @@ afirmación concreta inventada.
 **LOG DE EJECUCIÓN (Thinking + Tool Outputs):**
 {verbose_log}
 
-**RESPUESTA DEL ASISTENTE:**
+**RESPUESTA DEL ASISTENTE (texto en prosa):**
 {answer}
+
+**TARJETAS DE PRODUCTO (datos estructurados que la interfaz muestra al usuario):**
+{product_cards}
+
+NOTA IMPORTANTE SOBRE EL FORMATO:
+Por diseño, el asistente NO escribe precios, existencias, promociones ni
+claves en el texto en prosa; TODA la data factual de productos vive en las
+TARJETAS DE PRODUCTO de arriba. Por eso debes auditar tanto la prosa como
+las tarjetas. Cada CAMPO de cada tarjeta (clave, marca, modelo, precio,
+moneda, existencias, en_promocion) es una afirmación factual que debe
+coincidir con el output de las tools (algolia / sales_rules) en el log.
+Si no hay tarjetas, evalúa solo la prosa.
 
 ---
 ### PROTOCOLO DE EVALUACIÓN:
 
 **PASO 1: EXTRACCIÓN DE AFIRMACIONES FACTUALES**
-Analiza la respuesta y extrae una lista de afirmaciones concretas.
-Una afirmación factual es cualquier dato específico: precios,
-nombres de producto, cantidades, stock, specs técnicas, reglas
-de negocio concretas, fechas o tiempos.
-NO cuentan: cortesías, frases genéricas ("tenemos varios
-modelos"), sugerencias vagas, ni información del historial
-que el agente repite correctamente.
+Extrae una lista de afirmaciones concretas de DOS fuentes:
+(a) la prosa: nombres de producto, specs técnicas, reglas de negocio,
+    fechas o tiempos que el texto afirme;
+(b) las TARJETAS DE PRODUCTO: cada campo de cada tarjeta (precio, moneda,
+    en_su_sucursal, en_otras_sucursales, en_promocion, clave, marca, modelo)
+    cuenta como una afirmación factual.
+NO cuentan: cortesías, frases genéricas ("tenemos varios modelos"),
+sugerencias vagas, ni información del historial que el agente repite
+correctamente.
 
 **PASO 2: BÚSQUEDA DE EVIDENCIA EN EL LOG**
-Para cada afirmación:
+Para cada afirmación (incluidos los campos de las tarjetas):
 - Si aparece en un tool output (🛠️): cita textual.
 - Si viene del historial de conversación: marca "Historial".
 - Si no aparece en ninguna fuente: "EVIDENCIA AUSENTE".
 
 **PASO 3: CONTRASTE**
 - SOPORTADO: evidencia confirma la afirmación exactamente.
-- CONTRADICHO: evidencia dice algo diferente.
-- ALUCINACIÓN: afirmación concreta sin evidencia.
+- CONTRADICHO: evidencia dice algo diferente (p.ej. una tarjeta con precio
+  o stock distinto al que devolvió la tool → CONTRADICHO).
+- ALUCINACIÓN: afirmación concreta (o campo de tarjeta) sin evidencia.
 
 **PASO 4: VEREDICTO FINAL**
 Calcula el score con la fórmula:
   score = claims_supported / claims_total
   Redondea a 2 decimales.
-  
+  claims_total y claims_supported incluyen los campos de las tarjetas.
+  Reporta además cuántos de esos claims provienen de tarjetas en
+  cards_total / cards_supported.
+
   Caso edge: si claims_total = 0 (no hubo afirmaciones
   verificables), asigna score = 1.0 — el agente no inventó
   nada porque no afirmó nada concreto.
@@ -66,8 +84,16 @@ RELEVANCIA de la respuesta respecto a la intención del usuario.
 **LOG DE EJECUCIÓN (Thinking + Tool Outputs):**
 {verbose_log}
 
-**RESPUESTA DEL ASISTENTE:**
+**RESPUESTA DEL ASISTENTE (texto en prosa):**
 {answer}
+
+NOTA IMPORTANTE SOBRE EL FORMATO:
+La respuesta que ves es SOLO la prosa. El asistente además emite, aparte,
+tarjetas de producto (con imagen, precio, existencias y promoción) y
+botones de sugerencia que la interfaz renderiza visualmente; esos bloques
+NO forman parte de este texto y NO son "ruido". Por diseño, la prosa NO
+repite precios ni existencias: NO penalices que el texto no los liste, ni
+esperes verlos aquí — viven en las tarjetas.
 
 ---
 ### PROTOCOLO DE EVALUACIÓN:

@@ -14,7 +14,8 @@ async def evaluate_faithfulness(
     answer: str,
     verbose_log: str,
     llm: ChatOpenAI,
-    previous_messages: list[dict] = []
+    previous_messages: list[dict] = [],
+    product_cards: str = ""
 ) -> MetricScore:
 
     history_str = format_previous_messages(previous_messages)
@@ -25,13 +26,14 @@ async def evaluate_faithfulness(
 
     prompt = FAITHFULNESS_PROMPT.format(
         question=question,
-        verbose_log=format_verbose_log(verbose_log),  
+        verbose_log=format_verbose_log(verbose_log),
         answer=answer,
+        product_cards=product_cards or "No se mostraron tarjetas de producto.",
         conversation_context=conversation_context
     )
-    
+
     structured_llm = llm.with_structured_output(FaithfulnessResponse)
-    
+
     try:
         response_raw = await structured_llm.ainvoke([
     HumanMessage(content=prompt)
@@ -41,13 +43,15 @@ async def evaluate_faithfulness(
             response = response_raw
         else:
             response = FaithfulnessResponse.model_validate(response_raw)
-        
+
         return MetricScore(
             score=response.score,
             reasoning=response.reasoning,
             details={
                 "claims_supported": response.claims_supported,
-                "claims_total": response.claims_total
+                "claims_total": response.claims_total,
+                "cards_supported": response.cards_supported,
+                "cards_total": response.cards_total
             }
         )
     except Exception as e:

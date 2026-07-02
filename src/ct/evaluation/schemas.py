@@ -50,6 +50,14 @@ class FaithfulnessResponse(BaseModel):
     reasoning: str = Field(description="Explicación del score")
     claims_supported: int = Field(description="Número de afirmaciones soportadas")
     claims_total: int = Field(description="Número total de afirmaciones")
+    cards_supported: int = Field(
+        default=0,
+        description="De los claims, cuántos campos de tarjetas de producto quedaron soportados por las tools"
+    )
+    cards_total: int = Field(
+        default=0,
+        description="Número total de campos de tarjetas de producto verificados"
+    )
 
 
 class AnswerRelevancyResponse(BaseModel):
