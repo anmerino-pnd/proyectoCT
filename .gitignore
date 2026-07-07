@@ -31,3 +31,5 @@ PROMPT.md
 # Telemetría de UI en runtime y salidas generadas de evaluación de rendimiento
 logs/ui_events.jsonl
 evaluation/perf/out/
+
+ui/prueba_widget_ignored.html
