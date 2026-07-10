@@ -13,14 +13,14 @@ toc-depth: 5
 
 ### 1.1. Configuraciones importantes
 
-* El proyecto está diseñado para ser desplegado en entornos **Linux o Windows** con **Python 3.12.9**. Usa modelos de **OpenAI** por defecto (GPT-5 como agente principal y GPT-4.1-mini para la moderación), por lo que requiere una `OPENAI_API_KEY` válida; **opcionalmente** puede usar modelos *open-source* vía **Ollama** (p. ej. `gemma3:12b`). Requiere además conectividad a una instancia de **MongoDB** y a las bases de datos **MySQL**.
+* El proyecto está diseñado para ser desplegado en entornos **Linux o Windows** con **Python 3.13.1** (versión fijada en `.python-version`; `pyproject.toml` admite `>=3.11`). Usa modelos de **OpenAI** por defecto (GPT-5 como agente principal y GPT-4.1-mini para la moderación), por lo que requiere una `OPENAI_API_KEY` válida; **opcionalmente** puede usar modelos *open-source* vía **Ollama** (p. ej. `gemma3:12b`). Requiere además conectividad a una instancia de **MongoDB** y a las bases de datos **MySQL**.
 * La aplicación *backend* se expone a través de **FastAPI** en el puerto `8000`. Es crucial asegurar que este puerto esté abierto y accesible en el entorno de despliegue.
 * Archivo `.env` con variables cargadas.
 * Todas las credenciales y configuraciones sensibles se gestionan mediante un archivo de variables de entorno (`.env`), garantizando la seguridad y facilidad de configuración.
 
 ### 1.2. Requisitos del sistema
 
-* **Python**: Versión 3.12.9.
+* **Python**: Versión 3.13.1.
 * **Pip**: Última versión.
 * **UV**: Última versión (gestor de paquetes y entornos).
 * **Ollama** (opcional): Instalado y en ejecución solo si se desean usar modelos *open-source* locales; no es necesario con la configuración por defecto (OpenAI).
@@ -1744,7 +1744,7 @@ El sistema evalúa 4 dimensiones de calidad, cada una con un peso definido segú
 | **Context Recall**    | ¿Consultó todas las herramientas necesarias?         | 12.5%  |
 | **Context Precision** | ¿Usó solo las herramientas necesarias?               | 12.5%  |
 
-> **Nota sobre Faithfulness (40%)**: Es la métrica más crítica porque un precio incorrecto comunicado al cliente es el riesgo más alto para el negocio. El evaluador distingue entre datos factuales verificables (precios, stock, códigos) y conocimiento general del dominio (recomendaciones, descripciones), penalizando solo los primeros.
+> **Nota sobre Faithfulness (40%)**: Es la métrica más crítica porque un precio incorrecto comunicado al cliente es el riesgo más alto para el negocio. El evaluador distingue entre datos factuales verificables (precios, stock, códigos) y conocimiento general del dominio (recomendaciones, descripciones), penalizando solo los primeros. Como por diseño esos datos factuales (precio, existencias, promoción, clave) no van en la prosa sino en las **tarjetas de producto estructuradas**, Faithfulness contrasta **campo por campo** cada tarjeta contra el output real de las herramientas; el esquema registra además cuántos de esos campos quedaron soportados (`cards_supported` / `cards_total`).
 
 
 ### 5.3. Cómo funciona
@@ -1756,14 +1756,16 @@ flowchart TD
 
     B --> C["EvaluationInput<br>question + answer<br>verbose_log + historial"]
 
-    C --> D["evaluate_single"]
+    C --> S["split_answer_blocks<br>prosa · tarjetas ct-products · sugerencias"]
 
-    D --> E1["Faithfulness<br>¿Inventó datos?"]
-    D --> E2["Answer Relevancy<br>¿Respondió bien?"]
+    S --> D["evaluate_single"]
+
+    D --> E1["Faithfulness<br>prosa + cada campo de tarjeta<br>¿Inventó datos?"]
+    D --> E2["Answer Relevancy<br>solo prosa · ¿Respondió bien?"]
     D --> E3["Context Precision<br>¿Usó solo tools necesarias?"]
     D --> E4["Context Recall<br>¿Todas las tools que debía llamar?"]
 
-    E1 --> F["LLM Evaluador<br>gpt-4.1"]
+    E1 --> F["LLM Evaluador<br>gpt-4o-mini"]
     E2 --> F
     E3 --> F
     E4 --> F
@@ -1783,40 +1785,37 @@ flowchart TD
     J --> L
 ```
 
-El evaluador usa el `verbose_log` completo de cada respuesta, un registro que contiene exactamente qué herramientas usó el agente y qué información devolvieron, lo que permite verificar si la respuesta es fiel a los datos reales.
+El evaluador usa el `verbose_log` completo de cada respuesta —un registro que contiene exactamente qué herramientas usó el agente y qué información devolvieron— para verificar si la respuesta es fiel a los datos reales.
+
+Además, como el chatbot ya no escribe los datos factuales en el texto sino que emite la información de producto (precio, existencias, promoción, clave) en bloques estructurados ` ```ct-products``` ` y las sugerencias en ` ```ct-suggestions``` `, el evaluador **separa cada respuesta** en tres componentes (`split_answer_blocks`): prosa, tarjetas de producto y sugerencias. Con esa separación, **Faithfulness** audita tanto la prosa como **cada campo de cada tarjeta** contra los tool outputs del log, mientras que **Answer Relevancy**, **Context Precision** y **Context Recall** evalúan únicamente la prosa y ya no penalizan esos bloques estructurados como ruido.
 
 ### 5.4. Estructura de archivos
 
 ```text
-ct/evaluation/
+src/ct/evaluation/
 ├── evaluator.py        # Core: orquesta la evaluación completa
 ├── schemas.py          # Modelos de datos (entrada y resultado)
 ├── prompts.py          # Prompts para el LLM evaluador
-├── utils.py            # Funciones de formato compartidas
+├── utils.py            # Formato compartido + separación de bloques (split_answer_blocks / format_product_cards)
 └── metrics/
     ├── faithfulness.py       # ¿Inventó datos?
     ├── answer_relevancy.py   # ¿Respondió bien?
     ├── context_precision.py  # ¿Tools necesarias?
     └── context_recall.py     # ¿Tools suficientes?
-```
 
-### 5.5. Resultados guardados
+src/ct/reportes/
+└── run_report.py        # Dashboard Streamlit con evaluación RAGAS
 
-Por falta de permisos de escritura en la colección evaluation_results de MongoDB, los resultados se persisten localmente en JSON:
-
-```text
-evaluation_results/
+evaluation_results/      # (generado automáticamente)
 ├── eval_<doc_id>.json   # Resultado detallado por respuesta
-└── summary_.json        # Resumen del batch con promedios
+└── summary_<timestamp>.json  # Resumen del batch con promedios
 ```
 
-Cuando se habiliten los permisos en MongoDB, el sistema intentará guardar automáticamente en la base de datos — el JSON funciona como respaldo permanente en cualquier caso.
-
-### 5.6. Cómo ejecutar la evaluación
+### 5.5. Cómo ejecutar la evaluación
 
 El sistema de evaluación RAGAS puede ejecutarse de dos formas: **localmente** (para pruebas rápidas o scripts personalizados) o **a través del dashboard en Streamlit** (para monitoreo continuo y visualización en tiempo real).
 
-#### 5.6.1. Ejecución local (Python standalone)
+#### 5.5.1. Ejecución local (Python standalone)
 
 Para ejecutar la evaluación de forma aislada, fuera del dashboard:
 
@@ -1830,8 +1829,10 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s"
 )
 
+# Sin argumentos usa los valores por defecto (evaluator_model="gpt-4o-mini",
+# n_last=10), que es como se instancia en el dashboard de producción.
 evaluator = RAGASEvaluator(
-    evaluator_model="gpt-4.1",
+    evaluator_model="gpt-4o-mini",
     n_last=10,
     eval_collection="evaluation_results"
 )
@@ -1849,7 +1850,7 @@ if summary:
 
 **Nota:** Esta opción es útil para pruebas puntuales, scripts de automatización o ejecuciones fuera del entorno de producción.
 
-#### 5.6.2. Ejecución vía Dashboard Streamlit
+#### 5.5.2. Ejecución vía Dashboard Streamlit
 
 El sistema también está integrado en un **dashboard interactivo** en Streamlit (accesible en `http://localhost:3000`). Esta es la forma recomendada para el uso en producción, ya que permite:
 
@@ -1896,25 +1897,7 @@ flowchart TD
 - 📈 **Histórico completo** con gráficos de métricas individuales
 - ⚙️ **Control granular** de cuántos batches evaluar por ejecución
 
----
-
-### 5.7. Interpretación de resultados
-
-La evaluación más reciente del sistema arrojó un score final de **0.977 sobre 1.0**, lo que indica que el chatbot se encuentra en un estado de funcionamiento óptimo. Un score de Faithfulness de **1.0** confirma que el agente no está inventando datos concretos como precios, disponibilidad o códigos de producto — el riesgo más crítico en un entorno de ventas. El score de Answer Relevancy de **0.975** refleja que las respuestas abordan directamente lo que el usuario pregunta, sin divagar ni omitir información clave. Los scores de Context Precision (**0.933**) y Context Recall (**0.950**) indican que el agente selecciona las herramientas correctas en casi todos los casos, tanto en eficiencia como en completitud. En conjunto, estos resultados sugieren que el sistema está respondiendo de manera confiable y alineada con los datos reales del negocio.
-
-Como referencia general para interpretar el score final:
-
-| Score        | Interpretación                         | Acción recomendada        |
-|--------------|----------------------------------------|----------------------------|
-| 0.90 – 1.00  | Excelente — sistema confiable           | Monitoreo rutinario        |
-| 0.75 – 0.89  | Bueno — áreas menores de mejora         | Revisar métricas bajas     |
-| 0.60 – 0.74  | Aceptable — requiere atención           | Analizar casos fallidos    |
-| 0.40 – 0.59  | Deficiente — problemas detectables      | Intervención prioritaria   |
-| 0.00 – 0.39  | Crítico — el sistema está fallando      | Acción inmediata           |
-
----
-
-### 5.8. Persistencia de resultados y MongoDB
+### 5.6. Persistencia de resultados y MongoDB
 
 Por defecto, el sistema de evaluación guarda los resultados de dos formas:
 
@@ -1926,25 +1909,17 @@ Por defecto, el sistema de evaluación guarda los resultados de dos formas:
 
 **Configuración de MongoDB:** Cuando se habiliten los permisos de escritura en MongoDB, el sistema intentará guardar automáticamente los resultados en la base de datos. El JSON funciona como respaldo permanente en cualquier caso.
 
-**Estructura de archivos de salida:**
-
-```text
-evaluation_results/
-├── eval_<doc_id>.json   # Resultado detallado por documento evaluado
-└── summary_<timestamp>.json  # Resumen del batch con promedios
-```
-
 **Estructura de persistencia:**
 
 ```text
-eval_state.json        # Estado global del evaluador (ventanas, progreso, errores)
-evaluation_results/     # Resultados individuales y resúmenes
-mongodb.evaluation_results  # (opcional) Si MongoDB tiene permisos
+eval_state.json             # Estado global del evaluador (ventanas, progreso, errores)
+evaluation_results/         # Resultados individuales (eval_<doc_id>.json) y resúmenes (summary_<timestamp>.json)
+mongodb.evaluation_results  # (opcional) Si MongoDB tiene permisos de escritura
 ```
 
 ---
 
-### 5.9. Dashboard de monitoreo en tiempo real
+### 5.7. Dashboard de monitoreo en tiempo real
 
 El dashboard en Streamlit proporciona una visión completa del estado del sistema de evaluación RAGAS:
 
@@ -1969,66 +1944,7 @@ El dashboard en Streamlit proporciona una visión completa del estado del sistem
 
 ---
 
-### 5.10. Estructura de archivos
-
-```text
-src/ct/evaluation/
-├── evaluator.py        # Core: orquesta la evaluación completa
-├── schemas.py          # Modelos de datos (entrada y resultado)
-├── prompts.py          # Prompts para el LLM evaluador
-├── utils.py            # Funciones de formato compartidas
-└── metrics/
-    ├── faithfulness.py       # ¿Inventó datos?
-    ├── answer_relevancy.py   # ¿Respondió bien?
-    ├── context_precision.py  # ¿Tools necesarias?
-    └── context_recall.py     # ¿Tools suficientes?
-
-src/ct/reportes/
-└── run_report.py        # Dashboard Streamlit con evaluación RAGAS
-
-evaluation_results/      # (generado automáticamente)
-├── eval_<doc_id>.json   # Resultado detallado por respuesta
-└── summary_<timestamp>.json  # Resumen del batch con promedios
-```
-
-**Diagrama de flujo completo:**
-
-```{mermaid}
-flowchart TD
-
-    A["MongoDB<br>message_backup<br>label=True"]-->|"últimas 10 respuestas"|B["fetch_last_messages"]
-
-    B --> C["EvaluationInput<br>question + answer<br>verbose_log + historial"]
-
-    C --> D["evaluate_single"]
-
-    D --> E1["Faithfulness<br>¿Inventó datos?"]
-    D --> E2["Answer Relevancy<br>¿Respondió bien?"]
-    D --> E3["Context Precision<br>¿Usó solo tools necesarias?"]
-    D --> E4["Context Recall<br>¿Todas las tools que debía llamar?"]
-
-    E1 --> F["LLM Evaluador<br>gpt-4.1"]
-    E2 --> F
-    E3 --> F
-    E4 --> F
-
-    F --> G["MetricScore<br>score 0 a 1<br>reasoning + details"]
-
-    G --> H["Score Final Ponderado<br>Faithfulness 0.40<br>Relevancy 0.35<br>Recall 0.125<br>Precision 0.125"]
-
-    H --> I{"MongoDB<br>disponible?"}
-
-    I -->|Si| J["evaluation_results<br>MongoDB"]
-
-    I -->|No| K["evaluation_results<br>eval_id.json<br>summary_ts.json"]
-
-    K --> L["Dashboard Streamlit<br>monitorización en vivo"]
-
-    J --> L
-```
-
-
-### 5.7. Interpretación de resultados
+### 5.8. Interpretación de resultados
 
 La evaluación más reciente del sistema arrojó un score final de **0.977 sobre 1.0**, lo que indica que el chatbot se encuentra en un estado de funcionamiento óptimo. Un score de Faithfulness de **1.0** confirma que el agente no está inventando datos concretos como precios, disponibilidad o códigos de producto — el riesgo más crítico en un entorno de ventas. El score de Answer Relevancy de **0.975** refleja que las respuestas abordan directamente lo que el usuario pregunta, sin divagar ni omitir información clave. Los scores de Context Precision (**0.933**) y Context Recall (**0.950**) indican que el agente selecciona las herramientas correctas en casi todos los casos, tanto en eficiencia como en completitud. En conjunto, estos resultados sugieren que el sistema está respondiendo de manera confiable y alineada con los datos reales del negocio.
 

@@ -258,17 +258,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#métricas-evaluadas" id="toc-métricas-evaluadas" class="nav-link" data-scroll-target="#métricas-evaluadas">5.2. Métricas evaluadas</a></li>
   <li><a href="#cómo-funciona" id="toc-cómo-funciona" class="nav-link" data-scroll-target="#cómo-funciona">5.3. Cómo funciona</a></li>
   <li><a href="#estructura-de-archivos" id="toc-estructura-de-archivos" class="nav-link" data-scroll-target="#estructura-de-archivos">5.4. Estructura de archivos</a></li>
-  <li><a href="#resultados-guardados" id="toc-resultados-guardados" class="nav-link" data-scroll-target="#resultados-guardados">5.5. Resultados guardados</a></li>
-  <li><a href="#cómo-ejecutar-la-evaluación" id="toc-cómo-ejecutar-la-evaluación" class="nav-link" data-scroll-target="#cómo-ejecutar-la-evaluación">5.6. Cómo ejecutar la evaluación</a>
+  <li><a href="#cómo-ejecutar-la-evaluación" id="toc-cómo-ejecutar-la-evaluación" class="nav-link" data-scroll-target="#cómo-ejecutar-la-evaluación">5.5. Cómo ejecutar la evaluación</a>
   <ul>
-  <li><a href="#ejecución-local-python-standalone" id="toc-ejecución-local-python-standalone" class="nav-link" data-scroll-target="#ejecución-local-python-standalone">5.6.1. Ejecución local (Python standalone)</a></li>
-  <li><a href="#ejecución-vía-dashboard-streamlit" id="toc-ejecución-vía-dashboard-streamlit" class="nav-link" data-scroll-target="#ejecución-vía-dashboard-streamlit">5.6.2. Ejecución vía Dashboard Streamlit</a></li>
+  <li><a href="#ejecución-local-python-standalone" id="toc-ejecución-local-python-standalone" class="nav-link" data-scroll-target="#ejecución-local-python-standalone">5.5.1. Ejecución local (Python standalone)</a></li>
+  <li><a href="#ejecución-vía-dashboard-streamlit" id="toc-ejecución-vía-dashboard-streamlit" class="nav-link" data-scroll-target="#ejecución-vía-dashboard-streamlit">5.5.2. Ejecución vía Dashboard Streamlit</a></li>
   </ul></li>
-  <li><a href="#interpretación-de-resultados" id="toc-interpretación-de-resultados" class="nav-link" data-scroll-target="#interpretación-de-resultados">5.7. Interpretación de resultados</a></li>
-  <li><a href="#persistencia-de-resultados-y-mongodb" id="toc-persistencia-de-resultados-y-mongodb" class="nav-link" data-scroll-target="#persistencia-de-resultados-y-mongodb">5.8. Persistencia de resultados y MongoDB</a></li>
-  <li><a href="#dashboard-de-monitoreo-en-tiempo-real" id="toc-dashboard-de-monitoreo-en-tiempo-real" class="nav-link" data-scroll-target="#dashboard-de-monitoreo-en-tiempo-real">5.9. Dashboard de monitoreo en tiempo real</a></li>
-  <li><a href="#estructura-de-archivos-1" id="toc-estructura-de-archivos-1" class="nav-link" data-scroll-target="#estructura-de-archivos-1">5.10. Estructura de archivos</a></li>
-  <li><a href="#interpretación-de-resultados-1" id="toc-interpretación-de-resultados-1" class="nav-link" data-scroll-target="#interpretación-de-resultados-1">5.7. Interpretación de resultados</a></li>
+  <li><a href="#persistencia-de-resultados-y-mongodb" id="toc-persistencia-de-resultados-y-mongodb" class="nav-link" data-scroll-target="#persistencia-de-resultados-y-mongodb">5.6. Persistencia de resultados y MongoDB</a></li>
+  <li><a href="#dashboard-de-monitoreo-en-tiempo-real" id="toc-dashboard-de-monitoreo-en-tiempo-real" class="nav-link" data-scroll-target="#dashboard-de-monitoreo-en-tiempo-real">5.7. Dashboard de monitoreo en tiempo real</a></li>
+  <li><a href="#interpretación-de-resultados" id="toc-interpretación-de-resultados" class="nav-link" data-scroll-target="#interpretación-de-resultados">5.8. Interpretación de resultados</a></li>
   </ul></li>
   <li><a href="#integración-continua-cicd" id="toc-integración-continua-cicd" class="nav-link" data-scroll-target="#integración-continua-cicd">6. Integración Continua (CI/CD)</a>
   <ul>
@@ -321,7 +318,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="configuraciones-importantes" class="level3">
 <h3 class="anchored" data-anchor-id="configuraciones-importantes">1.1. Configuraciones importantes</h3>
 <ul>
-<li>El proyecto está diseñado para ser desplegado en entornos <strong>Linux o Windows</strong> con <strong>Python 3.12.9</strong>. Usa modelos de <strong>OpenAI</strong> por defecto (GPT-5 como agente principal y GPT-4.1-mini para la moderación), por lo que requiere una <code>OPENAI_API_KEY</code> válida; <strong>opcionalmente</strong> puede usar modelos <em>open-source</em> vía <strong>Ollama</strong> (p.&nbsp;ej. <code>gemma3:12b</code>). Requiere además conectividad a una instancia de <strong>MongoDB</strong> y a las bases de datos <strong>MySQL</strong>.</li>
+<li>El proyecto está diseñado para ser desplegado en entornos <strong>Linux o Windows</strong> con <strong>Python 3.13.1</strong> (versión fijada en <code>.python-version</code>; <code>pyproject.toml</code> admite <code>&gt;=3.11</code>). Usa modelos de <strong>OpenAI</strong> por defecto (GPT-5 como agente principal y GPT-4.1-mini para la moderación), por lo que requiere una <code>OPENAI_API_KEY</code> válida; <strong>opcionalmente</strong> puede usar modelos <em>open-source</em> vía <strong>Ollama</strong> (p.&nbsp;ej. <code>gemma3:12b</code>). Requiere además conectividad a una instancia de <strong>MongoDB</strong> y a las bases de datos <strong>MySQL</strong>.</li>
 <li>La aplicación <em>backend</em> se expone a través de <strong>FastAPI</strong> en el puerto <code>8000</code>. Es crucial asegurar que este puerto esté abierto y accesible en el entorno de despliegue.</li>
 <li>Archivo <code>.env</code> con variables cargadas.</li>
 <li>Todas las credenciales y configuraciones sensibles se gestionan mediante un archivo de variables de entorno (<code>.env</code>), garantizando la seguridad y facilidad de configuración.</li>
@@ -330,7 +327,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="requisitos-del-sistema" class="level3">
 <h3 class="anchored" data-anchor-id="requisitos-del-sistema">1.2. Requisitos del sistema</h3>
 <ul>
-<li><strong>Python</strong>: Versión 3.12.9.</li>
+<li><strong>Python</strong>: Versión 3.13.1.</li>
 <li><strong>Pip</strong>: Última versión.</li>
 <li><strong>UV</strong>: Última versión (gestor de paquetes y entornos).</li>
 <li><strong>Ollama</strong> (opcional): Instalado y en ejecución solo si se desean usar modelos <em>open-source</em> locales; no es necesario con la configuración por defecto (OpenAI).</li>
@@ -2302,7 +2299,7 @@ de las respuestas del chatbot en producción sin intervención humana.</p>
 </tbody>
 </table>
 <blockquote class="blockquote">
-<p><strong>Nota sobre Faithfulness (40%)</strong>: Es la métrica más crítica porque un precio incorrecto comunicado al cliente es el riesgo más alto para el negocio. El evaluador distingue entre datos factuales verificables (precios, stock, códigos) y conocimiento general del dominio (recomendaciones, descripciones), penalizando solo los primeros.</p>
+<p><strong>Nota sobre Faithfulness (40%)</strong>: Es la métrica más crítica porque un precio incorrecto comunicado al cliente es el riesgo más alto para el negocio. El evaluador distingue entre datos factuales verificables (precios, stock, códigos) y conocimiento general del dominio (recomendaciones, descripciones), penalizando solo los primeros. Como por diseño esos datos factuales (precio, existencias, promoción, clave) no van en la prosa sino en las <strong>tarjetas de producto estructuradas</strong>, Faithfulness contrasta <strong>campo por campo</strong> cada tarjeta contra el output real de las herramientas; el esquema registra además cuántos de esos campos quedaron soportados (<code>cards_supported</code> / <code>cards_total</code>).</p>
 </blockquote>
 </section>
 <section id="cómo-funciona" class="level3">
@@ -2318,14 +2315,16 @@ de las respuestas del chatbot en producción sin intervención humana.</p>
 
     B --&gt; C["EvaluationInput&lt;br&gt;question + answer&lt;br&gt;verbose_log + historial"]
 
-    C --&gt; D["evaluate_single"]
+    C --&gt; S["split_answer_blocks&lt;br&gt;prosa · tarjetas ct-products · sugerencias"]
 
-    D --&gt; E1["Faithfulness&lt;br&gt;¿Inventó datos?"]
-    D --&gt; E2["Answer Relevancy&lt;br&gt;¿Respondió bien?"]
+    S --&gt; D["evaluate_single"]
+
+    D --&gt; E1["Faithfulness&lt;br&gt;prosa + cada campo de tarjeta&lt;br&gt;¿Inventó datos?"]
+    D --&gt; E2["Answer Relevancy&lt;br&gt;solo prosa · ¿Respondió bien?"]
     D --&gt; E3["Context Precision&lt;br&gt;¿Usó solo tools necesarias?"]
     D --&gt; E4["Context Recall&lt;br&gt;¿Todas las tools que debía llamar?"]
 
-    E1 --&gt; F["LLM Evaluador&lt;br&gt;gpt-4.1"]
+    E1 --&gt; F["LLM Evaluador&lt;br&gt;gpt-4o-mini"]
     E2 --&gt; F
     E3 --&gt; F
     E4 --&gt; F
@@ -2349,63 +2348,65 @@ de las respuestas del chatbot en producción sin intervención humana.</p>
 </div>
 </div>
 </div>
-<p>El evaluador usa el <code>verbose_log</code> completo de cada respuesta, un registro que contiene exactamente qué herramientas usó el agente y qué información devolvieron, lo que permite verificar si la respuesta es fiel a los datos reales.</p>
+<p>El evaluador usa el <code>verbose_log</code> completo de cada respuesta —un registro que contiene exactamente qué herramientas usó el agente y qué información devolvieron— para verificar si la respuesta es fiel a los datos reales.</p>
+<p>Además, como el chatbot ya no escribe los datos factuales en el texto sino que emite la información de producto (precio, existencias, promoción, clave) en bloques estructurados <code>```ct-products```</code> y las sugerencias en <code>```ct-suggestions```</code>, el evaluador <strong>separa cada respuesta</strong> en tres componentes (<code>split_answer_blocks</code>): prosa, tarjetas de producto y sugerencias. Con esa separación, <strong>Faithfulness</strong> audita tanto la prosa como <strong>cada campo de cada tarjeta</strong> contra los tool outputs del log, mientras que <strong>Answer Relevancy</strong>, <strong>Context Precision</strong> y <strong>Context Recall</strong> evalúan únicamente la prosa y ya no penalizan esos bloques estructurados como ruido.</p>
 </section>
 <section id="estructura-de-archivos" class="level3">
 <h3 class="anchored" data-anchor-id="estructura-de-archivos">5.4. Estructura de archivos</h3>
-<pre class="text"><code>ct/evaluation/
+<pre class="text"><code>src/ct/evaluation/
 ├── evaluator.py        # Core: orquesta la evaluación completa
 ├── schemas.py          # Modelos de datos (entrada y resultado)
 ├── prompts.py          # Prompts para el LLM evaluador
-├── utils.py            # Funciones de formato compartidas
+├── utils.py            # Formato compartido + separación de bloques (split_answer_blocks / format_product_cards)
 └── metrics/
     ├── faithfulness.py       # ¿Inventó datos?
     ├── answer_relevancy.py   # ¿Respondió bien?
     ├── context_precision.py  # ¿Tools necesarias?
-    └── context_recall.py     # ¿Tools suficientes?</code></pre>
-</section>
-<section id="resultados-guardados" class="level3">
-<h3 class="anchored" data-anchor-id="resultados-guardados">5.5. Resultados guardados</h3>
-<p>Por falta de permisos de escritura en la colección evaluation_results de MongoDB, los resultados se persisten localmente en JSON:</p>
-<pre class="text"><code>evaluation_results/
+    └── context_recall.py     # ¿Tools suficientes?
+
+src/ct/reportes/
+└── run_report.py        # Dashboard Streamlit con evaluación RAGAS
+
+evaluation_results/      # (generado automáticamente)
 ├── eval_&lt;doc_id&gt;.json   # Resultado detallado por respuesta
-└── summary_.json        # Resumen del batch con promedios</code></pre>
-<p>Cuando se habiliten los permisos en MongoDB, el sistema intentará guardar automáticamente en la base de datos — el JSON funciona como respaldo permanente en cualquier caso.</p>
+└── summary_&lt;timestamp&gt;.json  # Resumen del batch con promedios</code></pre>
 </section>
 <section id="cómo-ejecutar-la-evaluación" class="level3">
-<h3 class="anchored" data-anchor-id="cómo-ejecutar-la-evaluación">5.6. Cómo ejecutar la evaluación</h3>
+<h3 class="anchored" data-anchor-id="cómo-ejecutar-la-evaluación">5.5. Cómo ejecutar la evaluación</h3>
 <p>El sistema de evaluación RAGAS puede ejecutarse de dos formas: <strong>localmente</strong> (para pruebas rápidas o scripts personalizados) o <strong>a través del dashboard en Streamlit</strong> (para monitoreo continuo y visualización en tiempo real).</p>
 <section id="ejecución-local-python-standalone" class="level4">
-<h4 class="anchored" data-anchor-id="ejecución-local-python-standalone">5.6.1. Ejecución local (Python standalone)</h4>
+<h4 class="anchored" data-anchor-id="ejecución-local-python-standalone">5.5.1. Ejecución local (Python standalone)</h4>
 <p>Para ejecutar la evaluación de forma aislada, fuera del dashboard:</p>
-<div class="sourceCode" id="cb56"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> asyncio</span>
-<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> logging</span>
-<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> ct.evaluation.evaluator <span class="im">import</span> RAGASEvaluator</span>
-<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a>logging.basicConfig(</span>
-<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a>    level<span class="op">=</span>logging.INFO,</span>
-<span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">format</span><span class="op">=</span><span class="st">"</span><span class="sc">%(asctime)s</span><span class="st"> | </span><span class="sc">%(levelname)s</span><span class="st"> | </span><span class="sc">%(message)s</span><span class="st">"</span></span>
-<span id="cb56-8"><a href="#cb56-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb56-9"><a href="#cb56-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-10"><a href="#cb56-10" aria-hidden="true" tabindex="-1"></a>evaluator <span class="op">=</span> RAGASEvaluator(</span>
-<span id="cb56-11"><a href="#cb56-11" aria-hidden="true" tabindex="-1"></a>    evaluator_model<span class="op">=</span><span class="st">"gpt-4.1"</span>,</span>
-<span id="cb56-12"><a href="#cb56-12" aria-hidden="true" tabindex="-1"></a>    n_last<span class="op">=</span><span class="dv">10</span>,</span>
-<span id="cb56-13"><a href="#cb56-13" aria-hidden="true" tabindex="-1"></a>    eval_collection<span class="op">=</span><span class="st">"evaluation_results"</span></span>
-<span id="cb56-14"><a href="#cb56-14" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb56-15"><a href="#cb56-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-16"><a href="#cb56-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluar los últimos N mensajes (modo normal)</span></span>
-<span id="cb56-17"><a href="#cb56-17" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="cf">await</span> evaluator.evaluate_batch()</span>
-<span id="cb56-18"><a href="#cb56-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-19"><a href="#cb56-19" aria-hidden="true" tabindex="-1"></a><span class="co"># O evaluar ventanas RAGAS pendientes</span></span>
-<span id="cb56-20"><a href="#cb56-20" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="cf">await</span> evaluator.evaluate_ready_windows(max_batches<span class="op">=</span><span class="dv">5</span>)</span>
-<span id="cb56-21"><a href="#cb56-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-22"><a href="#cb56-22" aria-hidden="true" tabindex="-1"></a>summary <span class="op">=</span> evaluator.get_latest_summary()</span>
-<span id="cb56-23"><a href="#cb56-23" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> summary:</span>
-<span id="cb56-24"><a href="#cb56-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">📈 Último score promedio: </span><span class="sc">{</span>summary[<span class="st">'averages'</span>][<span class="st">'final_score'</span>]<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb55"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> asyncio</span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> logging</span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> ct.evaluation.evaluator <span class="im">import</span> RAGASEvaluator</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>logging.basicConfig(</span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>    level<span class="op">=</span>logging.INFO,</span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">format</span><span class="op">=</span><span class="st">"</span><span class="sc">%(asctime)s</span><span class="st"> | </span><span class="sc">%(levelname)s</span><span class="st"> | </span><span class="sc">%(message)s</span><span class="st">"</span></span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Sin argumentos usa los valores por defecto (evaluator_model="gpt-4o-mini",</span></span>
+<span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a><span class="co"># n_last=10), que es como se instancia en el dashboard de producción.</span></span>
+<span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a>evaluator <span class="op">=</span> RAGASEvaluator(</span>
+<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a>    evaluator_model<span class="op">=</span><span class="st">"gpt-4o-mini"</span>,</span>
+<span id="cb55-14"><a href="#cb55-14" aria-hidden="true" tabindex="-1"></a>    n_last<span class="op">=</span><span class="dv">10</span>,</span>
+<span id="cb55-15"><a href="#cb55-15" aria-hidden="true" tabindex="-1"></a>    eval_collection<span class="op">=</span><span class="st">"evaluation_results"</span></span>
+<span id="cb55-16"><a href="#cb55-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb55-17"><a href="#cb55-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-18"><a href="#cb55-18" aria-hidden="true" tabindex="-1"></a><span class="co"># Evaluar los últimos N mensajes (modo normal)</span></span>
+<span id="cb55-19"><a href="#cb55-19" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="cf">await</span> evaluator.evaluate_batch()</span>
+<span id="cb55-20"><a href="#cb55-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-21"><a href="#cb55-21" aria-hidden="true" tabindex="-1"></a><span class="co"># O evaluar ventanas RAGAS pendientes</span></span>
+<span id="cb55-22"><a href="#cb55-22" aria-hidden="true" tabindex="-1"></a>results <span class="op">=</span> <span class="cf">await</span> evaluator.evaluate_ready_windows(max_batches<span class="op">=</span><span class="dv">5</span>)</span>
+<span id="cb55-23"><a href="#cb55-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-24"><a href="#cb55-24" aria-hidden="true" tabindex="-1"></a>summary <span class="op">=</span> evaluator.get_latest_summary()</span>
+<span id="cb55-25"><a href="#cb55-25" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> summary:</span>
+<span id="cb55-26"><a href="#cb55-26" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="ch">\n</span><span class="ss">📈 Último score promedio: </span><span class="sc">{</span>summary[<span class="st">'averages'</span>][<span class="st">'final_score'</span>]<span class="sc">:.3f}</span><span class="ss">"</span>)</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><strong>Nota:</strong> Esta opción es útil para pruebas puntuales, scripts de automatización o ejecuciones fuera del entorno de producción.</p>
 </section>
 <section id="ejecución-vía-dashboard-streamlit" class="level4">
-<h4 class="anchored" data-anchor-id="ejecución-vía-dashboard-streamlit">5.6.2. Ejecución vía Dashboard Streamlit</h4>
+<h4 class="anchored" data-anchor-id="ejecución-vía-dashboard-streamlit">5.5.2. Ejecución vía Dashboard Streamlit</h4>
 <p>El sistema también está integrado en un <strong>dashboard interactivo</strong> en Streamlit (accesible en <code>http://localhost:3000</code>). Esta es la forma recomendada para el uso en producción, ya que permite:</p>
 <ul>
 <li><strong>Monitoreo en tiempo real</strong> de la salud del sistema</li>
@@ -2458,58 +2459,10 @@ de las respuestas del chatbot en producción sin intervención humana.</p>
 <li>📈 <strong>Histórico completo</strong> con gráficos de métricas individuales</li>
 <li>⚙️ <strong>Control granular</strong> de cuántos batches evaluar por ejecución</li>
 </ul>
-<hr>
 </section>
-</section>
-<section id="interpretación-de-resultados" class="level3">
-<h3 class="anchored" data-anchor-id="interpretación-de-resultados">5.7. Interpretación de resultados</h3>
-<p>La evaluación más reciente del sistema arrojó un score final de <strong>0.977 sobre 1.0</strong>, lo que indica que el chatbot se encuentra en un estado de funcionamiento óptimo. Un score de Faithfulness de <strong>1.0</strong> confirma que el agente no está inventando datos concretos como precios, disponibilidad o códigos de producto — el riesgo más crítico en un entorno de ventas. El score de Answer Relevancy de <strong>0.975</strong> refleja que las respuestas abordan directamente lo que el usuario pregunta, sin divagar ni omitir información clave. Los scores de Context Precision (<strong>0.933</strong>) y Context Recall (<strong>0.950</strong>) indican que el agente selecciona las herramientas correctas en casi todos los casos, tanto en eficiencia como en completitud. En conjunto, estos resultados sugieren que el sistema está respondiendo de manera confiable y alineada con los datos reales del negocio.</p>
-<p>Como referencia general para interpretar el score final:</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 17%">
-<col style="width: 48%">
-<col style="width: 34%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Score</th>
-<th>Interpretación</th>
-<th>Acción recomendada</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>0.90 – 1.00</td>
-<td>Excelente — sistema confiable</td>
-<td>Monitoreo rutinario</td>
-</tr>
-<tr class="even">
-<td>0.75 – 0.89</td>
-<td>Bueno — áreas menores de mejora</td>
-<td>Revisar métricas bajas</td>
-</tr>
-<tr class="odd">
-<td>0.60 – 0.74</td>
-<td>Aceptable — requiere atención</td>
-<td>Analizar casos fallidos</td>
-</tr>
-<tr class="even">
-<td>0.40 – 0.59</td>
-<td>Deficiente — problemas detectables</td>
-<td>Intervención prioritaria</td>
-</tr>
-<tr class="odd">
-<td>0.00 – 0.39</td>
-<td>Crítico — el sistema está fallando</td>
-<td>Acción inmediata</td>
-</tr>
-</tbody>
-</table>
-<hr>
 </section>
 <section id="persistencia-de-resultados-y-mongodb" class="level3">
-<h3 class="anchored" data-anchor-id="persistencia-de-resultados-y-mongodb">5.8. Persistencia de resultados y MongoDB</h3>
+<h3 class="anchored" data-anchor-id="persistencia-de-resultados-y-mongodb">5.6. Persistencia de resultados y MongoDB</h3>
 <p>Por defecto, el sistema de evaluación guarda los resultados de dos formas:</p>
 <ol type="1">
 <li><p><strong>JSON local</strong> (siempre): Resultados individuales en <code>evaluation_results/eval_&lt;doc_id&gt;.json</code> y resúmenes en <code>evaluation_results/summary_&lt;timestamp&gt;.json</code>.</p></li>
@@ -2517,18 +2470,14 @@ de las respuestas del chatbot en producción sin intervención humana.</p>
 </ol>
 <p><strong>Fallback automático:</strong> Si MongoDB no tiene permisos de escritura en la colección <code>evaluation_results</code>, el sistema <strong>continúa funcionando</strong> usando el almacenamiento JSON como fallback permanente. No hay pérdida de datos ni interrupción del servicio.</p>
 <p><strong>Configuración de MongoDB:</strong> Cuando se habiliten los permisos de escritura en MongoDB, el sistema intentará guardar automáticamente los resultados en la base de datos. El JSON funciona como respaldo permanente en cualquier caso.</p>
-<p><strong>Estructura de archivos de salida:</strong></p>
-<pre class="text"><code>evaluation_results/
-├── eval_&lt;doc_id&gt;.json   # Resultado detallado por documento evaluado
-└── summary_&lt;timestamp&gt;.json  # Resumen del batch con promedios</code></pre>
 <p><strong>Estructura de persistencia:</strong></p>
-<pre class="text"><code>eval_state.json        # Estado global del evaluador (ventanas, progreso, errores)
-evaluation_results/     # Resultados individuales y resúmenes
-mongodb.evaluation_results  # (opcional) Si MongoDB tiene permisos</code></pre>
+<pre class="text"><code>eval_state.json             # Estado global del evaluador (ventanas, progreso, errores)
+evaluation_results/         # Resultados individuales (eval_&lt;doc_id&gt;.json) y resúmenes (summary_&lt;timestamp&gt;.json)
+mongodb.evaluation_results  # (opcional) Si MongoDB tiene permisos de escritura</code></pre>
 <hr>
 </section>
 <section id="dashboard-de-monitoreo-en-tiempo-real" class="level3">
-<h3 class="anchored" data-anchor-id="dashboard-de-monitoreo-en-tiempo-real">5.9. Dashboard de monitoreo en tiempo real</h3>
+<h3 class="anchored" data-anchor-id="dashboard-de-monitoreo-en-tiempo-real">5.7. Dashboard de monitoreo en tiempo real</h3>
 <p>El dashboard en Streamlit proporciona una visión completa del estado del sistema de evaluación RAGAS:</p>
 <p><strong>Sección “Evaluación RAGAS”</strong> incluye:</p>
 <ul>
@@ -2559,71 +2508,8 @@ mongodb.evaluation_results  # (opcional) Si MongoDB tiene permisos</code></pre>
 </div>
 <hr>
 </section>
-<section id="estructura-de-archivos-1" class="level3">
-<h3 class="anchored" data-anchor-id="estructura-de-archivos-1">5.10. Estructura de archivos</h3>
-<pre class="text"><code>src/ct/evaluation/
-├── evaluator.py        # Core: orquesta la evaluación completa
-├── schemas.py          # Modelos de datos (entrada y resultado)
-├── prompts.py          # Prompts para el LLM evaluador
-├── utils.py            # Funciones de formato compartidas
-└── metrics/
-    ├── faithfulness.py       # ¿Inventó datos?
-    ├── answer_relevancy.py   # ¿Respondió bien?
-    ├── context_precision.py  # ¿Tools necesarias?
-    └── context_recall.py     # ¿Tools suficientes?
-
-src/ct/reportes/
-└── run_report.py        # Dashboard Streamlit con evaluación RAGAS
-
-evaluation_results/      # (generado automáticamente)
-├── eval_&lt;doc_id&gt;.json   # Resultado detallado por respuesta
-└── summary_&lt;timestamp&gt;.json  # Resumen del batch con promedios</code></pre>
-<p><strong>Diagrama de flujo completo:</strong></p>
-<div class="cell" data-layout-align="default">
-<div class="cell-output-display">
-<div>
-<p></p><figure class="figure"><p></p>
-<div>
-<pre class="mermaid mermaid-js">flowchart TD
-
-    A["MongoDB&lt;br&gt;message_backup&lt;br&gt;label=True"]--&gt;|"últimas 10 respuestas"|B["fetch_last_messages"]
-
-    B --&gt; C["EvaluationInput&lt;br&gt;question + answer&lt;br&gt;verbose_log + historial"]
-
-    C --&gt; D["evaluate_single"]
-
-    D --&gt; E1["Faithfulness&lt;br&gt;¿Inventó datos?"]
-    D --&gt; E2["Answer Relevancy&lt;br&gt;¿Respondió bien?"]
-    D --&gt; E3["Context Precision&lt;br&gt;¿Usó solo tools necesarias?"]
-    D --&gt; E4["Context Recall&lt;br&gt;¿Todas las tools que debía llamar?"]
-
-    E1 --&gt; F["LLM Evaluador&lt;br&gt;gpt-4.1"]
-    E2 --&gt; F
-    E3 --&gt; F
-    E4 --&gt; F
-
-    F --&gt; G["MetricScore&lt;br&gt;score 0 a 1&lt;br&gt;reasoning + details"]
-
-    G --&gt; H["Score Final Ponderado&lt;br&gt;Faithfulness 0.40&lt;br&gt;Relevancy 0.35&lt;br&gt;Recall 0.125&lt;br&gt;Precision 0.125"]
-
-    H --&gt; I{"MongoDB&lt;br&gt;disponible?"}
-
-    I --&gt;|Si| J["evaluation_results&lt;br&gt;MongoDB"]
-
-    I --&gt;|No| K["evaluation_results&lt;br&gt;eval_id.json&lt;br&gt;summary_ts.json"]
-
-    K --&gt; L["Dashboard Streamlit&lt;br&gt;monitorización en vivo"]
-
-    J --&gt; L
-</pre>
-</div>
-<p></p></figure><p></p>
-</div>
-</div>
-</div>
-</section>
-<section id="interpretación-de-resultados-1" class="level3">
-<h3 class="anchored" data-anchor-id="interpretación-de-resultados-1">5.7. Interpretación de resultados</h3>
+<section id="interpretación-de-resultados" class="level3">
+<h3 class="anchored" data-anchor-id="interpretación-de-resultados">5.8. Interpretación de resultados</h3>
 <p>La evaluación más reciente del sistema arrojó un score final de <strong>0.977 sobre 1.0</strong>, lo que indica que el chatbot se encuentra en un estado de funcionamiento óptimo. Un score de Faithfulness de <strong>1.0</strong> confirma que el agente no está inventando datos concretos como precios, disponibilidad o códigos de producto — el riesgo más crítico en un entorno de ventas. El score de Answer Relevancy de <strong>0.975</strong> refleja que las respuestas abordan directamente lo que el usuario pregunta, sin divagar ni omitir información clave. Los scores de Context Precision (<strong>0.933</strong>) y Context Recall (<strong>0.950</strong>) indican que el agente selecciona las herramientas correctas en casi todos los casos, tanto en eficiencia como en completitud. En conjunto, estos resultados sugieren que el sistema está respondiendo de manera confiable y alineada con los datos reales del negocio.</p>
 <p>Como referencia general para interpretar el score final:</p>
 <table class="caption-top table">
@@ -2706,20 +2592,20 @@ evaluation_results/      # (generado automáticamente)
 <section id="ejecución-local-de-las-pruebas" class="level3">
 <h3 class="anchored" data-anchor-id="ejecución-local-de-las-pruebas">6.3. Ejecución local de las pruebas</h3>
 <p>Para reproducir lo que hace el CI antes de hacer <code>push</code>:</p>
-<div class="sourceCode" id="cb61"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Instalar dependencias incluyendo el grupo de test</span></span>
-<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> sync <span class="at">--frozen</span> <span class="at">--group</span> test</span>
-<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Correr toda la suite</span></span>
-<span id="cb61-5"><a href="#cb61-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run pytest tests/</span>
-<span id="cb61-6"><a href="#cb61-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-7"><a href="#cb61-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Correr un archivo específico</span></span>
-<span id="cb61-8"><a href="#cb61-8" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run pytest tests/unit/test_main.py <span class="at">-v</span></span>
-<span id="cb61-9"><a href="#cb61-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-10"><a href="#cb61-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Correr sin coverage (más rápido)</span></span>
-<span id="cb61-11"><a href="#cb61-11" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run pytest tests/ <span class="at">--no-cov</span></span>
-<span id="cb61-12"><a href="#cb61-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-13"><a href="#cb61-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Filtrar por marker</span></span>
-<span id="cb61-14"><a href="#cb61-14" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run pytest tests/ <span class="at">-m</span> unit</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb58"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Instalar dependencias incluyendo el grupo de test</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> sync <span class="at">--frozen</span> <span class="at">--group</span> test</span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Correr toda la suite</span></span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run pytest tests/</span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Correr un archivo específico</span></span>
+<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run pytest tests/unit/test_main.py <span class="at">-v</span></span>
+<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Correr sin coverage (más rápido)</span></span>
+<span id="cb58-11"><a href="#cb58-11" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run pytest tests/ <span class="at">--no-cov</span></span>
+<span id="cb58-12"><a href="#cb58-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-13"><a href="#cb58-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Filtrar por marker</span></span>
+<span id="cb58-14"><a href="#cb58-14" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run pytest tests/ <span class="at">-m</span> unit</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>El reporte HTML de cobertura queda en <code>htmlcov/index.html</code> para inspección visual.</p>
 </section>
 <section id="diseño-de-imports-para-que-las-pruebas-sean-independientes" class="level3">
@@ -2741,32 +2627,32 @@ evaluation_results/      # (generado automáticamente)
 <section id="construcción-manual-de-la-imagen-con-podman" class="level3">
 <h3 class="anchored" data-anchor-id="construcción-manual-de-la-imagen-con-podman">6.5. Construcción manual de la imagen con Podman</h3>
 <p>Aunque el CI ya construye la imagen, puede ser útil hacerlo localmente para validar cambios en el <code>Dockerfile</code> antes de hacer <code>push</code>:</p>
-<div class="sourceCode" id="cb62"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Construir la imagen</span></span>
-<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> build <span class="at">-t</span> proyecto-ct:latest .</span>
-<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar que se creó</span></span>
-<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> images <span class="kw">|</span> <span class="fu">grep</span> proyecto-ct</span>
-<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Levantar un contenedor de prueba (requiere .env configurado)</span></span>
-<span id="cb62-8"><a href="#cb62-8" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> run <span class="at">--rm</span> <span class="at">-it</span> <span class="dt">\</span></span>
-<span id="cb62-9"><a href="#cb62-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">-p</span> 8000:8000 <span class="dt">\</span></span>
-<span id="cb62-10"><a href="#cb62-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">--env-file</span> .env <span class="dt">\</span></span>
-<span id="cb62-11"><a href="#cb62-11" aria-hidden="true" tabindex="-1"></a>  proyecto-ct:latest</span>
-<span id="cb62-12"><a href="#cb62-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb62-13"><a href="#cb62-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspeccionar logs</span></span>
-<span id="cb62-14"><a href="#cb62-14" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> logs <span class="op">&lt;</span>container_id<span class="op">&gt;</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb59"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Construir la imagen</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> build <span class="at">-t</span> proyecto-ct:latest .</span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Verificar que se creó</span></span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> images <span class="kw">|</span> <span class="fu">grep</span> proyecto-ct</span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Levantar un contenedor de prueba (requiere .env configurado)</span></span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> run <span class="at">--rm</span> <span class="at">-it</span> <span class="dt">\</span></span>
+<span id="cb59-9"><a href="#cb59-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">-p</span> 8000:8000 <span class="dt">\</span></span>
+<span id="cb59-10"><a href="#cb59-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">--env-file</span> .env <span class="dt">\</span></span>
+<span id="cb59-11"><a href="#cb59-11" aria-hidden="true" tabindex="-1"></a>  proyecto-ct:latest</span>
+<span id="cb59-12"><a href="#cb59-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-13"><a href="#cb59-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspeccionar logs</span></span>
+<span id="cb59-14"><a href="#cb59-14" aria-hidden="true" tabindex="-1"></a><span class="ex">podman</span> logs <span class="op">&lt;</span>container_id<span class="op">&gt;</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="publicación-de-la-imagen-en-github-container-registry" class="level3">
 <h3 class="anchored" data-anchor-id="publicación-de-la-imagen-en-github-container-registry">6.6. Publicación de la imagen en GitHub Container Registry</h3>
 <p>Para que el servidor pueda descargar la imagen construida en CI, primero hay que publicarla. Descomentar el último bloque de <code>.github/workflows/ci.yml</code>:</p>
-<div class="sourceCode" id="cb63"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Push to Registry</span></span>
-<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> redhat-actions/push-to-registry@v2</span></span>
-<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">with</span><span class="kw">:</span></span>
-<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">image</span><span class="kw">:</span><span class="at"> ${{ steps.build-image.outputs.image }}</span></span>
-<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tags</span><span class="kw">:</span><span class="at"> ${{ steps.build-image.outputs.tags }}</span></span>
-<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">registry</span><span class="kw">:</span><span class="at"> ghcr.io/${{ github.repository_owner }}</span></span>
-<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">username</span><span class="kw">:</span><span class="at"> ${{ github.actor }}</span></span>
-<span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> ${{ secrets.GITHUB_TOKEN }}</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb60"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> Push to Registry</span></span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">uses</span><span class="kw">:</span><span class="at"> redhat-actions/push-to-registry@v2</span></span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">with</span><span class="kw">:</span></span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">image</span><span class="kw">:</span><span class="at"> ${{ steps.build-image.outputs.image }}</span></span>
+<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tags</span><span class="kw">:</span><span class="at"> ${{ steps.build-image.outputs.tags }}</span></span>
+<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">registry</span><span class="kw">:</span><span class="at"> ghcr.io/${{ github.repository_owner }}</span></span>
+<span id="cb60-7"><a href="#cb60-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">username</span><span class="kw">:</span><span class="at"> ${{ github.actor }}</span></span>
+<span id="cb60-8"><a href="#cb60-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> ${{ secrets.GITHUB_TOKEN }}</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>No requiere configurar secretos adicionales: GitHub Actions provee <code>GITHUB_TOKEN</code> automáticamente. Solo hace falta otorgar permisos de escritura al <em>workflow</em> desde <strong>Settings → Actions → General → Workflow permissions → Read and write</strong>.</p>
 <p>Tras el primer push exitoso, la imagen queda disponible en:</p>
 <pre class="text"><code>ghcr.io/anmerino-pnd/proyecto-ct:latest
@@ -2824,11 +2710,11 @@ ghcr.io/anmerino-pnd/proyecto-ct:&lt;sha-del-commit&gt;</code></pre>
 <li><strong>Generate token</strong> y <strong>copia</strong> el valor (empieza con <code>github_pat_...</code>); GitHub solo lo muestra una vez.</li>
 <li>En el servidor, agrégalo al <code>.env</code> del proyecto:</li>
 </ol>
-<div class="sourceCode" id="cb65"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">'GH_TOKEN=github_pat_xxxxxxxxxxxxxxxxxxxxxxxx'</span> <span class="op">&gt;&gt;</span> /home/angel.merino/proyectoCT/.env</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb62"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">'GH_TOKEN=github_pat_xxxxxxxxxxxxxxxxxxxxxxxx'</span> <span class="op">&gt;&gt;</span> /home/angel.merino/proyectoCT/.env</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><code>deploy.sh</code> carga el <code>.env</code> y exporta <code>GH_TOKEN</code> para que <code>gh</code> lo use. Validar que funciona:</p>
-<div class="sourceCode" id="cb66"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /home/angel.merino/proyectoCT</span>
-<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-a</span><span class="kw">;</span> <span class="bu">source</span> .env<span class="kw">;</span> <span class="bu">set</span> +a</span>
-<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> api <span class="st">"repos/anmerino-pnd/proyectoCT/commits/main/check-runs"</span> <span class="at">--jq</span> <span class="st">'.total_count'</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb63"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /home/angel.merino/proyectoCT</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="bu">set</span> <span class="at">-a</span><span class="kw">;</span> <span class="bu">source</span> .env<span class="kw">;</span> <span class="bu">set</span> +a</span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> api <span class="st">"repos/anmerino-pnd/proyectoCT/commits/main/check-runs"</span> <span class="at">--jq</span> <span class="st">'.total_count'</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <blockquote class="blockquote">
 <p>Alternativa: un <strong>PAT classic</strong> con scope <code>repo</code> también sirve (más amplio). El fine-grained es preferible por seguir el principio de menor privilegio.</p>
 </blockquote>
@@ -2836,10 +2722,10 @@ ghcr.io/anmerino-pnd/proyecto-ct:&lt;sha-del-commit&gt;</code></pre>
 <section id="paso-2-instalar-gh-github-cli-en-el-servidor" class="level4">
 <h4 class="anchored" data-anchor-id="paso-2-instalar-gh-github-cli-en-el-servidor">6.7.3. Paso 2 — Instalar <code>gh</code> (GitHub CLI) en el servidor</h4>
 <p><code>deploy.sh</code> usa <code>gh</code> para consultar el CI. En RHEL/Rocky/Alma:</p>
-<div class="sourceCode" id="cb67"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install <span class="at">-y</span> <span class="st">'dnf-command(config-manager)'</span></span>
-<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf config-manager <span class="at">--add-repo</span> https://cli.github.com/packages/rpm/gh-cli.repo</span>
-<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install <span class="at">-y</span> gh</span>
-<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb64"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install <span class="at">-y</span> <span class="st">'dnf-command(config-manager)'</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf config-manager <span class="at">--add-repo</span> https://cli.github.com/packages/rpm/gh-cli.repo</span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> dnf install <span class="at">-y</span> gh</span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>No es necesario <code>gh auth login</code>: el script le pasa el <code>GH_TOKEN</code> por variable de entorno.</p>
 </section>
 <section id="paso-3-el-script-deploy.sh" class="level4">
@@ -2858,34 +2744,34 @@ ghcr.io/anmerino-pnd/proyecto-ct:&lt;sha-del-commit&gt;</code></pre>
 <li>Si <code>uv sync</code> falla, <strong>no</strong> reinicia (evita dejar producción rota). Todo queda en <code>logs/deploy.log</code>.</li>
 </ol>
 <p>Prueba manual antes de automatizarlo (con el repo ya al día no debe reiniciar nada):</p>
-<div class="sourceCode" id="cb68"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /home/angel.merino/proyectoCT</span>
-<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> deploy.sh</span>
-<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-n</span> 50 logs/deploy.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb65"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /home/angel.merino/proyectoCT</span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> deploy.sh</span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-n</span> 50 logs/deploy.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="paso-4-configurar-el-cron" class="level4">
 <h4 class="anchored" data-anchor-id="paso-4-configurar-el-cron">6.7.5. Paso 4 — Configurar el cron</h4>
-<div class="sourceCode" id="cb69"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb66"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-e</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Añadir una corrida cada 5 minutos:</p>
 <pre class="cron"><code># Despliegue continuo (pull) del chatbot cada 5 minutos
 */5 * * * * /bin/bash $HOME/proyectoCT/deploy.sh &gt;&gt; $HOME/proyectoCT/logs/deploy.cron.log 2&gt;&amp;1</code></pre>
 <p>Verificar:</p>
-<div class="sourceCode" id="cb71"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
-<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-f</span> ~/proyectoCT/logs/deploy.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb68"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="fu">crontab</span> <span class="at">-l</span></span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tail</span> <span class="at">-f</span> ~/proyectoCT/logs/deploy.log</span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </section>
 <section id="paso-5-permisos-sudo-sin-password" class="level4">
 <h4 class="anchored" data-anchor-id="paso-5-permisos-sudo-sin-password">6.7.6. Paso 5 — Permisos <code>sudo</code> sin password</h4>
 <p>Cuando cambian dependencias, <code>deploy.sh</code> ejecuta <code>sudo systemctl restart chatbot-api</code>, y el cron es no-interactivo (no puede teclear contraseña). El permiso se otorga con el archivo de sudoers versionado <a href="https://github.com/anmerino-pnd/proyectoCT/blob/main/deploy/chatbot-api.sudoers"><code>deploy/chatbot-api.sudoers</code></a>, que delimita el acceso a operar <strong>solo</strong> los servicios <code>chatbot-api</code> y <code>streamlit-reporte</code> (start/stop/restart/status) — nunca <code>sudo</code> global. Instalarlo <strong>una sola vez</strong> como root:</p>
-<div class="sourceCode" id="cb72"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /home/angel.merino/proyectoCT</span>
-<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> install <span class="at">-o</span> root <span class="at">-g</span> root <span class="at">-m</span> 0440 deploy/chatbot-api.sudoers /etc/sudoers.d/chatbot-api</span>
-<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> visudo <span class="at">-cf</span> /etc/sudoers.d/chatbot-api     <span class="co"># valida la sintaxis ANTES de confiar en él</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb69"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /home/angel.merino/proyectoCT</span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> install <span class="at">-o</span> root <span class="at">-g</span> root <span class="at">-m</span> 0440 deploy/chatbot-api.sudoers /etc/sudoers.d/chatbot-api</span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> visudo <span class="at">-cf</span> /etc/sudoers.d/chatbot-api     <span class="co"># valida la sintaxis ANTES de confiar en él</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>Importante:</p>
 <ul>
 <li>El archivo se valida con <code>visudo -cf</code>: un error de sintaxis en <code>/etc/sudoers.d/</code> puede bloquear <code>sudo</code> para todo el sistema, por eso nunca se edita a mano sin validar.</li>
 <li>El modo debe ser <code>0440</code> y el dueño <code>root:root</code>, o <code>sudo</code> lo ignora.</li>
 <li>Verificar que el usuario obtuvo exactamente los permisos esperados:</li>
 </ul>
-<div class="sourceCode" id="cb73"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> <span class="at">-l</span> <span class="at">-U</span> angel.merino <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-E</span> <span class="st">'chatbot-api|streamlit'</span></span>
-<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> <span class="at">-n</span> systemctl restart chatbot-api    <span class="co"># debe correr SIN pedir password</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb70"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> <span class="at">-l</span> <span class="at">-U</span> angel.merino <span class="kw">|</span> <span class="fu">grep</span> <span class="at">-E</span> <span class="st">'chatbot-api|streamlit'</span></span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a><span class="fu">sudo</span> <span class="at">-n</span> systemctl restart chatbot-api    <span class="co"># debe correr SIN pedir password</span></span></code><button title="Copiar al portapapeles" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <blockquote class="blockquote">
 <p><strong>Portabilidad:</strong> si el proyecto se mueve a otro servidor o cambia el usuario, edita <code>deploy/chatbot-api.sudoers</code> y reemplaza <code>angel.merino</code> por el nuevo usuario, y confirma la ruta real de <code>systemctl</code> con <code>command -v systemctl</code> (en RHEL es <code>/usr/bin/systemctl</code>).</p>
 </blockquote>
