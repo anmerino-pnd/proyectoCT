@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -26,8 +28,12 @@ def test_logs_token_incorrecto_403(client, monkeypatch):
 
 
 def test_logs_token_correcto_ok(client, monkeypatch):
-    """Con el token correcto y sin msg_id responde el HTML del buscador."""
+    """Con el token correcto y sin msg_id responde el HTML del buscador.
+
+    Se parchea `ct.main.get_db` para no depender de una conexión Mongo real
+    (en CI MONGO_URI está vacío)."""
     monkeypatch.setenv("CHATBOT_ADMIN_TOKEN", "secreto")
+    monkeypatch.setattr("ct.main.get_db", lambda: MagicMock())
     response = client.get("/logs", params={"token": "secreto"})
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
