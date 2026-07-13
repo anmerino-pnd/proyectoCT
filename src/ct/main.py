@@ -1,5 +1,6 @@
 import os
 import json
+import asyncio
 import logging
 from pathlib import Path
 from bson import ObjectId
@@ -13,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient, DESCENDING, ASCENDING
+from pymongo.errors import PyMongoError
 from ct.chat import (
     QueryRequest,
     get_chat_history,
@@ -21,16 +23,59 @@ from ct.chat import (
     )
 from ct.settings.clients import (
     get_db,
-    mongo_collection_message_backup
+    mongo_collection_message_backup,
+    mongo_collection_sessions,
 )
 from pydantic import BaseModel, Field
 from ct.tools.search_information import reload_vector_store
-from ct.settings.security import cors_origins, verify_origin, rate_limit
+from ct.settings.security import (
+    cors_origins,
+    verify_origin,
+    verify_admin,
+    rate_limit,
+    rate_limit_light,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def _ensure_mongo_indexes() -> None:
+    """Índices sobre colecciones EXISTENTES (no crea colecciones nuevas, que el
+    usuario de Mongo no puede). Best-effort: nunca debe tumbar el arranque.
+
+    El índice TTL en message_backup es opt-in y DESTRUCTIVO: solo se crea si
+    CHATBOT_BACKUP_TTL_DAYS está definido (borra docs más viejos que N días)."""
+    try:
+        db = get_db()
+        db[mongo_collection_sessions].create_index("session_id", name="ix_session_id")
+        ttl_days = os.getenv("CHATBOT_BACKUP_TTL_DAYS", "").strip()
+        if ttl_days.isdigit() and int(ttl_days) > 0:
+            db[mongo_collection_message_backup].create_index(
+                "timestamp", name="ttl_timestamp",
+                expireAfterSeconds=int(ttl_days) * 86400,
+            )
+            logger.info("Índice TTL en message_backup: %s días.", ttl_days)
+        else:
+            db[mongo_collection_message_backup].create_index("timestamp", name="ix_timestamp")
+    except PyMongoError as e:
+        logger.warning("No se pudieron asegurar los índices de Mongo: %s", e)
+
+
+def _preload_support_vectorstore() -> None:
+    """Precarga el FAISS de soporte en startup para evitar el cold-start del
+    primer /chat que use la tool de soporte. Best-effort."""
+    try:
+        from ct.tools.support import _get_vector_store
+        _get_vector_store()
+    except Exception as e:
+        logger.warning("No se pudo precargar el vectorstore de soporte: %s", e)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     reload_vector_store()
+    _preload_support_vectorstore()
+    _ensure_mongo_indexes()
     yield
 
 
@@ -48,7 +93,7 @@ app.add_middleware(
 # <script src="https://<dominio>/sdk/sdk.js" data-user-id=... data-user-key=...>
 app.mount("/sdk", StaticFiles(directory="ui"), name="sdk")
 
-@app.get("/history/{user_id}", dependencies=[Depends(verify_origin)])
+@app.get("/history/{user_id}", dependencies=[Depends(verify_origin), Depends(rate_limit_light)])
 def handle_history(user_id: str):
     return get_chat_history(user_id)
 
@@ -56,12 +101,11 @@ def handle_history(user_id: str):
 async def handle_chat(request: QueryRequest):
     return await async_chat_endpoint(request)
 
-@app.delete("/history/{user_id}", dependencies=[Depends(verify_origin)])
+@app.delete("/history/{user_id}", dependencies=[Depends(verify_origin), Depends(rate_limit_light)])
 async def handle_delete_history(user_id: str):
     return await delete_chat_history_endpoint(user_id)
 
 
-logger = logging.getLogger(__name__)
 _ui_event_warned = False
 _ALLOWED_UI_EVENTS = {"open", "close", "expand", "collapse", "product_click"}
 
@@ -69,10 +113,17 @@ _ALLOWED_UI_EVENTS = {"open", "close", "expand", "collapse", "product_click"}
 # crear colecciones nuevas. Un append por evento es atómico entre workers en POSIX.
 # Configurable con CHATBOT_UI_EVENTS_LOG; rotación vía logrotate del sistema.
 _UI_EVENTS_LOG = Path(os.getenv("CHATBOT_UI_EVENTS_LOG", "logs/ui_events.jsonl"))
+# Tope del payload `meta` para que un cliente no pueda llenar el disco con un evento.
+_UI_EVENT_META_MAX_BYTES = 2048
+
+# El directorio se crea UNA vez al importar, no en cada request.
+try:
+    _UI_EVENTS_LOG.parent.mkdir(parents=True, exist_ok=True)
+except OSError as _e:  # noqa: F841 — no debe impedir el arranque
+    logger.warning("No se pudo crear el directorio de ui-events: %s", _e)
 
 
 def _write_ui_event(record: dict) -> None:
-    _UI_EVENTS_LOG.parent.mkdir(parents=True, exist_ok=True)
     with _UI_EVENTS_LOG.open("a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
@@ -83,12 +134,16 @@ class UIEventRequest(BaseModel):
     meta: dict = Field(default_factory=dict)
 
 
-@app.post("/ui-event", dependencies=[Depends(verify_origin)], status_code=204)
+@app.post("/ui-event", dependencies=[Depends(verify_origin), Depends(rate_limit_light)], status_code=204)
 async def handle_ui_event(payload: UIEventRequest, request: Request):
     """Telemetría ligera del widget (open/expand/collapse/close/product_click).
     Fire-and-forget a archivo: nunca debe romper la UX."""
     if payload.event not in _ALLOWED_UI_EVENTS:
         return
+    # Descarta meta desmesurada (protección anti disk-fill); el evento se registra igual.
+    meta = payload.meta
+    if len(json.dumps(meta, ensure_ascii=False).encode("utf-8")) > _UI_EVENT_META_MAX_BYTES:
+        meta = {"_dropped": "meta demasiado grande"}
     try:
         ip = None
         for header in ("cf-connecting-ip", "x-forwarded-for"):
@@ -98,10 +153,10 @@ async def handle_ui_event(payload: UIEventRequest, request: Request):
                 break
         if ip is None:
             ip = request.client.host if request.client else "unknown"
-        _write_ui_event({
+        await asyncio.to_thread(_write_ui_event, {
             "event": payload.event,
             "user_id": payload.user_id,
-            "meta": payload.meta,
+            "meta": meta,
             "ip": ip,
             "timestamp": datetime.now(ZoneInfo("UTC")).isoformat(),
         })
@@ -112,7 +167,7 @@ async def handle_ui_event(payload: UIEventRequest, request: Request):
             _ui_event_warned = True
             logger.warning("ui-event no escrito (%s): %s", _UI_EVENTS_LOG, e)
 
-@app.post("/internal/reload_vectorstores")
+@app.post("/internal/reload_vectorstores", dependencies=[Depends(verify_admin)])
 async def reload_vectors():
     try:
         reload_vector_store()
@@ -122,15 +177,17 @@ async def reload_vectors():
 
 templates = Jinja2Templates(directory="ui")
 
-@app.get("/logs", response_class=HTMLResponse)
-async def msg_log(request: Request, msg_id: Optional[str] = None):
+@app.get("/logs", response_class=HTMLResponse, dependencies=[Depends(verify_admin)])
+async def msg_log(request: Request, msg_id: Optional[str] = None, token: Optional[str] = None):
     db = get_db()
     message_backup = db[mongo_collection_message_backup]
-    
+
     context = {
         "request": request,
         "found": False,
-        "msg_id_input": msg_id if msg_id else "", 
+        "msg_id_input": msg_id if msg_id else "",
+        # Se reinyecta en el formulario para que la búsqueda conserve el token admin.
+        "token": token or "",
         "error_msg": None
     }
 

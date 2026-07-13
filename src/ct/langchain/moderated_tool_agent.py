@@ -1,3 +1,4 @@
+import asyncio
 from typing import AsyncGenerator
 #from ct.settings.cache import set_llm_cache
 from ct.langchain.tool_agent import ToolAgent
@@ -12,8 +13,9 @@ class ModeratedToolAgent:
     async def run(self, query: str, session_id: str, listaPrecio : str) -> AsyncGenerator[str, None]:
         """Ejecuta una consulta RAG y muestra los chunks de respuesta en tiempo real."""
 
-        session = self.tool_agent.ensure_session(session_id)
-        ban_message = self.moderator.check_if_banned(session)
+        # pymongo es síncrono: lo sacamos del event loop para no bloquear a otros requests.
+        session = await asyncio.to_thread(self.tool_agent.ensure_session, session_id)
+        ban_message = await asyncio.to_thread(self.moderator.check_if_banned, session)
         if ban_message:
             yield ban_message
             return
@@ -25,13 +27,20 @@ class ModeratedToolAgent:
                 yield chunk
         elif label == "irrelevante":
             answer = self.moderator.polite_answer()
-            self.tool_agent.add_irrelevant_message(session_id=session_id, question=query, full_answer=answer)
+            await asyncio.to_thread(
+                self.tool_agent.add_irrelevant_message,
+                session_id=session_id, question=query, full_answer=answer,
+            )
             yield answer
         elif label == "inapropiado":
-            session = self.tool_agent.sessions.find_one({"session_id": session_id}) or {}
+            session = await asyncio.to_thread(
+                lambda: self.tool_agent.sessions.find_one({"session_id": session_id}) or {}
+            )
             msg, tries, banned_until = self.moderator.evaluate_inappropriate_behavior(session, query)
 
-            self.moderator.update_inappropriate_session(session_id, tries, banned_until)
+            await asyncio.to_thread(
+                self.moderator.update_inappropriate_session, session_id, tries, banned_until
+            )
             yield msg
         else:
             yield "Lo siento, no entendí tu mensaje. ¿Podrías reformularlo?"

@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CT Log Viewer</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/16.3.0/marked.min.js"
+            integrity="sha512-gxBP/mcwo9A5lJDFbVfXNb1hSLpOkHLLXAjld8HfCWjVIZnA3nlNnIqSTLvtwF4t55Dt4Rzh7phL3tJuKZ+teQ=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.4.8/purify.min.js"
+            integrity="sha512-JfRHuuInas3e80YgJBTb6JfrK4ngt4FRR9utxm7RbiuRVRNBdPORorA/WTgRKFCK7nbo+9ANMcEOVznsYvi3+A=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ansi_up/5.1.0/ansi_up.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
             --ct-blue: rgb(16, 24, 133);
@@ -216,6 +220,7 @@
         <div class="search-box">
             <form action="/logs" method="get" style="display: flex; width: 100%; gap: 10px;">
                 <input type="text" name="msg_id" placeholder="Ingresa el _id de Mongo (ej. 65a9f...)" value="{{ msg_id_input }}" required>
+                {% if token %}<input type="hidden" name="token" value="{{ token }}">{% endif %}
                 <button type="submit"> Analizar</button>
             </form>
         </div>
@@ -280,7 +285,8 @@
         const outputDiv = document.getElementById('markdown-output');
 
         if (rawMarkdown) {
-            outputDiv.innerHTML = marked.parse(rawMarkdown);
+            // Sanitizar la salida del LLM antes de inyectarla como HTML (anti-XSS).
+            outputDiv.innerHTML = DOMPurify.sanitize(marked.parse(rawMarkdown));
         } else {
             outputDiv.innerHTML = "<em>Sin respuesta generada.</em>";
         }

@@ -86,17 +86,20 @@ for suc in sucursales:
                 
             try:
                 ubicacion = driver.find_element(By.CSS_SELECTOR, ".col-md-7").text.lower()
-            except:
+            except Exception as e:
+                print(f"  ⚠️ No se encontró ubicación: {e}")
                 ubicacion = ""
 
             try:
                 telefono = driver.find_element(By.CSS_SELECTOR, ".phone").text
-            except:
+            except Exception as e:
+                print(f"  ⚠️ No se encontró teléfono: {e}")
                 telefono = ""
-                
+
             try:
                 horario = driver.find_element(By.CSS_SELECTOR, ".time").text
-            except:
+            except Exception as e:
+                print(f"  ⚠️ No se encontró horario: {e}")
                 horario = ""
             
             # Extraer directorio como lista

@@ -116,11 +116,25 @@ class CTAIWidget {
                 </div>
             </div>
         `;
+        // marked (render de Markdown) y DOMPurify (saneado anti-XSS de la salida del
+        // LLM) se cargan con versión FIJA + SRI para evitar drift/compromiso del CDN.
         if (typeof marked === "undefined") {
             const scriptMarked = document.createElement("script");
-            scriptMarked.src = "https://cdn.jsdelivr.net/npm/marked/marked.min.js";
+            scriptMarked.src = "https://cdnjs.cloudflare.com/ajax/libs/marked/16.3.0/marked.min.js";
+            scriptMarked.integrity = "sha512-gxBP/mcwo9A5lJDFbVfXNb1hSLpOkHLLXAjld8HfCWjVIZnA3nlNnIqSTLvtwF4t55Dt4Rzh7phL3tJuKZ+teQ==";
+            scriptMarked.crossOrigin = "anonymous";
+            scriptMarked.referrerPolicy = "no-referrer";
             scriptMarked.onerror = () => {};
             document.head.appendChild(scriptMarked);
+        }
+        if (typeof DOMPurify === "undefined") {
+            const scriptPurify = document.createElement("script");
+            scriptPurify.src = "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.4.8/purify.min.js";
+            scriptPurify.integrity = "sha512-JfRHuuInas3e80YgJBTb6JfrK4ngt4FRR9utxm7RbiuRVRNBdPORorA/WTgRKFCK7nbo+9ANMcEOVznsYvi3+A==";
+            scriptPurify.crossOrigin = "anonymous";
+            scriptPurify.referrerPolicy = "no-referrer";
+            scriptPurify.onerror = () => {};
+            document.head.appendChild(scriptPurify);
         }
         if (!document.getElementById("ctai-styles")) {
              const styleLink = document.createElement("link");

@@ -274,9 +274,9 @@ class TestAlgoliaSearchTool:
         # Execute
         result = algolia_search_tool.func("laptop", runtime=mock_runtime)
 
-        # Should return a set with a timeout-error message
-        assert isinstance(result, set)
-        assert any("Timeout" in msg for msg in result)
+        # Debe devolver un string (no un set) con el mensaje de timeout.
+        assert isinstance(result, str)
+        assert "Timeout" in result
     
     @patch("ct.tools.algolia.query_exec")
     @patch("ct.tools.algolia._create_scraper")
@@ -302,9 +302,9 @@ class TestAlgoliaSearchTool:
         # Execute
         result = algolia_search_tool.func("laptop", runtime=mock_runtime)
 
-        # Should return a set with a request-error message
-        assert isinstance(result, set)
-        assert any("Network error" in msg for msg in result)
+        # Debe devolver un string (no un set) con el mensaje de error de request.
+        assert isinstance(result, str)
+        assert "Network error" in result
     
     @patch("ct.tools.algolia.query_exec")
     @patch("ct.tools.algolia._create_scraper")

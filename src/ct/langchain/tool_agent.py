@@ -1,4 +1,5 @@
 import time
+import asyncio
 import traceback
 from toon import encode
 from typing import Any, cast
@@ -106,8 +107,10 @@ class ToolAgent:
             )
             return True
         except PyMongoError as e:
+            logger.warning("clear_session_history falló (Mongo) para %s: %s", session_id, e)
             return False
         except Exception as e:
+            logger.warning("clear_session_history falló para %s: %s", session_id, e)
             return False
 
     def ensure_session(self, session_id: str) -> dict:
@@ -130,12 +133,14 @@ class ToolAgent:
             tools= self.tools,
             system_prompt= encode(prompt_dict),
             context_schema=UserContext,
-            cache=InMemoryCache()  # type: ignore
+            # maxsize acota el crecimiento: antes la caché del LLM no tenía tope.
+            cache=InMemoryCache(maxsize=1000)  # type: ignore
             )
 
     async def run(self, query: str, session_id: str, lista_precio: str):
         start_time = time.perf_counter()
-        full_history = self.get_session_history(session_id)
+        # pymongo es síncrono; lo sacamos del event loop para no serializar requests.
+        full_history = await asyncio.to_thread(self.get_session_history, session_id)
         chat_history = trim_messages(
             full_history,
             token_counter=lambda messages: sum(
@@ -209,7 +214,8 @@ class ToolAgent:
                         candidate_msgs = result.get('messages') if isinstance(result, dict) else None
                         if isinstance(candidate_msgs, list) and candidate_msgs:
                             last_msg = candidate_msgs[-1]
-                    except Exception:
+                    except Exception as e:
+                        logger.debug("No se pudo extraer el último mensaje del resultado: %s", e)
                         last_msg = None
 
                     usage_metadata = getattr(last_msg, 'usage_metadata', {}) or {}
@@ -222,29 +228,36 @@ class ToolAgent:
                         candidate = result.get('messages') if isinstance(result, dict) else None
                         if isinstance(candidate, list):
                             messages_for_log = candidate
-                    except Exception:
+                    except Exception as e:
+                        logger.debug("No se pudo obtener messages para el verbose_log: %s", e)
                         messages_for_log = []
 
                     verbose_log_str = self._generate_verbose_log(messages_for_log)
-                    
-                    t_persist0 = time.perf_counter()
-                    self.add_message(session_id, "human", query)
-                    self.add_message(session_id, "assistant", full_answer)
-                    phase_timings = {
-                        "history_load": t_history_load,
-                        "agent_stream": t_agent_stream,
-                        "persist_messages": round(time.perf_counter() - t_persist0, 4),
-                    }
-                    self.add_message_backup(
-                        session_id,
-                        query,
-                        full_answer,
-                        metadata,
-                        verbose_log=verbose_log_str,
-                        tool_timings=timing_handler.tool_timings,
-                        phase_timings=phase_timings,
-                    )
-                    
+
+                    # Persistencia pymongo (síncrona) en un solo hop de hilo: libera el
+                    # event loop mientras se escriben los 3 documentos. persist_messages
+                    # mide solo los dos add_message (mismo criterio que antes).
+                    def _persist_turn():
+                        tp0 = time.perf_counter()
+                        self.add_message(session_id, "human", query)
+                        self.add_message(session_id, "assistant", full_answer)
+                        pmt = round(time.perf_counter() - tp0, 4)
+                        self.add_message_backup(
+                            session_id,
+                            query,
+                            full_answer,
+                            metadata,
+                            verbose_log=verbose_log_str,
+                            tool_timings=timing_handler.tool_timings,
+                            phase_timings={
+                                "history_load": t_history_load,
+                                "agent_stream": t_agent_stream,
+                                "persist_messages": pmt,
+                            },
+                        )
+
+                    await asyncio.to_thread(_persist_turn)
+
                 except Exception as e:
                     print(f"❌ ERROR al guardar: {type(e).__name__}: {e}")
                     traceback.print_exc()

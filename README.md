@@ -124,6 +124,26 @@ MONGO_COLLECTION_PRODUCTS = "tbl_productos"
 MONGO_COLLECTION_SALES = "tbl_ofertas"   
 MONGO_COLLECTION_SPECIFICATIONS = "mongo_collection_specifications"
 MONGO_COLLECTION_PEDIDOS="tbl_pedidos"
+
+# --- Endurecimiento de seguridad (opt-in; ver src/ct/settings/security.py) ---
+# Orígenes permitidos (allowlist) separados por coma. Con la allowlist definida,
+# CORS y verify_origin se activan. Se recomienda definirla en producción.
+CHATBOT_ALLOWED_ORIGINS=""          # p.ej. "https://www.ctonline.mx,https://ctdev.ctonline.mx"
+# Solo desarrollo: abrir CORS en '*' cuando NO hay allowlist. Sin este flag, CORS falla cerrado.
+CHATBOT_OPEN_CORS=""                # "1" para modo abierto (dev)
+# Token para endpoints administrativos (/logs, /internal/reload_vectorstores). Sin él, 503.
+CHATBOT_ADMIN_TOKEN=""
+# Rate limiting en memoria por worker.
+CHATBOT_RATE_MAX="20"               # máx. peticiones a /chat por ventana
+CHATBOT_RATE_WINDOW="60"            # ventana en segundos
+CHATBOT_RATE_MAX_LIGHT="120"        # máx. para /ui-event y /history por ventana
+
+# --- Operación / rendimiento ---
+# Retención (días) para el índice TTL de message_backup. DESTRUCTIVO: borra docs más
+# viejos que N días. Si se omite, NO se crea TTL (la colección no se poda).
+CHATBOT_BACKUP_TTL_DAYS=""
+# Ruta del log JSONL de telemetría del widget.
+CHATBOT_UI_EVENTS_LOG="logs/ui_events.jsonl"
 ```
 
 ### 4. Ejecutar la Aplicación

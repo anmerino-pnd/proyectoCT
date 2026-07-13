@@ -101,6 +101,7 @@ omit = [
     "src/ct/evaluation/*",
     "src/ct/reportes/*",
     "src/ct/ETL/*",
+    "src/ct/scripts/*",
 ]
 
 [tool.coverage.report]

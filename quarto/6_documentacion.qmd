@@ -1326,17 +1326,15 @@ Este módulo define los _endpoints_ de la API FastAPI para la interacción del c
 Es el archivo principal de la aplicación FastAPI. Configura la aplicación, el CORS, sirve el SDK del widget, aplica el endurecimiento de seguridad y registra los *endpoints* definidos en `ct.chat`.
 
 * **Funciones clave**:
-  * `app = FastAPI(lifespan=...)`: Inicializa la aplicación FastAPI; el `lifespan` carga el vector store FAISS al arrancar el servidor.
-  * `app.add_middleware(CORSMiddleware, ...)`: Configura CORS a partir de `cors_origins()` (allowlist por la variable `CHATBOT_ALLOWED_ORIGINS`; `*` si no se define) con `allow_credentials=False`.
+  * `app = FastAPI(lifespan=...)`: Inicializa la aplicación FastAPI. Al arrancar, el `lifespan` (1) carga el vector store FAISS de productos, (2) **precarga el FAISS de soporte** para evitar el _cold-start_ de la primera consulta de soporte, y (3) asegura los índices de Mongo (`session_id`, `timestamp`; y un índice **TTL** opt-in sobre `message_backup` si se define `CHATBOT_BACKUP_TTL_DAYS`).
+  * `app.add_middleware(CORSMiddleware, ...)`: Configura CORS a partir de `cors_origins()`. Con `CHATBOT_ALLOWED_ORIGINS` definida usa esa allowlist; **sin allowlist falla cerrado** (ningún origen cruzado) salvo que se active explícitamente `CHATBOT_OPEN_CORS=1` para desarrollo. `allow_credentials=False`.
   * `app.mount("/sdk", StaticFiles(directory="ui"))`: Sirve los archivos del widget (`sdk.js`, `app.js`, `styles.css`, `chat.png`) desde el propio servidor.
-  * `@app.get("/history/{user_id}", dependencies=[Depends(verify_origin)])`: Mapea la ruta GET `/history/{user_id}` a `handle_history`.
-  * `handle_history(user_id: str)`: Llama a `get_chat_history` de `ct.chat` para obtener y retornar el historial.
-  * `@app.post("/chat", dependencies=[Depends(verify_origin), Depends(rate_limit)])`: Mapea la ruta POST `/chat` a `handle_chat`, aplicando la validación de Origin/Referer y el _rate limiting_ (módulo `settings/security.py`).
-  * `handle_chat(request: QueryRequest)`: Llama a `async_chat_endpoint` de `ct.chat` para manejar la solicitud y el *streaming* de la respuesta.
-  * `@app.delete("/history/{user_id}")`: Decorador que mapea la ruta DELETE `/history/{user_id}` a la función `handle_delete_history`.
-  * `handle_delete_history(user_id: str)`: Llama a `delete_chat_history_endpoint` de `ct.chat` para borrar 
-  el historial de un usuario.
-  * `if __name__ == "__main__":`: Bloque de ejecución principal para correr la aplicación con Uvicorn en desarrollo. En producción con Gunicorn.
+  * `@app.get("/history/{user_id}", dependencies=[Depends(verify_origin), Depends(rate_limit_light)])`: GET del historial, con verificación de Origin y _rate limiting_ holgado.
+  * `@app.post("/chat", dependencies=[Depends(verify_origin), Depends(rate_limit)])`: POST `/chat` con validación de Origin/Referer y _rate limiting_ (módulo `settings/security.py`).
+  * `@app.delete("/history/{user_id}", dependencies=[Depends(verify_origin), Depends(rate_limit_light)])`: DELETE del historial, con las mismas guardas ligeras.
+  * `@app.post("/ui-event", dependencies=[Depends(verify_origin), Depends(rate_limit_light)])`: Telemetría del widget. Valida el evento contra una lista blanca, **acota el tamaño del `meta`** (anti _disk-fill_) y escribe el JSONL **fuera del event loop** (`asyncio.to_thread`).
+  * `@app.get("/logs", dependencies=[Depends(verify_admin)])` y `@app.post("/internal/reload_vectorstores", dependencies=[Depends(verify_admin)])`: _endpoints_ administrativos protegidos por **token admin** (`CHATBOT_ADMIN_TOKEN`, cabecera `X-Admin-Token` o query `?token=`). Sin token configurado quedan deshabilitados (503).
+  * `if __name__ == "__main__":`: Ejecución con Uvicorn en desarrollo. En producción con Gunicorn (systemd `chatbot-api`).
 
 #### 2.1.6. ETL
 
@@ -1570,13 +1568,15 @@ Este módulo actúa como el orquestador principal del proceso ETL (Extracción, 
 
 El sistema utiliza una combinación estratégica de modelos de lenguaje para optimizar la funcionalidad y los costos:
 
-* **Clasificación de consultas y respuestas iniciales (Ollama - `gemma3:12b`)**:
-  * **Función**: Este modelo *open-source*, cargado localmente a través de Ollama, es el primer punto de contacto. Su función principal es clasificar las consultas de los usuarios como *relevantes* (productos que se ofrecen en la empresa), *irrelevantes* (cualquier producto o tema fuera del ámbito de negocio), o *inapropiado* (lenguaje ofensivo).
-  * **Ventaja**: Permite una gestión eficiente de consultas no relacionadas con el negocio sin incurrir en costos de API's comerciales, y es ideal para respuestas de "baneo" o corteses.
+* **Clasificación de consultas (OpenAI - `gpt-4.1-mini`)**:
+  * **Función**: Un modelo pequeño y rápido, dedicado ÚNICAMENTE a clasificar el mensaje del usuario como *relevante* (productos/temas del negocio), *irrelevante* (fuera del ámbito) o *inapropiado* (lenguaje ofensivo). Es el primer punto de contacto (`QueryModerator`) y no genera respuestas de producto.
+  * **Ventaja**: Al devolver una sola palabra, sin *reasoning*, es mucho más barato y veloz que el modelo principal; habilita las respuestas de "baneo" o corteses sin invocar al agente completo.
 
-* **Generación de respuestas relevantes (OpenAI - `gpt-4.1`)**:
-  * **Función**: Este modelo avanzado de OpenAI es el encargado de generar las respuestas detalladas y contextualizadas para las consultas clasificadas como *relevantes*. Trabaja en conjunto con la cadena RAG para integrar la información recuperada de la base de datos vectorial.
-  * **Ventaja**: Ofrece alta calidad y precisión en las respuestas, especialmente en el manejo de precios, promociones complejas y detalles de productos, lo que fue validad en pruebas comparativas.
+* **Generación de respuestas relevantes (OpenAI - `gpt-5`)**:
+  * **Función**: El modelo del agente principal (`ToolAgent`), encargado de generar las respuestas detalladas y contextualizadas para las consultas *relevantes*. Trabaja con la cadena RAG y el conjunto de *tools* para integrar la información recuperada (búsqueda vectorial, inventario, promociones, estatus, etc.).
+  * **Ventaja**: Ofrece alta calidad y precisión, especialmente en el manejo de precios, promociones complejas y detalles de productos.
+
+> Nota: variantes históricas como Ollama (`gemma3`) o `gpt-4.1` aparecen en capturas antiguas de este documento, pero la configuración vigente es la de arriba (`gpt-4.1-mini` para clasificar y `gpt-5` para el agente).
 
 :::
 
@@ -1612,6 +1612,35 @@ La base de datos vectorial FAISS es el corazón del sistema RAG, almacenando las
 4. **Optimización del manejo de promociones complejas**:
 
   Las promociones tipo "en compra X lleva Y" aún presenta desafíos. Podría ser necesario enriquecer el contexto del *embedding* para estos productos específicos, reglas más explícitas dentro del LLM o creación de plantillas de *prompts* más específicos para estas promociones.
+
+### 3.3. Endurecimiento de seguridad y rendimiento
+
+Como parte de un barrido de vulnerabilidades, cuellos de botella y calidad, se aplicaron los siguientes cambios de bajo riesgo (sin romper el contrato del SDK).
+
+**Seguridad aplicada**
+
+* **Endpoints administrativos protegidos**: `/logs` y `/internal/reload_vectorstores` exigen un **token admin** (`CHATBOT_ADMIN_TOKEN`, vía cabecera `X-Admin-Token` o query `?token=`). Sin token quedan deshabilitados (503). Antes `/logs` exponía sin autenticación la conversación completa (pregunta, respuesta y `verbose_log`) por `msg_id`.
+* **CORS que falla cerrado**: sin `CHATBOT_ALLOWED_ORIGINS` ya no se abre en `*`; se requiere activar `CHATBOT_OPEN_CORS=1` de forma explícita para el modo abierto de desarrollo.
+* **`verify_origin` más estricto**: con allowlist activa, una petición sin cabecera `Origin` ni `Referer` (típico de `curl`/server-to-server) se rechaza, cerrando el bypass que antes anulaba la allowlist.
+* **XSS del widget saneado**: la salida Markdown del LLM se pasa por **DOMPurify** antes de inyectarse como HTML (en el widget `app.js` y en el visor `msg_log.html`). Además `marked` y DOMPurify se cargan con **versión fija + SRI** desde CDN, evitando drift o compromiso del CDN.
+* **`/ui-event` acotado**: valida el tipo de evento contra lista blanca, limita el tamaño del `meta` (anti llenado de disco) y aplica _rate limiting_ ligero.
+
+**Rendimiento aplicado**
+
+* **Mongo fuera del event loop**: las llamadas `pymongo` síncronas del camino de `/chat` (sesión, baneo, historial, persistencia) se ejecutan con `asyncio.to_thread`, evitando que serialicen los demás _requests_ del worker (era el cuello de botella dominante).
+* **CloudScraper cacheado** por `user_token` (antes se recreaba en cada llamada a Algolia).
+* **Precarga del FAISS de soporte** en el arranque (elimina el _cold-start_ de la primera consulta de soporte).
+* **Índice TTL opt-in** en `message_backup` (`CHATBOT_BACKUP_TTL_DAYS`) e índices de lectura (`session_id`, `timestamp`); **caché del LLM acotada** (`InMemoryCache(maxsize=1000)`).
+
+**Nuevas variables de entorno**: `CHATBOT_ADMIN_TOKEN`, `CHATBOT_OPEN_CORS`, `CHATBOT_RATE_MAX_LIGHT`, `CHATBOT_BACKUP_TTL_DAYS` (además de las ya existentes `CHATBOT_ALLOWED_ORIGINS`, `CHATBOT_RATE_MAX`, `CHATBOT_RATE_WINDOW`, `CHATBOT_UI_EVENTS_LOG`).
+
+**Calidad**: se sustituyeron `except` desnudos que tragaban errores por _logging_, se corrigió un _bug_ en el manejo de errores de Algolia (devolvía un `set` en vez de un `str`), y los scripts utilitarios/ETL que no forman parte del _runtime_ del agente se movieron de `ct/tools/` a `ct/scripts/` para limpiar el grafo de dependencias del servicio.
+
+**Backlog de riesgo ALTO (requiere decisión de producto, NO implementado)**
+
+* **Autenticación de identidad / IDOR**: hoy `user_id` y `user_key` (lista de precios) los controla el navegador sin verificación de servidor. Esto permite, en teoría, leer/borrar el historial de otro usuario, consultar el estatus de pedidos de otros clientes (`status_tool`) o cambiar de lista de precios. La solución correcta es una identidad verificada en el servidor (token firmado/HMAC emitido por la página que embebe el widget); es un cambio de arquitectura que debe coordinarse con el equipo del sitio.
+* **_Rate limiting_ global**: el límite es en memoria por worker (evadible rotando `user_id`); un límite global compartido requiere respaldarlo en Redis (`PODMAN_REDIS_URL` ya disponible).
+* **FAISS `allow_dangerous_deserialization=True`**: aceptable mientras `datos/vectorstores/` no sea escribible por terceros; conviene revisarlo si cambia el modelo de permisos del sistema de archivos.
 
 :::
 

@@ -1,4 +1,5 @@
 import redis
+import asyncio
 from toon import encode
 from typing import Optional, Any, cast
 from langchain_openai import ChatOpenAI
@@ -16,7 +17,8 @@ class QueryModerator:
         )
 
     async def classify_query(self, query: str, session_id: str) -> str:
-        history = self._get_formatted_history(session_id)
+        # pymongo síncrono fuera del event loop.
+        history = await asyncio.to_thread(self._get_formatted_history, session_id)
 
         # Modo prueba de carga (CT_FAKE_LLM): no llamamos a OpenAI; tratamos todo
         # como 'relevante' tras leer el historial real (mide la carga de Mongo).

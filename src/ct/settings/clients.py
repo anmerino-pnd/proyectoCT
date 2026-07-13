@@ -1,4 +1,5 @@
 import os
+import logging
 from functools import lru_cache
 
 import openai as openai_api
@@ -77,6 +78,8 @@ def get_db():
     return get_mongo_client().get_default_database()
 
 
+logger = logging.getLogger(__name__)
+
 # --- Pool de conexiones MySQL (evita el handshake completo en cada llamada a herramientas) ---
 _mysql_pool = None
 
@@ -99,13 +102,24 @@ def get_mysql_connection():
     """
     try:
         cnx = _get_mysql_pool().get_connection()
-    except Exception:
+    except Exception as e:
+        logger.warning("Pool MySQL agotado/no disponible; conexión directa de respaldo: %s", e)
         return mysql.connector.connect(
             host=ip, port=port, user=user, password=pwd, database=database,
             read_timeout=60, write_timeout=15,
         )
     try:
         cnx.ping(reconnect=True, attempts=2, delay=0)
-    except Exception:
-        pass
+    except Exception as e:
+        # La conexión del pool quedó muerta: la devolvemos al pool y caemos a una directa
+        # para no entregar una conexión inutilizable al llamador.
+        logger.warning("Ping de conexión del pool falló (%s); usando conexión directa.", e)
+        try:
+            cnx.close()
+        except Exception:
+            pass
+        return mysql.connector.connect(
+            host=ip, port=port, user=user, password=pwd, database=database,
+            read_timeout=60, write_timeout=15,
+        )
     return cnx

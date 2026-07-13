@@ -245,6 +245,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#generación-de-la-base-de-datos-vectorial" id="toc-generación-de-la-base-de-datos-vectorial" class="nav-link" data-scroll-target="#generación-de-la-base-de-datos-vectorial">3.1. Generación de la base de datos vectorial</a></li>
   <li><a href="#recomendaciones-para-futura-mejora" id="toc-recomendaciones-para-futura-mejora" class="nav-link" data-scroll-target="#recomendaciones-para-futura-mejora">3.2. Recomendaciones para futura mejora</a></li>
+  <li><a href="#endurecimiento-de-seguridad-y-rendimiento" id="toc-endurecimiento-de-seguridad-y-rendimiento" class="nav-link" data-scroll-target="#endurecimiento-de-seguridad-y-rendimiento">3.3. Endurecimiento de seguridad y rendimiento</a></li>
   </ul></li>
   <li><a href="#diagrama-de-arquitectura" id="toc-diagrama-de-arquitectura" class="nav-link" data-scroll-target="#diagrama-de-arquitectura">4. Diagrama de arquitectura</a>
   <ul>
@@ -1735,16 +1736,15 @@ enabled</code></pre>
 <ul>
 <li><strong>Funciones clave</strong>:
 <ul>
-<li><code>app = FastAPI(lifespan=...)</code>: Inicializa la aplicación FastAPI; el <code>lifespan</code> carga el vector store FAISS al arrancar el servidor.</li>
-<li><code>app.add_middleware(CORSMiddleware, ...)</code>: Configura CORS a partir de <code>cors_origins()</code> (allowlist por la variable <code>CHATBOT_ALLOWED_ORIGINS</code>; <code>*</code> si no se define) con <code>allow_credentials=False</code>.</li>
+<li><code>app = FastAPI(lifespan=...)</code>: Inicializa la aplicación FastAPI. Al arrancar, el <code>lifespan</code> (1) carga el vector store FAISS de productos, (2) <strong>precarga el FAISS de soporte</strong> para evitar el <em>cold-start</em> de la primera consulta de soporte, y (3) asegura los índices de Mongo (<code>session_id</code>, <code>timestamp</code>; y un índice <strong>TTL</strong> opt-in sobre <code>message_backup</code> si se define <code>CHATBOT_BACKUP_TTL_DAYS</code>).</li>
+<li><code>app.add_middleware(CORSMiddleware, ...)</code>: Configura CORS a partir de <code>cors_origins()</code>. Con <code>CHATBOT_ALLOWED_ORIGINS</code> definida usa esa allowlist; <strong>sin allowlist falla cerrado</strong> (ningún origen cruzado) salvo que se active explícitamente <code>CHATBOT_OPEN_CORS=1</code> para desarrollo. <code>allow_credentials=False</code>.</li>
 <li><code>app.mount("/sdk", StaticFiles(directory="ui"))</code>: Sirve los archivos del widget (<code>sdk.js</code>, <code>app.js</code>, <code>styles.css</code>, <code>chat.png</code>) desde el propio servidor.</li>
-<li><code>@app.get("/history/{user_id}", dependencies=[Depends(verify_origin)])</code>: Mapea la ruta GET <code>/history/{user_id}</code> a <code>handle_history</code>.</li>
-<li><code>handle_history(user_id: str)</code>: Llama a <code>get_chat_history</code> de <code>ct.chat</code> para obtener y retornar el historial.</li>
-<li><code>@app.post("/chat", dependencies=[Depends(verify_origin), Depends(rate_limit)])</code>: Mapea la ruta POST <code>/chat</code> a <code>handle_chat</code>, aplicando la validación de Origin/Referer y el <em>rate limiting</em> (módulo <code>settings/security.py</code>).</li>
-<li><code>handle_chat(request: QueryRequest)</code>: Llama a <code>async_chat_endpoint</code> de <code>ct.chat</code> para manejar la solicitud y el <em>streaming</em> de la respuesta.</li>
-<li><code>@app.delete("/history/{user_id}")</code>: Decorador que mapea la ruta DELETE <code>/history/{user_id}</code> a la función <code>handle_delete_history</code>.</li>
-<li><code>handle_delete_history(user_id: str)</code>: Llama a <code>delete_chat_history_endpoint</code> de <code>ct.chat</code> para borrar el historial de un usuario.</li>
-<li><code>if __name__ == "__main__":</code>: Bloque de ejecución principal para correr la aplicación con Uvicorn en desarrollo. En producción con Gunicorn.</li>
+<li><code>@app.get("/history/{user_id}", dependencies=[Depends(verify_origin), Depends(rate_limit_light)])</code>: GET del historial, con verificación de Origin y <em>rate limiting</em> holgado.</li>
+<li><code>@app.post("/chat", dependencies=[Depends(verify_origin), Depends(rate_limit)])</code>: POST <code>/chat</code> con validación de Origin/Referer y <em>rate limiting</em> (módulo <code>settings/security.py</code>).</li>
+<li><code>@app.delete("/history/{user_id}", dependencies=[Depends(verify_origin), Depends(rate_limit_light)])</code>: DELETE del historial, con las mismas guardas ligeras.</li>
+<li><code>@app.post("/ui-event", dependencies=[Depends(verify_origin), Depends(rate_limit_light)])</code>: Telemetría del widget. Valida el evento contra una lista blanca, <strong>acota el tamaño del <code>meta</code></strong> (anti <em>disk-fill</em>) y escribe el JSONL <strong>fuera del event loop</strong> (<code>asyncio.to_thread</code>).</li>
+<li><code>@app.get("/logs", dependencies=[Depends(verify_admin)])</code> y <code>@app.post("/internal/reload_vectorstores", dependencies=[Depends(verify_admin)])</code>: <em>endpoints</em> administrativos protegidos por <strong>token admin</strong> (<code>CHATBOT_ADMIN_TOKEN</code>, cabecera <code>X-Admin-Token</code> o query <code>?token=</code>). Sin token configurado quedan deshabilitados (503).</li>
+<li><code>if __name__ == "__main__":</code>: Ejecución con Uvicorn en desarrollo. En producción con Gunicorn (systemd <code>chatbot-api</code>).</li>
 </ul></li>
 </ul>
 </section>
@@ -2076,17 +2076,20 @@ enabled</code></pre>
 <h3 class="anchored" data-anchor-id="modelos-llm-utilizados">2.2. Modelos LLM utilizados</h3>
 <p>El sistema utiliza una combinación estratégica de modelos de lenguaje para optimizar la funcionalidad y los costos:</p>
 <ul>
-<li><strong>Clasificación de consultas y respuestas iniciales (Ollama - <code>gemma3:12b</code>)</strong>:
+<li><strong>Clasificación de consultas (OpenAI - <code>gpt-4.1-mini</code>)</strong>:
 <ul>
-<li><strong>Función</strong>: Este modelo <em>open-source</em>, cargado localmente a través de Ollama, es el primer punto de contacto. Su función principal es clasificar las consultas de los usuarios como <em>relevantes</em> (productos que se ofrecen en la empresa), <em>irrelevantes</em> (cualquier producto o tema fuera del ámbito de negocio), o <em>inapropiado</em> (lenguaje ofensivo).</li>
-<li><strong>Ventaja</strong>: Permite una gestión eficiente de consultas no relacionadas con el negocio sin incurrir en costos de API’s comerciales, y es ideal para respuestas de “baneo” o corteses.</li>
+<li><strong>Función</strong>: Un modelo pequeño y rápido, dedicado ÚNICAMENTE a clasificar el mensaje del usuario como <em>relevante</em> (productos/temas del negocio), <em>irrelevante</em> (fuera del ámbito) o <em>inapropiado</em> (lenguaje ofensivo). Es el primer punto de contacto (<code>QueryModerator</code>) y no genera respuestas de producto.</li>
+<li><strong>Ventaja</strong>: Al devolver una sola palabra, sin <em>reasoning</em>, es mucho más barato y veloz que el modelo principal; habilita las respuestas de “baneo” o corteses sin invocar al agente completo.</li>
 </ul></li>
-<li><strong>Generación de respuestas relevantes (OpenAI - <code>gpt-4.1</code>)</strong>:
+<li><strong>Generación de respuestas relevantes (OpenAI - <code>gpt-5</code>)</strong>:
 <ul>
-<li><strong>Función</strong>: Este modelo avanzado de OpenAI es el encargado de generar las respuestas detalladas y contextualizadas para las consultas clasificadas como <em>relevantes</em>. Trabaja en conjunto con la cadena RAG para integrar la información recuperada de la base de datos vectorial.</li>
-<li><strong>Ventaja</strong>: Ofrece alta calidad y precisión en las respuestas, especialmente en el manejo de precios, promociones complejas y detalles de productos, lo que fue validad en pruebas comparativas.</li>
+<li><strong>Función</strong>: El modelo del agente principal (<code>ToolAgent</code>), encargado de generar las respuestas detalladas y contextualizadas para las consultas <em>relevantes</em>. Trabaja con la cadena RAG y el conjunto de <em>tools</em> para integrar la información recuperada (búsqueda vectorial, inventario, promociones, estatus, etc.).</li>
+<li><strong>Ventaja</strong>: Ofrece alta calidad y precisión, especialmente en el manejo de precios, promociones complejas y detalles de productos.</li>
 </ul></li>
 </ul>
+<blockquote class="blockquote">
+<p>Nota: variantes históricas como Ollama (<code>gemma3</code>) o <code>gpt-4.1</code> aparecen en capturas antiguas de este documento, pero la configuración vigente es la de arriba (<code>gpt-4.1-mini</code> para clasificar y <code>gpt-5</code> para el agente).</p>
+</blockquote>
 </section>
 </section>
 <section id="guía-de-entrenamiento-y-mejora" class="level2" style="text-align: justify">
@@ -2117,6 +2120,33 @@ enabled</code></pre>
 <li><strong>Optimización del manejo de promociones complejas</strong>:</li>
 </ol>
 <p>Las promociones tipo “en compra X lleva Y” aún presenta desafíos. Podría ser necesario enriquecer el contexto del <em>embedding</em> para estos productos específicos, reglas más explícitas dentro del LLM o creación de plantillas de <em>prompts</em> más específicos para estas promociones.</p>
+</section>
+<section id="endurecimiento-de-seguridad-y-rendimiento" class="level3">
+<h3 class="anchored" data-anchor-id="endurecimiento-de-seguridad-y-rendimiento">3.3. Endurecimiento de seguridad y rendimiento</h3>
+<p>Como parte de un barrido de vulnerabilidades, cuellos de botella y calidad, se aplicaron los siguientes cambios de bajo riesgo (sin romper el contrato del SDK).</p>
+<p><strong>Seguridad aplicada</strong></p>
+<ul>
+<li><strong>Endpoints administrativos protegidos</strong>: <code>/logs</code> y <code>/internal/reload_vectorstores</code> exigen un <strong>token admin</strong> (<code>CHATBOT_ADMIN_TOKEN</code>, vía cabecera <code>X-Admin-Token</code> o query <code>?token=</code>). Sin token quedan deshabilitados (503). Antes <code>/logs</code> exponía sin autenticación la conversación completa (pregunta, respuesta y <code>verbose_log</code>) por <code>msg_id</code>.</li>
+<li><strong>CORS que falla cerrado</strong>: sin <code>CHATBOT_ALLOWED_ORIGINS</code> ya no se abre en <code>*</code>; se requiere activar <code>CHATBOT_OPEN_CORS=1</code> de forma explícita para el modo abierto de desarrollo.</li>
+<li><strong><code>verify_origin</code> más estricto</strong>: con allowlist activa, una petición sin cabecera <code>Origin</code> ni <code>Referer</code> (típico de <code>curl</code>/server-to-server) se rechaza, cerrando el bypass que antes anulaba la allowlist.</li>
+<li><strong>XSS del widget saneado</strong>: la salida Markdown del LLM se pasa por <strong>DOMPurify</strong> antes de inyectarse como HTML (en el widget <code>app.js</code> y en el visor <code>msg_log.html</code>). Además <code>marked</code> y DOMPurify se cargan con <strong>versión fija + SRI</strong> desde CDN, evitando drift o compromiso del CDN.</li>
+<li><strong><code>/ui-event</code> acotado</strong>: valida el tipo de evento contra lista blanca, limita el tamaño del <code>meta</code> (anti llenado de disco) y aplica <em>rate limiting</em> ligero.</li>
+</ul>
+<p><strong>Rendimiento aplicado</strong></p>
+<ul>
+<li><strong>Mongo fuera del event loop</strong>: las llamadas <code>pymongo</code> síncronas del camino de <code>/chat</code> (sesión, baneo, historial, persistencia) se ejecutan con <code>asyncio.to_thread</code>, evitando que serialicen los demás <em>requests</em> del worker (era el cuello de botella dominante).</li>
+<li><strong>CloudScraper cacheado</strong> por <code>user_token</code> (antes se recreaba en cada llamada a Algolia).</li>
+<li><strong>Precarga del FAISS de soporte</strong> en el arranque (elimina el <em>cold-start</em> de la primera consulta de soporte).</li>
+<li><strong>Índice TTL opt-in</strong> en <code>message_backup</code> (<code>CHATBOT_BACKUP_TTL_DAYS</code>) e índices de lectura (<code>session_id</code>, <code>timestamp</code>); <strong>caché del LLM acotada</strong> (<code>InMemoryCache(maxsize=1000)</code>).</li>
+</ul>
+<p><strong>Nuevas variables de entorno</strong>: <code>CHATBOT_ADMIN_TOKEN</code>, <code>CHATBOT_OPEN_CORS</code>, <code>CHATBOT_RATE_MAX_LIGHT</code>, <code>CHATBOT_BACKUP_TTL_DAYS</code> (además de las ya existentes <code>CHATBOT_ALLOWED_ORIGINS</code>, <code>CHATBOT_RATE_MAX</code>, <code>CHATBOT_RATE_WINDOW</code>, <code>CHATBOT_UI_EVENTS_LOG</code>).</p>
+<p><strong>Calidad</strong>: se sustituyeron <code>except</code> desnudos que tragaban errores por <em>logging</em>, se corrigió un <em>bug</em> en el manejo de errores de Algolia (devolvía un <code>set</code> en vez de un <code>str</code>), y los scripts utilitarios/ETL que no forman parte del <em>runtime</em> del agente se movieron de <code>ct/tools/</code> a <code>ct/scripts/</code> para limpiar el grafo de dependencias del servicio.</p>
+<p><strong>Backlog de riesgo ALTO (requiere decisión de producto, NO implementado)</strong></p>
+<ul>
+<li><strong>Autenticación de identidad / IDOR</strong>: hoy <code>user_id</code> y <code>user_key</code> (lista de precios) los controla el navegador sin verificación de servidor. Esto permite, en teoría, leer/borrar el historial de otro usuario, consultar el estatus de pedidos de otros clientes (<code>status_tool</code>) o cambiar de lista de precios. La solución correcta es una identidad verificada en el servidor (token firmado/HMAC emitido por la página que embebe el widget); es un cambio de arquitectura que debe coordinarse con el equipo del sitio.</li>
+<li><strong><em>Rate limiting</em> global</strong>: el límite es en memoria por worker (evadible rotando <code>user_id</code>); un límite global compartido requiere respaldarlo en Redis (<code>PODMAN_REDIS_URL</code> ya disponible).</li>
+<li><strong>FAISS <code>allow_dangerous_deserialization=True</code></strong>: aceptable mientras <code>datos/vectorstores/</code> no sea escribible por terceros; conviene revisarlo si cambia el modelo de permisos del sistema de archivos.</li>
+</ul>
 </section>
 </section>
 <section id="diagrama-de-arquitectura" class="level2" style="text-align: justify">

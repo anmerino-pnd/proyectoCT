@@ -8,11 +8,14 @@ from ct.settings.clients import (
 )
 import re
 import json
+import logging
 import pymysql
 import requests
 import cloudscraper
 import mysql.connector
 from functools import lru_cache
+
+logger = logging.getLogger(__name__)
 from toon import encode
 from string import Template
 pymysql.install_as_MySQLdb()
@@ -50,6 +53,10 @@ WHERE cuenta = '${account}';
 """
 )
 
+# Cacheado por user_token: crear un CloudScraper es costoso (resuelve el challenge
+# de Cloudflare) y antes se recreaba en cada llamada a la tool. El token varía por
+# usuario, así que la caché es por token; maxsize acota la memoria.
+@lru_cache(maxsize=256)
 def _create_scraper(user_token: str) -> cloudscraper.CloudScraper:
     scraper = cloudscraper.create_scraper(
     browser={
@@ -191,17 +198,17 @@ def algolia_search_tool(
         return encode(resultados)
     
     except requests.exceptions.Timeout:
-        print(f"❌ Timeout en búsqueda de Algolia: {producto}")
-        return {f"❌ Timeout en búsqueda de Algolia: {producto}"}
-        
+        logger.warning("Timeout en búsqueda de Algolia: %s", producto)
+        return f"Timeout en búsqueda de Algolia: {producto}"
+
     except requests.exceptions.RequestException as e:
-        print(f"❌ Error en request a Algolia: {e}")
-        return {f"❌ Error en request a Algolia: {e}"}
-        
+        logger.warning("Error en request a Algolia: %s", e)
+        return f"Error en request a Algolia: {e}"
+
     except KeyError as e:
-        print(f"❌ Respuesta de Algolia con estructura inesperada: {e}")
-        return {f"❌ Respuesta de Algolia con estructura inesperada: {e}"}
-        
+        logger.warning("Respuesta de Algolia con estructura inesperada: %s", e)
+        return f"Respuesta de Algolia con estructura inesperada: {e}"
+
     except Exception as e:
-        print(f"❌ Error inesperado en algolia_query: {e}")
-        return {f"❌ Error inesperado en algolia_query: {e}"}
+        logger.warning("Error inesperado en algolia_query: %s", e)
+        return f"Error inesperado en algolia_query: {e}"

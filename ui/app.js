@@ -575,10 +575,12 @@ function ctaiRenderBot(wrap, raw) {
     // Solo re-parseamos el texto si cambió (evita parpadeo del texto mientras llegan productos).
     if (textEl && textEl.dataset.src !== parsed.text) {
         textEl.dataset.src = parsed.text;
-        if (typeof marked !== "undefined") {
-            try { textEl.innerHTML = marked.parse(parsed.text); }
+        if (typeof marked !== "undefined" && typeof DOMPurify !== "undefined") {
+            // Saneamos el HTML del Markdown del LLM antes de inyectarlo (anti-XSS).
+            try { textEl.innerHTML = DOMPurify.sanitize(marked.parse(parsed.text)); }
             catch (e) { textEl.textContent = parsed.text; }
         } else {
+            // Sin las libs (aún cargando o CDN caído): texto plano seguro, sin HTML.
             textEl.textContent = parsed.text;
         }
     }
