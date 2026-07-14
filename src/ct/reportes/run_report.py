@@ -416,17 +416,12 @@ with tabs[1]:
         df_history = pd.DataFrame(history_data)
 
         # Tabla con la ventana MÁS RECIENTE arriba (las gráficas de abajo siguen
-        # en orden cronológico). Selección de fila para ver el resumen del batch.
-        df_history_desc = df_history.iloc[::-1].reset_index(drop=True)
-        hist_event = st.dataframe(
-            df_history_desc,
+        # en orden cronológico).
+        st.dataframe(
+            df_history.iloc[::-1].reset_index(drop=True),
             use_container_width=True,
             hide_index=True,
-            on_select="rerun",
-            selection_mode="single-row",
-            key="hist_sel",
         )
-        st.caption("Haz click en una ventana para ver su resumen detallado más abajo.")
 
         fig_scores = go.Figure()
         fig_scores.add_trace(go.Scatter(
@@ -463,24 +458,27 @@ with tabs[1]:
         )
         st.plotly_chart(fig_metrics, use_container_width=True)
 
-        # ---- Resumen detallado de la ventana seleccionada ----
-        selected_rows = []
-        try:
-            selected_rows = hist_event.selection["rows"]  # posiciones en la tabla invertida
-        except (AttributeError, KeyError, TypeError):
-            selected_rows = []
-
-        if selected_rows:
-            # La tabla se muestra invertida (más nueva primero); mapeamos de vuelta.
-            windows_desc = list(reversed(evaluator.state.history))
-            pos = selected_rows[0]
-            if 0 <= pos < len(windows_desc):
-                window = windows_desc[pos]
-                summaries = load_window_summaries()
-                summary = find_summary_for_window(window, summaries)
-                render_window_summary(window, summary)
-        else:
-            st.caption("Selecciona una ventana en la tabla de arriba para ver su resumen.")
+        # ---- Resumen detallado: selector de ventana ----
+        # Un dropdown explícito es más confiable que el click directo en la tabla
+        # (la selección de fila de st.dataframe tiene un área clicable muy sutil).
+        # Por defecto muestra la ventana más reciente.
+        windows_desc = list(reversed(evaluator.state.history))
+        if windows_desc:
+            labels = [
+                f"{w.evaluated_at.strftime('%Y-%m-%d %H:%M:%S')} — Final Score {w.final_score:.3f}"
+                for w in windows_desc
+            ]
+            pick = st.selectbox(
+                "Selecciona una ventana para ver su resumen detallado",
+                options=range(len(windows_desc)),
+                format_func=lambda i: labels[i],
+                index=0,
+                key="hist_pick",
+            )
+            window = windows_desc[pick]
+            summaries = load_window_summaries()
+            summary = find_summary_for_window(window, summaries)
+            render_window_summary(window, summary)
     else:
         st.info("Todavía no hay ventanas evaluadas en el historial.")
 
