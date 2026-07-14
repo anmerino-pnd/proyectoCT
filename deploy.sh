@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 export TZ="America/Hermosillo"
+# cron corre con un PATH mínimo que NO incluye ~/.local/bin, donde vive `uv`.
+# Sin esto, `uv sync` falla con "orden no encontrada" y el deploy aborta.
+export PATH="$HOME/.local/bin:$PATH"
 
 # =============================================================================
 # deploy.sh — CD basado en pull (GitOps) para proyectoCT
