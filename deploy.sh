@@ -120,9 +120,12 @@ if echo "$CHANGED" | grep -qE '^src/'; then
 fi
 
 # ---- 6. Dependencias: uv sync ANTES de reiniciar (fail-safe) ----------------
+# --inexact: NO remover paquetes que no estén en el lock. El modelo de spaCy
+# (es_core_news_lg) se instala aparte y no está declarado; sin --inexact, uv lo
+# borraba en cada sync y rompía el dashboard de Streamlit.
 if $DEPS_CHANGED; then
-    log "[INFO] Cambiaron dependencias — ejecutando 'uv sync --frozen'."
-    if ! uv sync --frozen >>"$LOG_FILE" 2>&1; then
+    log "[INFO] Cambiaron dependencias — ejecutando 'uv sync --frozen --inexact'."
+    if ! uv sync --frozen --inexact >>"$LOG_FILE" 2>&1; then
         log "[ERROR] 'uv sync' falló. NO se reinicia para no romper producción."
         log "---- END (uv sync FAIL) ----"
         exit 1
