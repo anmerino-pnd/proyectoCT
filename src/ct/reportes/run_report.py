@@ -1,6 +1,7 @@
 # ====================================================================
 # IMPORTS Y CONFIG (al principio del archivo, antes de cualquier UI)
 # ====================================================================
+import json
 import asyncio
 import logging
 import pytz
@@ -20,6 +21,7 @@ from nltk.corpus import stopwords as nltk_stopwords_module
 from sklearn.feature_extraction.text import CountVectorizer
 
 from ct.settings.clients import mongo_uri, mongo_collection_message_backup
+from ct.settings.config import EVAL_OUTPUT_DIR
 from ct.evaluation.evaluator import RAGASEvaluator
 from ct.evaluation.schemas import EvaluationState
 
@@ -187,6 +189,102 @@ def get_history_data() -> list[dict]:
         for e in evaluator.state.history
     ]
 
+
+def load_window_summaries() -> dict[tuple[str, str], dict]:
+    """Lee los summary_*.json del evaluador y los indexa por la pareja
+    (doc_id del primer resultado, doc_id del último). Esa pareja coincide con
+    (window_start_doc_id, window_end_doc_id) de cada WindowEntry, lo que permite
+    correlacionar cada fila del histórico con su resumen de batch.
+
+    Se lee fresco en cada run (son pocos archivos pequeños) para no mostrar
+    resúmenes obsoletos tras una evaluación nueva. Tolerante a JSON inválido o a
+    que el directorio no exista.
+    """
+    summaries: dict[tuple[str, str], dict] = {}
+    try:
+        paths = sorted(EVAL_OUTPUT_DIR.glob("summary_*.json"))
+    except OSError:
+        return summaries
+
+    for path in paths:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError, ValueError):
+            continue
+        results = data.get("results") or []
+        if not results:
+            continue
+        first = results[0].get("doc_id")
+        last = results[-1].get("doc_id")
+        if first and last:
+            summaries[(first, last)] = data
+    return summaries
+
+
+def find_summary_for_window(window, summaries: dict[tuple[str, str], dict]) -> dict | None:
+    """Devuelve el summary_*.json correspondiente a una ventana (WindowEntry),
+    o None si no se encuentra (p.ej. el archivo fue borrado)."""
+    key = (
+        getattr(window, "window_start_doc_id", None),
+        getattr(window, "window_end_doc_id", None),
+    )
+    return summaries.get(key)
+
+
+def _render_metric_detail(label: str, metric: dict) -> None:
+    """Muestra el score y el reasoning de una métrica dentro de un expander."""
+    score = metric.get("score")
+    reasoning = metric.get("reasoning") or "(sin explicación)"
+    score_str = f"{score:.2f}" if isinstance(score, (int, float)) else "N/A"
+    st.markdown(f"**{label}: {score_str}**")
+    st.caption(reasoning)
+
+
+def render_window_summary(window, summary: dict | None) -> None:
+    """Panel amigable del resumen de una ventana: promedios del batch + un
+    expander por documento con el porqué (reasoning) de cada métrica."""
+    fecha = window.evaluated_at.strftime("%Y-%m-%d %H:%M:%S") if window.evaluated_at else "N/A"
+    st.markdown(f"#### 🔎 Resumen de la ventana evaluada el {fecha}")
+
+    # Promedios: preferimos los del summary; si no hay archivo, los del WindowEntry.
+    averages = (summary or {}).get("averages") or window.averages or {}
+    final_score = averages.get("final_score", window.final_score)
+    if isinstance(final_score, (int, float)):
+        st.markdown(f"**Final Score del batch: {final_score:.4f}**")
+
+    a1, a2, a3, a4 = st.columns(4)
+    a1.metric("Faithfulness",      f"{averages.get('faithfulness', 0):.3f}")
+    a2.metric("Answer Relevancy",  f"{averages.get('answer_relevancy', 0):.3f}")
+    a3.metric("Context Precision", f"{averages.get('context_precision', 0):.3f}")
+    a4.metric("Context Recall",    f"{averages.get('context_recall', 0):.3f}")
+
+    if summary is None:
+        st.info(
+            "No se encontró el archivo de resumen detallado (`summary_*.json`) de esta "
+            "ventana, así que solo se muestran los promedios. El detalle por documento "
+            "no está disponible."
+        )
+        return
+
+    st.markdown("##### Documentos de esta ventana")
+    st.caption(
+        "Abre un documento para ver el porqué de cada métrica. Los scores bajos y su "
+        "explicación indican qué hizo caer la evaluación."
+    )
+
+    results = summary.get("results") or []
+    for i, res in enumerate(results, start=1):
+        question = (res.get("question") or "(sin pregunta)").strip().replace("\n", " ")
+        doc_score = res.get("final_score")
+        score_str = f"{doc_score:.2f}" if isinstance(doc_score, (int, float)) else "N/A"
+        titulo = f"{i}. {question[:80]} — score {score_str}"
+        with st.expander(titulo):
+            scores = res.get("scores") or {}
+            _render_metric_detail("Faithfulness",      scores.get("faithfulness", {}))
+            _render_metric_detail("Answer Relevancy",  scores.get("answer_relevancy", {}))
+            _render_metric_detail("Context Precision", scores.get("context_precision", {}))
+            _render_metric_detail("Context Recall",    scores.get("context_recall", {}))
+
 # ===================================================================== #
 #                                UI                                     #
 # ===================================================================== #
@@ -316,7 +414,19 @@ with tabs[1]:
 
     if history_data:
         df_history = pd.DataFrame(history_data)
-        st.dataframe(df_history, use_container_width=True)
+
+        # Tabla con la ventana MÁS RECIENTE arriba (las gráficas de abajo siguen
+        # en orden cronológico). Selección de fila para ver el resumen del batch.
+        df_history_desc = df_history.iloc[::-1].reset_index(drop=True)
+        hist_event = st.dataframe(
+            df_history_desc,
+            use_container_width=True,
+            hide_index=True,
+            on_select="rerun",
+            selection_mode="single-row",
+            key="hist_sel",
+        )
+        st.caption("Haz click en una ventana para ver su resumen detallado más abajo.")
 
         fig_scores = go.Figure()
         fig_scores.add_trace(go.Scatter(
@@ -352,6 +462,25 @@ with tabs[1]:
             yaxis=dict(range=[0, 1]),
         )
         st.plotly_chart(fig_metrics, use_container_width=True)
+
+        # ---- Resumen detallado de la ventana seleccionada ----
+        selected_rows = []
+        try:
+            selected_rows = hist_event.selection["rows"]  # posiciones en la tabla invertida
+        except (AttributeError, KeyError, TypeError):
+            selected_rows = []
+
+        if selected_rows:
+            # La tabla se muestra invertida (más nueva primero); mapeamos de vuelta.
+            windows_desc = list(reversed(evaluator.state.history))
+            pos = selected_rows[0]
+            if 0 <= pos < len(windows_desc):
+                window = windows_desc[pos]
+                summaries = load_window_summaries()
+                summary = find_summary_for_window(window, summaries)
+                render_window_summary(window, summary)
+        else:
+            st.caption("Selecciona una ventana en la tabla de arriba para ver su resumen.")
     else:
         st.info("Todavía no hay ventanas evaluadas en el historial.")
 
@@ -805,7 +934,10 @@ with tabs[0]:
             df_filtered = df_conversations.copy()
 
         if not df_filtered.empty:
-            df_display = df_filtered[['full_date', 'question']].copy()
+            # Más reciente primero.
+            df_display = (
+                df_filtered.sort_values('full_date', ascending=False)[['full_date', 'question']].copy()
+            )
             df_display.rename(columns={'full_date': 'Fecha y Hora', 'question': 'Pregunta del Usuario'}, inplace=True)
             st.dataframe(df_display, use_container_width=True)
         else:
