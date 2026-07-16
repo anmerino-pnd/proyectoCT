@@ -1,0 +1,35 @@
+GUÍA RÁPIDA — Operación del chatbot CT
+=======================================
+
+1) ¿LAS RESPUESTAS SON BUENAS? (calidad)
+   1. Ir a http://10.10.251.160:3000/
+   2. Entrar a "Evaluación RAGAS".
+   3. Si hay batches pendientes, correrlos.
+   4. Revisar el score: si está por encima de 0.85, el flujo está bien.
+
+2) ¿ESTÁ PRENDIDO? (disponibilidad — RAGAS mide calidad, no si está vivo)
+   - Dashboard: abrir http://10.10.251.160:3000/ (debe cargar).
+   - Chatbot: mandar un mensaje de prueba en el widget y ver que responda.
+
+3) SI ALGO FALLA (lo más común)
+   sudo systemctl restart chatbot-api         # reinicia la API del chatbot
+   sudo systemctl restart streamlit-reporte   # reinicia el dashboard
+   sudo journalctl -u chatbot-api -f               # ver en vivo qué pasa en la API
+   tail -f ~/proyectoCT/logs/deploy.log       # ver si el auto-deploy aplicó bien
+
+4) SI LOS RESULTADOS VAN BAJANDO
+   Analizar las preguntas que sacaron nota baja (en el dashboard, al seleccionar
+   la ventana se ve el detalle por documento con el motivo) y ajustar el system
+   prompt en:  ./src/ct/settings/prompt.py
+
+5) AUDITAR UNA CONSULTA PUNTUAL
+   1. En MongoDB, colección tbl_message_backup: buscar la consulta y copiar su ObjectId.
+   2. Pegar ese ObjectId en:
+      https://10.10.251.160:8000/logs?token=<TOKEN>
+   Ahí se ve pregunta, respuesta y el log de ejecución para auditar.
+
+NOTA (token de /logs)
+   El <TOKEN> es la variable CHATBOT_ADMIN_TOKEN del archivo .env del servidor.
+   NO escribir el valor real en esta guía ni subirla a git: quien tenga ese token
+   puede leer todas las conversaciones. Si se filtra, cambiar CHATBOT_ADMIN_TOKEN
+   en el .env y reiniciar (sudo systemctl restart chatbot-api).
